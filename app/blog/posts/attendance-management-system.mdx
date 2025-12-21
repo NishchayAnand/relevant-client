@@ -1,0 +1,20 @@
+---
+title: 'Low Level Design: Attendance Management System'
+publishedAt: '2025-08-17'
+---
+
+Many schools still rely on manual methods such as **paper registers** or **spreadsheets**to track student attendance. While simple, these approaches are **error-prone**, **time-consuming**, and make it difficult to **aggregate data**, **generate reports**, or **identify attendance trends** over time.
+
+In most cases, **teachers bear the operational burden** of marking attendance daily, calculating attendance summaries manually, and submitting reports to administrators. These inefficiencies can lead to delayed interventions for students with chronic absenteeism, poor record-keeping, and administrative overhead.
+
+![attendance-management-system](/attendance-management-system.png)
+
+To address these limitations, we aim to design a **School Attendance Management System** that enables **teachers to mark student attendance** and **generate attendance reports** for their assigned classes.
+
+### Functional Requirements
+
+Design the backend infrastructure for a **locally networked, in-memory Attendance Management System** that enables **teachers** to:
+
+1. **Create classes and register students** at the beginning of each session.
+2. **Record daily attendance** for every student in their respective classes.
+3. **Generate** and **view attendance reports** for any selected class.

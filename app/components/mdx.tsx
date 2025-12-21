@@ -11,7 +11,6 @@ interface TableData {
 
 /*
 MDX tables will pass data like:
-
 {
   headers: ['Name', 'Role'],
   rows: [
