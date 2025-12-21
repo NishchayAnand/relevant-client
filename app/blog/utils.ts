@@ -10,21 +10,21 @@ type Metadata = {
 };
 
 function parseFrontmatter(fileContent: string) {
-  let frontmatterRegex = /---\s*([\s\S]*?)\s*---/
-  let match = frontmatterRegex.exec(fileContent)
-  let frontMatterBlock = match![1]
-  let content = fileContent.replace(frontmatterRegex, '').trim()
-  let frontMatterLines = frontMatterBlock.trim().split('\n')
-  let metadata: Partial<Metadata> = {}
+  let frontmatterRegex = /---\s*([\s\S]*?)\s*---/;
+  let match = frontmatterRegex.exec(fileContent);
+  let frontMatterBlock = match![1];
+  let content = fileContent.replace(frontmatterRegex, '').trim();
+  let frontMatterLines = frontMatterBlock.trim().split('\n');
+  let metadata: Partial<Metadata> = {};
 
   frontMatterLines.forEach((line) => {
-    let [key, ...valueArr] = line.split(': ')
-    let value = valueArr.join(': ').trim()
-    value = value.replace(/^['"](.*)['"]$/, '$1') // Remove quotes
-    metadata[key.trim() as keyof Metadata] = value
+    let [key, ...valueArr] = line.split(': ');
+    let value = valueArr.join(': ').trim();
+    value = value.replace(/^['"](.*)['"]$/, '$1'); // Remove quotes
+    metadata[key.trim() as keyof Metadata] = value;
   })
 
-  return { metadata: metadata as Metadata, content }
+  return { metadata: metadata as Metadata, content };
 }
 
 function readMDXFile(filepath: string) {
@@ -57,7 +57,7 @@ export function getBlogPosts() {
 export function formatDate(date: string, includeRelative: false) {
     let currentDate = new Date();
     if(!date.includes('T')) {
-        date = `${date}T00:00:00`
+        date = `${date}T00:00:00`;
     }
     let targetDate = new Date(date);
 

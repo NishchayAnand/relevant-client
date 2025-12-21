@@ -2,8 +2,6 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
-import { Navbar } from "@/app/components/navbar";
-
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -21,8 +19,6 @@ export const metadata: Metadata = {
   description: "Thoughts on systems, design, and engineering",
 };
 
-const cx = (...classes: (string | false | null | undefined)[]) => classes.filter(Boolean).join(' ');
-
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -30,13 +26,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased max-w-xl mt-8 mx-auto`}
-      >
-        <main className="flex-auto min-w-0 m-8 flex flex-col">
-          <Navbar />
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased max-w-3xl  m-8 mt-20 mx-auto`}>
+        {/* <main className="flex-auto min-w-0 flex flex-col"> */}
           {children}
-        </main>
       </body>
     </html>
   );
