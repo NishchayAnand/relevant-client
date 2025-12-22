@@ -7,14 +7,109 @@ Many schools still rely on manual methods such as **paper registers** or **sprea
 
 In most cases, **teachers bear the operational burden** of marking attendance daily, calculating attendance summaries manually, and submitting reports to administrators. These inefficiencies can lead to delayed interventions for students with chronic absenteeism, poor record-keeping, and administrative overhead.
 
-![attendance-management-system](/attendance-management-system.png)
+![attendance-management-system](/attendance-management-system/attendance-management-system.png)
 
 To address these limitations, we aim to design a **School Attendance Management System** that enables **teachers to mark student attendance** and **generate attendance reports** for their assigned classes.
+
+---
 
 ### Functional Requirements
 
 Design the backend infrastructure for a **locally networked, in-memory Attendance Management System** that enables **teachers** to:
 
 1. **Create classes and register students** at the beginning of each session.
+
 2. **Record daily attendance** for every student in their respective classes.
+
 3. **Generate** and **view attendance reports** for any selected class.
+
+---
+
+### Sequence Flow
+
+The Attendance Management System allows a **teacher (main actor)** to perform **key actions (use cases)** such as **create a new class**, **add a student to an existing class**, **mark daily class attendance** and **generate class attendance report**.
+
+Let’s understand the step-by-step sequence flow of each use case to gain deeper insights into how teachers interact with the system, how data flows during runtime, and how each feature functions within a memory-only environment.
+
+
+**Use Case 1: Create a New Class**
+
+This use case allows a teacher to define a new class at the beginning of an academic session. The following interactions describe the step-by-step flow of this operation between the user interface and backend components.
+
+1. A **Teacher** initiates the process by clicking the **"Create Class"** button from the UI. 
+
+2. The UI displays the **"Create Class"** form and prompts the **Teacher** to enter class details such as **Name** and assigned **TeacherName**.
+
+3. Upon submitting the form, the frontend sends a **POST /create-class** request to the **AttendanceManagementSystem**, including the provided class details.
+
+4. The **AttendanceManagementSystem** intercepts the request, extracts request parameters: **name** and **teacherName**, and invokes the **createClass(name, teacherName)** method within the **ClassService**.
+
+5. The **createClass()** method validates if a **ClassEntity** with the same **name** already exists. Upon successful validation, it generates a unique **classId**, instantiates a new **ClassEntity**  and saves the **[classId, classEntity]** mapping in the in-memory **classRegistry**.
+
+6. Finally, an **HTTP response** is returned to the UI, stating whether the **ClassEntity** has been created or not.
+
+![attendance-management-system](/attendance-management-system/use-case-1-light-mode.png)
+
+
+**Use Case 2: Add a Student to Existing Class**
+
+This use case enables a teacher to add a new student to one of the existing classes. The following interactions outline the complete step-by-step flow from initiating the action to successful student registration.
+
+1. The **Teacher** begins the process by clicking the **"Add Student"** button from the UI. 
+
+2. The frontend sends a **GET \classes** request to the **AttendanceManagementSystem** to populate **"Select Class"** menu with the list of existing classes.
+
+3. The UI then displays the **"Add Student Details"** form and prompts the **Teacher** to select the desired class and enters student details such as **name** and **enrollmentId**.
+
+4. Upon submitting the form, the frontend sends a **POST /add-student/[classId]** request to the **AttendanceManagementSystem**, including the student's details.
+
+5. The **AttendanceManagementSystem** intercepts the request, extracts request parameters: **classId**, **name** and **enrollmentId**, and invokes the **addStudent(classId, enrollmentId, name)** method within the **ClassService**.
+
+6. The **addStudent()** method validates whether a **Student** with the same **enrollmentId** already exists in the target **Class**. Upon successful validation, it instantiates a new **studentObject** and adds the **[enrollmentId, studentObject]** mapping to the **studentRegistry** of the target **Class**.
+
+7. Finally, an **HTTP response** is returned to the UI, confirming whether the **Student** has been added to the target **Class** or not.
+
+![attendance-management-system](/attendance-management-system/use-case-2-light-mode.png)
+
+**Use Case 3: Mark Daily Attendance**
+
+This use case allows a teacher to record daily attendance for all students in a selected class. The interactions below describe this flow in detail.
+
+1. The **Teacher** begins the process by clicking the "Mark Attendance" button from the UI. 
+
+2. The frontend sends a **GET /classes** request to the **AttendanceManagementSystem** to populate the "Select Class" drop down with the list of existing classes.
+
+3. The UI then displays a "Select Class" form and prompts the **Teacher** to select a class. 
+
+4. Upon selecting a class, the frontend sends a **GET /students/[classId]** to the **AttendanceManagementSystem** to populate the "Mark Attendance" from with the **List:Student:** in the target **Class**. 
+
+5. The UI then displays the "Mark Attendance" form and prompts the **Teacher** to go through each **Student** and mark its **attendanceStatus** as **PRESENT** or **ABSENT**.
+
+6. Upon submitting the form, the frontend sends a **POST /mark-attendance/[classId]** request to the **AttendanceManagementSystem**, including today's **date** and **List:StudentAttendanceRecord**.
+
+7. The **AttendanceManagementSystem** intercepts the requests, extracts request parameters: **classId**, **date** and **List:StudentAttendanceRecord**, and invokes the  **markAttendance(classId, date, List:StudentAttendanceRecord>** method within the **ClassService**.
+
+8. The **markAttendance()** method validates whether the attendance for the target **Class** for today's **date** is already marked or not. Upon successful validation, it adds the **[date, List:StudentAttendanceRecord]** mapping to the **attendanceRegistry** of the target **Class**.
+
+9. Finally, an **HTTP response** is returned to the UI, confirming whether the attendance for all **Student** in the target **Class** is marked for today's **date** or not.
+
+![attendance-management-system](/attendance-management-system/use-case-3-light-mode.png)
+
+**Use Case 4: Generate Class Attendance Report**
+
+This use case allows a teacher to generate and view the attendance summaries for a selected class for a defined date range. The interactions below illustrate the step-by-step process of how this report is generated and delivered to the teacher through the UI.
+
+1. The **Teacher** clicks the "Generate Attendance Report" button from the UI. 
+
+2. The frontend sends a **GET /classes** request to the **AttendanceManagementSystem** to populate the "Select Class" dropdown with the list of existing classes.
+
+3. The UI then displays the 'Generate Attendance Report' form, prompting the **Teacher** to select a class along with the **startDate**and **endDate**.
+
+4. Upon submitting the form, the frontend sends a **GET /attendance-report/[classId]** request to the **AttendanceManagementSystem**, including the selected **startDate** and **endDate**.
+
+5. The **AttendanceManagementSystem** intercepts the request, extracts request parameters: **classId**, **startDate** and **endDate** and invokes the **generateAttendanceReport(classId, startDate, endDate)** method within the **ClassService**.
+
+6. The **generateAttendanceReport()** method filters the **List:StudentAttendanceRecord** for the target class that lie between the **startDate** and the **endDate**, aggregates the filtered **List:StudentAttendanceRecord** as **List:StudentAttendanceStats** and saves it in **ClassAttendanceReport** along with other details like **className**, **startDate** and **endDate**.
+
+7. Finally, an **HTTP response** containing the aggregated **List:StudentAttendanceStats** is returned to the UI, where it is typically presented in a tabular format like:
+
