@@ -2,7 +2,12 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { MDXRemote } from 'next-mdx-remote/rsc';
 import { highlight } from 'sugar-high';
+import hljs from 'highlight.js';
+import javascript from 'highlight.js/lib/languages/javascript';
 import React from 'react';
+import remarkGfm from "remark-gfm";
+
+hljs.registerLanguage('javascript', javascript);
 
 interface TableData {
   headers: React.ReactNode[];
@@ -20,26 +25,40 @@ MDX tables will pass data like:
 }
 */
 
+/**
+ * Renders a semantic HTML table from the given data.
+ *
+ * @remarks
+ * - The component expects a `TableData`-shaped object (commonly `{ headers: string[]; rows: string[][] }`).
+ * - Headers are rendered inside <thead> and each row inside <tbody>.
+ * - Array indices are used as React keys for headers, rows, and cells; consider providing stable keys if available.
+ *
+ * @param props.data - The table data containing an array of headers and an array of row arrays.
+ * @returns A JSX element representing a table with a header row and body rows.
+ *
+ * @example
+ * <Table data={{ headers: ['Name', 'Age'], rows: [['Alice', '30'], ['Bob', '25']] }} />
+ */
 function Table({ data }: { data: TableData }) {
 
   const headers = data.headers.map((header, index) => (
-    <th key={index}>{header}</th>
+    <th key={index} className='px-4 py-3 font-semibold border-b border-gray-200'>{header}</th>
   ));
 
   const rows = data.rows.map((row, index) => (
-    <tr key={index}>
+    <tr key={index} className='hover:bg-gray-50 transition-colors'>
       {row.map((cell, cellIndex) => (
-        <td key={cellIndex}>{cell}</td>
+        <td key={cellIndex} className='px-4 py-3 text-gray-600'>{cell}</td>
       ))}
     </tr>
   ));
 
   return (
-    <table>
-      <thead>
-        <tr>{headers}</tr>
+    <table className='my-8 mx-auto w-full border border-gray-200 rounded-lg overflow-hidden text-sm'>
+      <thead className='px-4 py-3 font-semibold border-b border-gray-200'>
+        <tr className='text-left text-gray-700'>{headers}</tr>
       </thead>
-      <tbody>{rows}</tbody>
+      <tbody className='divide-y divide-gray-100'>{rows}</tbody>
     </table>
   );
 
@@ -69,7 +88,28 @@ function RoundedImage(props: React.ComponentProps<typeof Image>) {
   return <Image className="rounded-lg" {...props} />;
 }
 
-function Code({ children, ...props }: { children?: React.ReactNode } & React.HTMLAttributes<HTMLElement>) {
+/**
+ * Renders a highlighted inline code element.
+ *
+ * Converts the provided children to a string, passes it to a `highlight` function to produce
+ * HTML, and injects that HTML into a <code> element via `dangerouslySetInnerHTML`.
+ *
+ * @remarks
+ * - `children` is coerced to a string; if absent, an empty string is used.
+ * - Additional props are spread onto the rendered <code> element and may include any standard
+ *   HTML attributes (e.g., `className`, `title`, `aria-*`, `data-*`).
+ * - Because this component uses `dangerouslySetInnerHTML`, ensure that the output of `highlight`
+ *   is trusted or properly sanitized to avoid XSS vulnerabilities.
+ *
+ * @param children - The code content to highlight. May be any React node; it will be converted to string.
+ * @param props - Extra HTML attributes forwarded to the <code> element.
+ *
+ * @returns A React element: a <code> node containing the highlighted HTML.
+ *
+ * @example
+ * <Code className="inline-code">const x = 42;</Code>
+ */
+export function Code({ children, ...props }: { children?: React.ReactNode } & React.HTMLAttributes<HTMLElement>) {
   const childStr = String(children ?? '');
   let codeHTML = highlight(childStr);
   return <code dangerouslySetInnerHTML={{ __html: codeHTML }} {...props} />;
@@ -117,12 +157,43 @@ let components = {
   a: CustomLink,
   code: Code,
   Table,
+  table: (props: React.TableHTMLAttributes<HTMLTableElement>) => (
+    <div className="my-6 w-full overflow-x-auto">
+      <table
+        className="w-full border-collapse text-sm mx-auto my-2"
+        {...props}
+      />
+    </div>
+  ),
+  thead: (props: React.HTMLAttributes<HTMLTableSectionElement>) => (
+    <thead className="bg-neutral-50 dark:bg-neutral-900/40" {...props} />
+  ),
+  tr: (props: React.HTMLAttributes<HTMLTableRowElement>) => (
+    <tr className="border-b border-neutral-200 dark:border-neutral-800" {...props} />
+  ),
+  th: (props: React.ThHTMLAttributes<HTMLTableCellElement>) => (
+    <th
+      className="px-3 py-2 text-left font-semibold text-neutral-900 dark:text-neutral-100"
+      {...props}
+    />
+  ),
+  td: (props: React.TdHTMLAttributes<HTMLTableCellElement>) => (
+    <td
+      className="px-3 py-2 align-top text-neutral-700 dark:text-neutral-300"
+      {...props}
+    />
+  ),
 };
 
 export function CustomMDX(props: React.ComponentProps<typeof MDXRemote>) {
   return (
     <MDXRemote
       {...props}
+      options={{
+        mdxOptions: {
+          remarkPlugins: [remarkGfm],
+        },
+      }}
       components={{ ...components, ...(props.components || {}) }}
     />
   );
