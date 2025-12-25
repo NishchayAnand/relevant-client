@@ -1,0 +1,103 @@
+---
+title: 'System Design: Hotel Reservation System'
+publishedAt: '2025-12-23'
+---
+
+Design a **Hotel Reservation System** that allows users to seamlessly search and book hotels, ensuring a smooth and reliable travel experience while handling scale, performance, and reliability challenges behind the scenes.
+
+![hotel-booking-system](/hotel-reservation-system/hotel-booking-system.png)
+
+---
+
+## Functional Requirements
+
+The following are the core functional requirements of the system:
+
+1. Enable users to search for hotels based on preferences such as location and travel dates.
+
+2. Support the complete booking flow, including room selection, reservation creation, and booking confirmation.
+
+3. Provide secure payment handling with multiple methods, such as credit/debit cards, UPI, wallets, and net banking.
+
+---
+
+## Non-Functional Requirements
+
+The following are the core non-functional requirements of the system:
+
+1. The system must **support high volumes of concurrent users, searches, and bookings**, with the ability to scale horizontally during peak travel seasons.
+
+2. Search results should be delivered with low latency (e.g., &lt;500 ms for p95), however, it's acceptable for the system to take a few seconds to process a reservation request.
+
+3. Backup and failover mechanisms must exist to recover data and operations quickly in case of outages or regional failures.
+
+---
+
+## Use Case Overview
+
+The **Hotel Reservation System** serves as a platform connecting **customers** and **hotels**, handling all stages of the reservation process such as **searching for hotels**, **viewing hotel and room details**, and **making reservations**.
+
+Let’s discuss each use case in detail to gain a clear understanding of the system’s functionality and to evaluate the scale and capacity the platform needs to support.
+
+### Use Case 1: Search Hotels
+
+Enables **customers** to **search for available hotels** based on their specified **location** and **check-in / check-out dates**.
+
+**Load Estimation**
+
+```markdown
+- Assumption: Daily Active Users (DAU) = 5 Million
+- Assumption: Average Search Requests per User per Day = 5
+
+- Total Requests per Day = 5M * 5 = 25M
+- Average RPS = 25,000,000 / (86,400) ≈ 250 RPS
+
+- Assumption: Peak Load Factor = 5x
+- Peak RPS = 250 * 5 ≈ 1,250 RPS
+```
+
+This is a **read-heavy**, **latency-sensitive** query workload (high QPS with spiky peaks).
+
+### Use Case 2: View Hotel Details
+
+Enables **customers** to **view complete details of a selected hotel**, including **amenities**, **images**, **policies**, and **room-type availability** for the specified check-in and check-out dates.
+
+**Load Estimation**
+
+```markdown
+- Assumption: 50% of users view details after search
+- Assumption: Average View Details Requests per User per Day = 2
+
+- Total Requests per Day = 5M * 50% * 2 = 5,000,000
+- Average RPS = 5,000,000 / (86,400) ≈ 50 RPS
+
+- Assumption: Peak Load Factor = 5x
+- Peak RPS = 50 * 5 ≈ 250 RPS
+```
+
+This is a **read-heavy** details query (medium QPS). 
+
+### Use Case 3: Make a Reservation
+
+Enables **customers** to **select a hotel and room type**, provide guest details, complete payment, and receive a confirmed booking.
+
+**Load Estimation**
+
+```
+- Assumption: 2% of users make a booking per day
+- Assumption: Average Booking Requests per User per Day = 1
+
+- Total Requests per Day = 5M * 2% = 100,000
+- Average RPS = 100,000 / (24 * 60 * 60) ≈ 1 RPS
+
+- Assumption: Peak Load Factor = 5x
+- Peak RPS = 1 * 5 = 5 RPS
+```
+
+This is a classic low-QPS, high-risk use case. 1-5 RPS means you should design for safety, not scale.
+
+---
+## API Design
+
+
+Split **static hotel profile content** (amenities/images/policies) from **dynamic availability/pricing** so most traffic can be served from caches/CDN while keeping availability accurate.
