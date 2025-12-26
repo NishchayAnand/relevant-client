@@ -33,7 +33,7 @@ The following are the core non-functional requirements of the system:
 
 ---
 
-## Use Case Overview
+## Load Estimation
 
 The **Hotel Reservation System** serves as a platform connecting **customers** and **hotels**, handling all stages of the reservation process such as **searching for hotels**, **viewing hotel and room details**, and **making reservations**.
 
@@ -42,8 +42,6 @@ Let’s discuss each use case in detail to gain a clear understanding of the sys
 ### Use Case 1: Search Hotels
 
 Enables **customers** to **search for available hotels** based on their specified **location** and **check-in / check-out dates**.
-
-**Load Estimation**
 
 ```markdown
 - Assumption: Daily Active Users (DAU) = 5 Million
@@ -56,13 +54,11 @@ Enables **customers** to **search for available hotels** based on their specifie
 - Peak RPS = 250 * 5 ≈ 1,250 RPS
 ```
 
-This is a **read-heavy**, **latency-sensitive** query workload (high QPS with spiky peaks).
+> This is a **read-heavy**, **latency-sensitive** query workload (high QPS with spiky peaks).
 
 ### Use Case 2: View Hotel Details
 
 Enables **customers** to **view complete details of a selected hotel**, including **amenities**, **images**, **policies**, and **room-type availability** for the specified check-in and check-out dates.
-
-**Load Estimation**
 
 ```markdown
 - Assumption: 50% of users view details after search
@@ -75,13 +71,11 @@ Enables **customers** to **view complete details of a selected hotel**, includin
 - Peak RPS = 50 * 5 ≈ 250 RPS
 ```
 
-This is a **read-heavy** details query (medium QPS). 
+> This is a **read-heavy** details query (medium QPS). 
 
-### Use Case 3: Make a Reservation
+### Use Case 3: Make Reservations
 
 Enables **customers** to **select a hotel and room type**, provide guest details, complete payment, and receive a confirmed booking.
-
-**Load Estimation**
 
 ```
 - Assumption: 2% of users make a booking per day
@@ -94,10 +88,42 @@ Enables **customers** to **select a hotel and room type**, provide guest details
 - Peak RPS = 1 * 5 = 5 RPS
 ```
 
-This is a classic low-QPS, high-risk use case. 1-5 RPS means you should design for safety, not scale.
+> This is a classic low-QPS, high-risk use case.
 
 ---
+
+## Design Rationale
+
+The use cases exhibit **very different operational characteristics** in terms of traffic volume, read/write patterns, and consistency requirements.
+
+| Use Case           | Avg RPS | Peak RPS | Nature                           |
+| ------------------ | ------- | -------- | -------------------------------- |
+| Search Hotels      | 250     | 1250     | Read-heavy, cache-driven         |
+| View Hotel Details | 50      | 250      | Read-heavy, aggregation          |
+| Make Reservation   | 1       | 5        | Write-heavy, strongly consistent |
+
+These differences make it impractical to serve all use cases through a monolithic architecture.
+
+To avoid tightly coupled workloads with vastly different scalability, latency, and consistency requirements, we will adopt a **microservices architecture**, where each major use case is implemented as an independent service. 
+
+This allows high-traffic, read-heavy services such as search to scale horizontally and leverage caching, while low-traffic but critical workflows like reservations can enforce strong transactional guarantees without being impacted by unrelated load.
+
+---
+
+## Sequence Flow
+
+Let’s understand the **step-by-step sequence flow of each of the core use cases** to gain deeper insights into how the system works in practice.
+
+### Use Case 1: Search Hotels
+
+
+
+
+---
+
 ## API Design
 
-
 Split **static hotel profile content** (amenities/images/policies) from **dynamic availability/pricing** so most traffic can be served from caches/CDN while keeping availability accurate.
+
+
+1-5 RPS means you should design for safety, not scale.
