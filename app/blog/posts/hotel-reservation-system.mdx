@@ -9,7 +9,7 @@ Design a **Hotel Reservation System** that allows users to seamlessly search and
 
 ---
 
-## Functional Requirements
+### Functional Requirements
 
 The following are the core functional requirements of the system:
 
@@ -21,7 +21,7 @@ The following are the core functional requirements of the system:
 
 ---
 
-## Non-Functional Requirements
+### Non-Functional Requirements
 
 The following are the core non-functional requirements of the system:
 
@@ -33,13 +33,13 @@ The following are the core non-functional requirements of the system:
 
 ---
 
-## Load Estimation
+### Load Estimation
 
 The **Hotel Reservation System** serves as a platform connecting **customers** and **hotels**, handling all stages of the reservation process such as **searching for hotels**, **viewing hotel and room details**, and **making reservations**.
 
 Let’s discuss each use case in detail to gain a clear understanding of the system’s functionality and to evaluate the scale and capacity the platform needs to support.
 
-### Use Case 1: Search Hotels
+#### Use Case 1: Search Hotels
 
 Enables **customers** to **search for available hotels** based on their specified **location** and **check-in / check-out dates**.
 
@@ -56,7 +56,7 @@ Enables **customers** to **search for available hotels** based on their specifie
 
 > This is a **read-heavy**, **latency-sensitive** query workload (high QPS with spiky peaks).
 
-### Use Case 2: View Hotel Details
+#### Use Case 2: View Hotel Details
 
 Enables **customers** to **view complete details of a selected hotel**, including **amenities**, **images**, **policies**, and **room-type availability** for the specified check-in and check-out dates.
 
@@ -73,7 +73,7 @@ Enables **customers** to **view complete details of a selected hotel**, includin
 
 > This is a **read-heavy** details query (medium QPS). 
 
-### Use Case 3: Make Reservations
+#### Use Case 3: Make Reservations
 
 Enables **customers** to **select a hotel and room type**, provide guest details, complete payment, and receive a confirmed booking.
 
@@ -92,7 +92,7 @@ Enables **customers** to **select a hotel and room type**, provide guest details
 
 ---
 
-## Design Rationale
+### Design Rationale
 
 The use cases exhibit **very different operational characteristics** in terms of traffic volume, read/write patterns, and consistency requirements.
 
@@ -100,7 +100,7 @@ The use cases exhibit **very different operational characteristics** in terms of
 | ------------------ | ------- | -------- | -------------------------------- |
 | Search Hotels      | 250     | 1250     | Read-heavy, cache-driven         |
 | View Hotel Details | 50      | 250      | Read-heavy, aggregation          |
-| Make Reservation   | 1       | 5        | Write-heavy, strongly consistent |
+| Make Reservations   | 1       | 5        | Write-heavy, strongly consistent |
 
 These differences make it impractical to serve all use cases through a monolithic architecture.
 
@@ -110,18 +110,149 @@ This allows high-traffic, read-heavy services such as search to scale horizontal
 
 ---
 
-## Sequence Flow
+### Sequence Flow
 
 Let’s understand the **step-by-step sequence flow of each of the core use cases** to gain deeper insights into how the system works in practice.
 
-### Use Case 1: Search Hotels
+#### Use Case 1: Search Hotels
+
+A straightforward approach would be to let a single `SearchService` own all data required for hotel search. However, a search query inherently requires combining **two fundamentally different categories of data**. 
+
+- On one side, it relies on relatively static information such as hotel names, locations, images, amenities, policies, and room-type definitions, that changes infrequently and can be aggressively cached. 
+
+- On the other side, it depends on highly dynamic data like room availability and pricing, which can change frequently due to bookings, demand fluctuations, or pricing rules.
+
+Treating both data types uniformly forces the system to optimize for the most volatile data, which increases latency, reduces cache effectiveness, and wastes compute resources. To avoid this, the system can be decomposed into specialized services. 
+
+- A dedicated `HotelService` can manage stable hotel profile content and be optimized for read-heavy access and aggressive caching. 
+
+- An `InventoryService` can handle fast-changing room availability with a focus on freshness and concurrency control, while a `PricingService` can manage dynamic pricing logic and frequent updates.
+
+- The `SearchService` can then act as an **orchestrator**, coordinating calls to these backend services, retrieving static and dynamic data in parallel, and aggregating the results into a unified search response.
+
+The following interactions describe the step-by-step flow between the **user interface** and the **backend components** during this operation:
+
+1. The `Customer` enters the search criteria such as `location`, `checkInDate`,  `checkOutDate` and submits the **Search Hotels** form.
+
+2. The `Frontend` sends a `GET /hotels/hotel-listings` request to the `SearchService`, including all the selected form parameters: `location`, `checkInDate` and `checkOutDate`.
+
+3. The `SearchService` coordinates with downstream services to determine hotel availability and pricing.  
+
+	- **Hotel Lookup**: Sends a GET request to the `HotelService` to fetch all hotels listed for the selected `location`.  
+
+	- **Availability Check**: For the list of hotels returned, it queries the `InventoryService` to identify hotels with at least one available room for the specified `checkInDate` and `checkOutDate`.
+
+	- **Pricing Calculation**: For hotels with availability, it calls the `PricingService` to retrieve the `avgPerNightPrice` for the selected date range.
+
+4. After aggregating hotel metadata, availability, and pricing information, the `SearchService` caches the final response (short TTL) and returns a list of available hotels to the `Frontend`.
+
+5. The `Frontend` renders the response as a grid of `Hotel` cards, displaying key details such as: `hotelName`, `avgPricePerNight`, `availability`, `rating`, etc.
+
+![hotel-booking-system](/hotel-reservation-system/search-hotels-sequence-diagram.png)
+
+This design allows each service to scale independently, minimizes performance interference, and ensures fast search responses without compromising the accuracy required for downstream booking flows.
+
+#### Use Case 2: View Hotel Details
+
+The **View Hotel Details** use case differs from **Search Hotels** in both **scope and load characteristics**. While hotel search is optimized for high-volume traffic and aggregated results across many hotels, viewing hotel details is a **low-volume, deep read** focused on a single hotel. This interaction typically involves richer data such as detailed descriptions, images, amenities, policies, and room-level information.
+
+Unlike the Search Hotels flow, where the `SearchService` acts as an orchestrator, the **frontend can directly coordinate** with the `HotelService`, `InventoryService`, and `PricingService` to render the hotel details page.
+
+The following interactions describe the step-by-step flow between the **user interface** and the **backend components** during this operation:
+
+The following interactions describe the step-by-step flow between the **user interface** and the **backend components** during this operation:
+
+1. The `Customer` selects a hotel from the search results on the user interface.
+
+2. The `Frontend` issues **three asynchronous requests** in parallel:
+
+	- Sends a `GET /hotels/{hotelId}` request to the `HotelService` to retrieve static hotel information such as the hotel name, descriptions, amenities, and policies (typically served from cache, with database fallback).
+
+	- Sends a `POST /availability` request to the `InventoryService` to retrieve room-level availability for the selected date range.
+
+	- Sends a `POST /pricing` request to the `PricingService` to calculate and fetch pricing details for each available room type.
+
+3. The `Frontend` aggregates responses from the `HotelService`, `InventoryService`, and `PricingService`, and renders the **Hotel Details Page**, displaying hotel profile information along with available room types and their corresponding prices.
 
 
+![hotel-booking-system](/hotel-reservation-system/view-hotel-details-sequence-flow.png)
 
+This approach avoids unnecessary backend orchestration, reduces end-to-end latency, and simplifies the request flow, while still preserving clean service boundaries and strict data ownership.
+
+#### Use Case 3: Make Reservations
+
+Using a single `ReservationService` to handle the entire booking lifecycle (inventory locking, payment coordination, reservation confirmation) may appear simpler, but it introduces significant architectural drawbacks. 
+
+The reservation flow involves **multiple domains with very different reliability, latency, and consistency characteristics**, particularly inventory management and payment processing. Coupling these responsibilities into a single service increases complexity, enlarges the failure blast radius, and makes it harder to reason about correctness and recovery.
+
+To address these issues, the reservation workflow can be designed as a **two-part process with split orchestration responsibilities**.
+
+##### **Phase 1: Reservation Initiation & Inventory Hold**
+
+The `ReservationService` can orchestrate the booking initiation and inventory locking phase. It can coordinate with the `InventoryService` to place a **temporary hold** on the selected inventory, preventing double booking while payment is in progress.
+
+The following interactions describe the step-by-step flow between the **user interface** and the **backend components** during this operation:
+
+
+1. The `Customer` selects one or more **room types** and clicks **Book Now** on the user interface.
+
+2. The `Frontend` sends a `POST /reservations` request to the `ReservationService`, including `requestId (idempotency key)`, `hotelId`, `checkInDate`, `checkOutDate` and selected room types with quantities  (e.g., `{ roomTypeA: 2, roomTypeB: 1 }`).
+
+3. The `ReservationService` first checks whether a reservation already exists for the given `requestId`:
+
+	- If a matching reservation exists, it returns the existing response.
+
+	- If not, it creates a **new reservation record** in the **INITIATED** state.
+
+4. The `ReservationService` then calls the `InventoryService` with a **single batch request** to place **temporary holds** for all selected room types and quantities for the given date range.
+
+5. The `InventoryService` verifies availability for **each room type and requested quantity**:
+
+	- If sufficient inventory exists for all requested rooms, it places a **temporary inventory hold** and returns a hold confirmation.
+
+	- If any room type cannot be fulfilled, the request fails and no holds are created.
+
+6. On successful hold creation, the `ReservationService` updates the reservation record with  the hold details, expiration timestamp, and transitions it to the **PENDING_PAYMENT** state.
+
+7. Finally, the `ReservationService` returns the `reservationId` along with inventory hold details and the hold expiration timestamp to the frontend, enabling the user to proceed with payment.
+
+![hotel-booking-system](/hotel-reservation-system/reservation-initialization-sequence-flow.png)
+
+##### **Phase 2: Payment Confirmation & Reservation Finalization**
+
+Payment processing depends on **external systems** that are inherently unreliable and slow. Payment gateways may time out, send duplicate callbacks, or complete payments asynchronously. Handling retries, idempotency, webhook verification, and reconciliation are therefore **core responsibilities of the `PaymentService`**, not the `ReservationService`.
+
+By allowing the `PaymentService` to orchestrate this phase, payment-related failures and retries are **isolated from critical reservation state**, preventing gateway instability from corrupting booking data. The `PaymentService` can independently verify the payment with the external gateway, coordinate with the `InventoryService` to finalize the inventory hold, and then invoke the `ReservationService` to **confirm the reservation**. 
+
+This sequencing guarantees that reservations are finalized **only after successful payment**, while keeping payment-specific failure handling fully decoupled from core booking logic.
+
+The following interactions describe the step-by-step flow between the **user interface** and the **backend components** during this operation:
+
+1. The `Customer` clicks **Pay Now** on the user interface after reviewing the reservation details.
+
+2. The `Frontend` sends a `POST /payments` request to the `PaymentService`, including the `reservationId`.
+
+3. The `PaymentService` validates the request, performs an **idempotency check**, creates a **payment order** with the external payment gateway and returns the **checkout URL along with the payment order details** to the `Frontend`.
+
+4. The `Frontend` redirects the `Customer` to the **payment gateway checkout page** to complete the payment.
+
+5. After the payment is completed, the frontend calls `POST /payments/confirm` on the `PaymentService` with the `reservationId` and payment verification details.
+
+6. The `PaymentService` verifies the payment status with the payment gateway. Upon successful payment verification, the `PaymentService` calls the `InventoryService` to **finalize the inventory hold**, converting the temporary hold into a permanent allocation.
+
+7. After inventory finalization succeeds, the `PaymentService` calls the `ReservationService` to **confirm the reservation**, transitioning it from **PENDING_PAYMENT** to **CONFIRMED**.
+
+8. The `PaymentService` records the final payment state and responds to the `Frontend` with a successful booking confirmation.
+    
+9. The `Frontend` updates the `Customer`, displaying the booking confirmation and completion status.
+
+![hotel-booking-system](/hotel-reservation-system/payment-processing-sequence-flow.png)
+
+This split orchestration model improves **fault isolation, scalability, and correctness**, while keeping service responsibilities clean and aligned with their respective domains.
 
 ---
 
-## API Design
+### API Design
 
 Split **static hotel profile content** (amenities/images/policies) from **dynamic availability/pricing** so most traffic can be served from caches/CDN while keeping availability accurate.
 
