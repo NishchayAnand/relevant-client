@@ -258,6 +258,149 @@ Let’s discuss the **API design of the core services** in detail, examining the
 
 This helps clarify how responsibilities are distributed across services and how they interact to support the reservation flow.
 
+#### Hotel Service
+
+The **Hotel Service** is responsible for owning and serving **static hotel profile data**. This data changes infrequently, is optimized for read-heavy access through aggressive caching with long TTLs, and intentionally excludes dynamic information such as availability and pricing.
+
+Let's discuss the key endpoints exposed by the Reservation Service.
+
+##### `1. GET /hotels`
+
+Returns a list of hotels for a given location.
+
+**Request Parameters**
+
+| Parameter  | Type   | Required | Description                                           |
+| ---------- | ------ | -------- | ----------------------------------------------------- |
+| locationId | String | Yes      | City or location identifier (e.g., city code or name) |
+
+**Sample Request**
+
+```json
+GET /hotels?location=BLR
+```
+
+**Business Logic**
+
+```java
+@Cacheable(
+	value = "hotelsByLocation",
+	key = "#locationId",
+	unless = "#result.isEmpty()"
+)
+public List<HotelView> getHotelsByLocation(String locationId) {
+
+	return hotelRepository.findByLocation(locationId)
+			.stream()
+			.map(HotelView::from)
+			.toList();
+}
+```
+
+**Sample Response**
+
+```json
+[
+  {
+    "hotelId": 101,
+    "name": "Grand Goa Resort",
+    "description": "A luxury seaside resort offering modern rooms, infinity 
+				    pool, and beach access.",
+    "locationId": "GOA",
+    "address": "Candolim Beach Road, Goa, India",
+    "thumbnailUrl": "https://cdn.example.com/101/thumb.jpg",
+    "rating": 4.6,
+    "amenities": ["wifi", "pool", "gym", "spa"]
+  },
+  {
+    "hotelId": 102,
+    "name": "Westin Resort",
+    "description": "Premium 5-star property featuring private beach, fine 
+					dining, and wellness spa.",
+    "locationId": "GOA",
+    "address": "Arpora Beach Road, Goa, India",
+    "thumbnailUrl": "https://cdn.example.com/102/thumb.jpg",
+    "rating": 4.7,
+    "amenities": ["wifi", "pool", "private beach", "restaurant", "bar"]
+  }
+]
+```
+
+This endpoint is **read-optimized** and used primarily by the **Search Service** to fetch static hotel metadata.
+
+##### `2. GET /hotels/{hotelId}`
+
+Returns the full hotel profile for a given hotel.
+
+**Sample Request**
+
+```json
+GET /hotels/H123
+```
+
+**Business Logic**
+
+```java
+@Cacheable(
+	value = "hotelDetails",
+	key = "#hotelId"
+)
+public HotelDetailsResponse getHotelDetails(String hotelId) {
+
+	Hotel hotel = hotelRepository.findByHotelId(hotelId)
+			.orElseThrow(() -> new NotFoundException("Hotel not found"));
+
+	return HotelDetailsResponse.from(hotel);
+}
+```
+
+**Sample Response**
+
+```json
+{
+  "hotelId": "H123",
+  "name": "Ocean View Hotel",
+  "location": "Bangalore",
+  "description": "A beachfront hotel offering scenic views and premium amenities.",
+  "rating": 4.5,
+  "amenities": [
+    "Free Wi-Fi",
+    "Swimming Pool",
+    "Breakfast Included",
+    "Parking"
+  ],
+  "imageUrls": [
+    "https://cdn.example.com/hotels/H123/1.jpg",
+    "https://cdn.example.com/hotels/H123/2.jpg"
+  ],
+  "policies": {
+    "checkInTime": "14:00",
+    "checkOutTime": "11:00",
+    "cancellation": "Free cancellation up to 24 hours before check-in"
+  },
+  "roomTypes": [
+    {
+      "code": "DELUXE",
+      "name": "Deluxe Room",
+      "capacity": 2,
+      "description": "Spacious room with sea view"
+    },
+    {
+      "code": "STANDARD",
+      "name": "Standard Room",
+      "capacity": 2,
+      "description": "Comfortable room with city view"
+    }
+  ]
+}
+```
+
+This endpoint serves **static, read-only hotel metadata** required to render the hotel details page.
+
+#### Inventory Service
+
+#### Pricing Service
+
 #### Search Service
 
 The **Search Service** is responsible for handling the **Search Hotels** use case. It acts as a read-optimized, high-throughput service that aggregates data from multiple downstream services to return fast and relevant search results.
@@ -368,80 +511,6 @@ public List<SearchHotelView> searchHotels(
 ]
 ```
 
-#### Hotel Service
-
-The **Hotel Service** is responsible for owning and serving **static hotel profile data**. This data changes infrequently, is optimized for read-heavy access through aggressive caching with long TTLs, and intentionally excludes dynamic information such as availability and pricing.
-
-Let's discuss the key endpoints exposed by the Reservation Service.
-
-##### `1. GET /hotels`
-
-Returns a list of hotels for a given location.
-
-**Request Parameters**
-
-| Parameter  | Type   | Required | Description                                           |
-| ---------- | ------ | -------- | ----------------------------------------------------- |
-| locationId | String | Yes      | City or location identifier (e.g., city code or name) |
-
-**Sample Request**
-
-```json
-GET /hotels?location=BLR
-```
-
-**Business Logic**
-
-```java
-@Cacheable(
-	value = "hotelsByLocation",
-	key = "#locationId",
-	unless = "#result.isEmpty()"
-)
-public List<HotelView> getHotelsByLocation(String locationId) {
-
-	return hotelRepository.findByLocation(locationId)
-			.stream()
-			.map(HotelView::from)
-			.toList();
-}
-```
-
-**Sample Response**
-
-```json
-[
-  {
-    "hotelId": 101,
-    "name": "Grand Goa Resort",
-    "description": "A luxury seaside resort offering modern rooms, infinity 
-				    pool, and beach access.",
-    "locationId": "GOA",
-    "address": "Candolim Beach Road, Goa, India",
-    "thumbnailUrl": "https://cdn.example.com/101/thumb.jpg",
-    "rating": 4.6,
-    "amenities": ["wifi", "pool", "gym", "spa"]
-  },
-  {
-    "hotelId": 102,
-    "name": "Westin Resort",
-    "description": "Premium 5-star property featuring private beach, fine 
-					dining, and wellness spa.",
-    "locationId": "GOA",
-    "address": "Arpora Beach Road, Goa, India",
-    "thumbnailUrl": "https://cdn.example.com/102/thumb.jpg",
-    "rating": 4.7,
-    "amenities": ["wifi", "pool", "private beach", "restaurant", "bar"]
-  }
-]
-```
-
-This endpoint is **read-optimized** and used primarily by the **Search Service** to fetch static hotel metadata.
-
-##### `2. GET /hotels/{hotelId}`
-
-
-
 #### Reservation Service
 
 The **Reservation Service** is responsible for managing the **booking lifecycle**, including reservation creation, inventory locking coordination, and reservation state transitions. 
@@ -471,7 +540,7 @@ Creates a new reservation request and initiates **Phase 1: Reservation Initiatio
 
 **Sample Request**
 
-```
+```json
 {
   "requestId": "req-12345",
   "hotelId": "H123",
@@ -486,7 +555,7 @@ Creates a new reservation request and initiates **Phase 1: Reservation Initiatio
 
 **Business Logic**
 
-```
+```java
 @Transactional
 public Reservation createReservation(
 	String requestId, 
@@ -533,13 +602,9 @@ public Reservation createReservation(
 }
 ```
 
-`@Transactional` guarantees that the idempotency check, reservation record creation, and state transition from `INITIATED` to `PENDING_PAYMENT` are committed together, preventing partially persisted or inconsistent booking state. 
-
-If any step fails, the transaction is rolled back automatically, preserving data integrity.
-
 **Sample Response**
 
-```
+```json
 {
   "reservationId": "R789",
   "status": "PENDING_PAYMENT",
@@ -550,9 +615,41 @@ If any step fails, the transaction is rolled back automatically, preserving data
 }
 ```
 
-#### Inventory Service
+`@Transactional` guarantees that the idempotency check, reservation record creation, and state transition from `INITIATED` to `PENDING_PAYMENT` are committed together, preventing partially persisted or inconsistent booking state. 
 
-#### Pricing Service
+If any step fails, the transaction is rolled back automatically, preserving data integrity.
+
+##### 2. `POST /reservations/{reservationId}/confirm`
+
+Confirms a reservation after successful payment.
+
+**Sample Request**
+
+```json
+{
+  "paymentId": "pay_987654",
+  "orderId": "order_123456",
+  "paymentProvider": "RAZORPAY",
+  "paidAt": "2025-03-10T10:15:30Z"
+}
+```
+
+**Business Logic**
+
+```
+```
+
+**Sample Response**
+
+```json
+{
+  "reservationId": "R789",
+  "status": "CONFIRMED",
+  "confirmedAt": "2025-03-10T10:15:35Z"
+}
+```
+
+This endpoint is invoked by the PaymentService during Phase 2: Payment Processing & Reservation Confirmation to finalize the booking.
 
 #### Payment Service
 
