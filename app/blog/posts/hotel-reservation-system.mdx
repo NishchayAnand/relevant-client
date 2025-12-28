@@ -368,6 +368,80 @@ public List<SearchHotelView> searchHotels(
 ]
 ```
 
+#### Hotel Service
+
+The **Hotel Service** is responsible for owning and serving **static hotel profile data**. This data changes infrequently, is optimized for read-heavy access through aggressive caching with long TTLs, and intentionally excludes dynamic information such as availability and pricing.
+
+Let's discuss the key endpoints exposed by the Reservation Service.
+
+##### `1. GET /hotels`
+
+Returns a list of hotels for a given location.
+
+**Request Parameters**
+
+| Parameter  | Type   | Required | Description                                           |
+| ---------- | ------ | -------- | ----------------------------------------------------- |
+| locationId | String | Yes      | City or location identifier (e.g., city code or name) |
+
+**Sample Request**
+
+```json
+GET /hotels?location=BLR
+```
+
+**Business Logic**
+
+```java
+@Cacheable(
+	value = "hotelsByLocation",
+	key = "#locationId",
+	unless = "#result.isEmpty()"
+)
+public List<HotelView> getHotelsByLocation(String locationId) {
+
+	return hotelRepository.findByLocation(locationId)
+			.stream()
+			.map(HotelView::from)
+			.toList();
+}
+```
+
+**Sample Response**
+
+```json
+[
+  {
+    "hotelId": 101,
+    "name": "Grand Goa Resort",
+    "description": "A luxury seaside resort offering modern rooms, infinity 
+				    pool, and beach access.",
+    "locationId": "GOA",
+    "address": "Candolim Beach Road, Goa, India",
+    "thumbnailUrl": "https://cdn.example.com/101/thumb.jpg",
+    "rating": 4.6,
+    "amenities": ["wifi", "pool", "gym", "spa"]
+  },
+  {
+    "hotelId": 102,
+    "name": "Westin Resort",
+    "description": "Premium 5-star property featuring private beach, fine 
+					dining, and wellness spa.",
+    "locationId": "GOA",
+    "address": "Arpora Beach Road, Goa, India",
+    "thumbnailUrl": "https://cdn.example.com/102/thumb.jpg",
+    "rating": 4.7,
+    "amenities": ["wifi", "pool", "private beach", "restaurant", "bar"]
+  }
+]
+```
+
+This endpoint is **read-optimized** and used primarily by the **Search Service** to fetch static hotel metadata.
+
+##### `2. GET /hotels/{hotelId}`
+
+
+
 #### Reservation Service
 
 The **Reservation Service** is responsible for managing the **booking lifecycle**, including reservation creation, inventory locking coordination, and reservation state transitions. 
@@ -475,6 +549,23 @@ If any step fails, the transaction is rolled back automatically, preserving data
   }
 }
 ```
+
+#### Inventory Service
+
+#### Pricing Service
+
+#### Payment Service
+
+---
+
+### Data Model Design
+
+---
+
+### Final Architecture Design
+
+
+---
 
 
 
