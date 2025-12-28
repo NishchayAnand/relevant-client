@@ -254,7 +254,231 @@ This split orchestration model improves **fault isolation, scalability, and corr
 
 ### API Design
 
-Split **static hotel profile content** (amenities/images/policies) from **dynamic availability/pricing** so most traffic can be served from caches/CDN while keeping availability accurate.
+Let’s discuss the **API design of the core services** in detail, examining the main endpoints each service exposes, the request and response models they use, and the reasoning behind the underlying business logic. 
+
+This helps clarify how responsibilities are distributed across services and how they interact to support the reservation flow.
+
+#### Search Service
+
+The **Search Service** is responsible for handling the **Search Hotels** use case. It acts as a read-optimized, high-throughput service that aggregates data from multiple downstream services to return fast and relevant search results.
+
+Below, we discuss the key endpoints exposed by the Search Service.
+
+##### 1. `GET /hotels/hotel-listings`
+
+Returns a read-optimized list of available hotels for a given location and date range by aggregating hotel metadata, availability, and pricing.
+
+**Request Parameters**
+
+| Parameter    | Type   | Description         |
+| ------------ | ------ | ------------------- |
+| locationId   | string | location identifier |
+| checkInDate  | date   | Check-in date       |
+| checkOutDate | date   | Check-out date      |
+
+**Sample Request**
+
+```json
+GET /hotels/hotel-listings?locationId=BLR&checkInDate=2025-03-10&checkOutDate=2025-03-12
+```
+
+**Business Logic**
+
+```java
+public List<SearchHotelView> searchHotels(
+	Long locationId, 
+	LocalDate checkInDate, 
+	LocalDate checkOutDate
+) {
+
+	// 1. Cache lookup (short TTL)
+	List<SearchHotelView> cached = cache.get(request);
+	if (cached != null) {
+		return cached;
+	}
+
+	// 2. Fetch hotels for location
+	List<HotelDTO> hotels =
+			hotelClient.getHotelsByLocation(locationId);
+
+	if (hotels.isEmpty()) {
+		return Collections.emptyList();
+	}
+
+	List<Long> hotelIds =
+			hotels.stream().map(HotelDTO::getHotelId).toList();
+
+	// 3. Batch availability check
+	AvailabilityResponse availability =
+			inventoryClient.checkAvailability(
+					hotelIds,
+					request.getCheckInDate(),
+					request.getCheckOutDate()
+			);
+
+	// 4. Filter available hotels
+	List<String> availableHotelIds =
+			availability.getAvailableHotelIds();
+
+	if (availableHotelIds.isEmpty()) {
+		return Collections.emptyList();
+	}
+
+	// 5. Batch pricing call
+	Map<String, BigDecimal> pricing =
+			pricingClient.getAvgPrices(
+					availableHotelIds,
+					request.getCheckInDate(),
+					request.getCheckOutDate()
+			);
+
+	// 6. Aggregate response
+	List<SearchHotelView> results = hotels.stream()
+			.filter(h -> availableHotelIds.contains(h.getHotelId()))
+			.map(h -> SearchHotelView.from(h, pricing.get(h.getHotelId())))
+			.toList();
+
+	// 7. Cache result (short TTL)
+	cache.put(request, response);
+
+	return results;
+}
+```
+
+**Sample Response**
+
+```json
+[
+  {
+    "hotelId": 101,
+    "name": "Grand Goa Resort",
+    "address": "Candolim Beach Road, Goa, India",
+    "thumbnailUrl": "https://cdn.example.com/101/thumb.jpg",
+    "rating": 4,
+    "avgPricePerNight": 4500,
+  },
+  {
+    "hotelId": 102,
+    "name": "City Budget Inn",
+    "address": "MG Road, Bengaluru, India",
+    "thumbnailUrl": "https://cdn.example.com/102/thumb.jpg",
+    "rating": 3,
+    "avgPricePerNight": 2200,
+  }
+]
+```
+
+#### Reservation Service
+
+The **Reservation Service** is responsible for managing the **booking lifecycle**, including reservation creation, inventory locking coordination, and reservation state transitions. 
+
+It owns the **reservation state machine** and ensures that bookings are created safely before payment is initiated. Below are the **reservation states** managed by the Reservation Service:
+
+- `INITIATED`: Reservation record created (idempotency anchor)
+- `PENDING_PAYMENT`: Inventory successfully held, awaiting payment
+- `CONFIRMED`: Booking finalized after successful payment
+- `EXPIRED` / `FAILED`: Reservation invalidated due to timeout or failure
+
+Now, let's discuss the key endpoints exposed by the Reservation Service.
+
+##### 1. `POST /reservations`
+
+Creates a new reservation request and initiates **Phase 1: Reservation Initiation & Inventory Hold**.
+
+**Request Parameters**
+
+| Field        | Type   | Description                          |
+| ------------ | ------ | ------------------------------------ |
+| requestId    | string | Client-generated idempotency key     |
+| hotelId      | string | Selected hotel identifier            |
+| checkInDate  | date   | Check-in date                        |
+| checkOutDate | date   | Check-out date                       |
+| rooms        | map    | Room types with requested quantities |
+
+**Sample Request**
+
+```
+{
+  "requestId": "req-12345",
+  "hotelId": "H123",
+  "checkInDate": "2025-03-10",
+  "checkOutDate": "2025-03-12",
+  "rooms": {
+	"DELUXE": 2,
+	"STANDARD": 1
+  }
+}
+```
+
+**Business Logic**
+
+```
+@Transactional
+public Reservation createReservation(
+	String requestId, 
+    Long hotelId, 
+    LocalDate checkInDate,
+    LocalDate checkOutDate,
+    Map<String, Integer> rooms,
+) {
+
+	// 1. Idempotency check
+	Optional<Reservation> existing =
+			reservationRepository.findByRequestId(requestId);
+
+	if (existing.isPresent()) {
+		return ReservationResponse.from(existing.get());
+	}
+
+	// 2. Create reservation record (INITIATED)
+	Reservation reservation = Reservation.builder()
+			.requestId(requestId)
+			.hotelId(getHotelId)
+			.checkInDate(checkInDate)
+			.checkOutDate(checkOutDate)
+			.rooms(rooms)
+			.status(ReservationStatus.INITIATED)
+			.build();
+
+	reservationRepository.save(reservation);
+
+	// 3. Call InventoryService (batch hold)
+	InventoryHoldResponse holdResponse =
+			inventoryClient.placeHold(
+					InventoryHoldRequest.from(reservation)
+			);
+
+	// 4. Update reservation on successful hold
+	reservation.setStatus(ReservationStatus.PENDING_PAYMENT);
+	reservation.setHoldId(holdResponse.getHoldId());
+	reservation.setHoldExpiresAt(holdResponse.getExpiresAt());
+
+	reservationRepository.save(reservation);
+
+	return reservation;
+}
+```
+
+`@Transactional` guarantees that the idempotency check, reservation record creation, and state transition from `INITIATED` to `PENDING_PAYMENT` are committed together, preventing partially persisted or inconsistent booking state. 
+
+If any step fails, the transaction is rolled back automatically, preserving data integrity.
+
+**Sample Response**
+
+```
+{
+  "reservationId": "R789",
+  "status": "PENDING_PAYMENT",
+  "inventoryHold": {
+    "holdId": "HOLD456",
+    "expiresAt": "2025-03-10T12:15:00Z"
+  }
+}
+```
 
 
-1-5 RPS means you should design for safety, not scale.
+
+
+
+
+

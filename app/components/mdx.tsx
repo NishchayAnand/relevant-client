@@ -158,22 +158,23 @@ let components = {
   code: Code,
   Table,
   table: (props: React.TableHTMLAttributes<HTMLTableElement>) => (
-    <div className="my-6 w-full overflow-x-auto">
-      <table
-        className="w-full border-collapse text-sm mx-auto my-2"
-        {...props}
-      />
-    </div>
+    <table
+      className="my-8 mx-auto w-full border border-collapse border-gray-200 rounded-lg overflow-hidden text-sm"
+      {...props}
+    />
   ),
   thead: (props: React.HTMLAttributes<HTMLTableSectionElement>) => (
     <thead className="bg-neutral-50 dark:bg-neutral-900/40" {...props} />
   ),
+  tbody: (props: React.HTMLAttributes<HTMLTableSectionElement>) => (
+    <tbody className='divide-y divide-gray-100' {...props} />
+  ),
   tr: (props: React.HTMLAttributes<HTMLTableRowElement>) => (
-    <tr className="border-b border-neutral-200 dark:border-neutral-800" {...props} />
+    <tr className="hover:bg-gray-50 transition-colors" {...props} />
   ),
   th: (props: React.ThHTMLAttributes<HTMLTableCellElement>) => (
     <th
-      className="px-3 py-2 text-left font-semibold text-neutral-900 dark:text-neutral-100"
+      className="px-4 py-3 font-semibold border-b border-gray-200 text-neutral-900 dark:text-neutral-100"
       {...props}
     />
   ),
