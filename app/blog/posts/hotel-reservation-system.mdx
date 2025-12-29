@@ -399,7 +399,54 @@ This endpoint serves **static, read-only hotel metadata** required to render the
 
 #### Inventory Service
 
-The **Inventory Service** manages full inventory lifecycle, including real-time availability checks, temporary holds during booking, and finalizing or releasing inventory, while enforcing strong consistency to prevent overbooking under concurrent requests.
+The **Inventory Service** manages the complete lifecycle of room inventory, including availability checks, temporary holds during booking, and final confirmation or release of inventory. Its primary responsibility is to enforce **strong consistency** so that overbooking is impossible even under high concurrency.
+
+Each inventory record represents availability at the granularity of **`(hotelId, roomType, date)`**.
+This allows the system to correctly handle bookings that span multiple dates.
+
+##### **Inventory Record**
+
+```java
+@Entity
+@Getter @Setter
+public class Inventory {
+
+    @Id
+    @GeneratedValue
+    private Long id;
+
+    private String hotelId;
+    private String roomType;
+    private LocalDate date;
+
+    private Integer totalCount;
+    private Integer reservedCount;
+
+    private String holdId;
+    private Instant holdExpiresAt;
+
+    public int getAvailableCount() {
+        return totalCount - reservedCount;
+    }
+
+    public void hold(String holdId, Instant expiry, int qty) {
+        this.reservedCount += qty;
+        this.holdId = holdId;
+        this.holdExpiresAt = expiry;
+    }
+
+    public void release(int qty) {
+        this.reservedCount -= qty;
+        this.holdId = null;
+        this.holdExpiresAt = null;
+    }
+
+    public void confirm() {
+        this.holdId = null;
+        this.holdExpiresAt = null;
+    }
+}
+```
 
 Let's discuss the key endpoints exposed by the Inventory Service.
 
@@ -563,51 +610,6 @@ List<Inventory> lockInventory(
 );
 ```
 
-
-**Inventory Entity**
-
-```java
-@Entity
-@Getter @Setter
-public class Inventory {
-
-    @Id
-    @GeneratedValue
-    private Long id;
-
-    private String hotelId;
-    private String roomType;
-    private LocalDate date;
-
-    private Integer totalCount;
-    private Integer reservedCount;
-
-    private String holdId;
-    private Instant holdExpiresAt;
-
-    public int getAvailableCount() {
-        return totalCount - reservedCount;
-    }
-
-    public void hold(String holdId, Instant expiry, int qty) {
-        this.reservedCount += qty;
-        this.holdId = holdId;
-        this.holdExpiresAt = expiry;
-    }
-
-    public void release(int qty) {
-        this.reservedCount -= qty;
-        this.holdId = null;
-        this.holdExpiresAt = null;
-    }
-
-    public void confirm() {
-        this.holdId = null;
-        this.holdExpiresAt = null;
-    }
-}
-```
-
 **Sample Success Response**
 
 ```json
@@ -629,9 +631,180 @@ Content-Type: application/json
 }
 ```
 
+Pessimistic locking is ideal for inventory holds because the operations are write-heavy, highly contended, and require strict correctness guarantees.
 
+##### 3. `POST /inventory/confirm`
 
+Responsible for **converting a temporary inventory hold into a permanent reservation**. It is invoked during **Phase 2: Payment Processing & Reservation Confirmation**, after payment has been successfully verified.
 
+**Sample Request**
+
+```json
+POST /inventory/confirm
+Content-Type: application/json
+
+{
+  "holdId": "HOLD456",
+  "reservationId": "R789"
+}
+```
+
+**Business Logic**
+
+```java
+@Transactional
+public InventoryConfirmResponse confirmHold(
+		InventoryConfirmRequest request
+) {
+	List<Inventory> inventory =
+			inventoryRepository.findByHoldId(
+					request.getHoldId()
+			);
+
+	if (inventory.isEmpty()) {
+		throw new IllegalStateException(
+				"Hold not found or already released"
+		);
+	}
+
+	// Idempotency: already confirmed
+	boolean alreadyConfirmed = inventory.stream()
+			.allMatch(i -> i.getHoldId() == null);
+
+	if (alreadyConfirmed) {
+		return new InventoryConfirmResponse(
+				request.getHoldId(),
+				"CONFIRMED"
+		);
+	}
+
+	// Validate hold expiry
+	Instant now = Instant.now();
+	for (Inventory item : inventory) {
+		if (item.getHoldExpiresAt().isBefore(now)) {
+			throw new IllegalStateException(
+					"Hold expired"
+			);
+		}
+	}
+
+	// Finalize inventory
+	inventory.forEach(Inventory::confirm);
+
+	inventoryRepository.saveAll(inventory);
+
+	return new InventoryConfirmResponse(
+			request.getHoldId(),
+			"CONFIRMED"
+	);
+}
+```
+
+**Sample Success Response**
+
+```json
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{
+  "holdId": "HOLD456",
+  "status": "CONFIRMED"
+}
+```
+
+**Sample Failure Response**
+
+```json
+HTTP/1.1 409 Conflict
+Content-Type: application/json
+
+{
+  "error": "HOLD_EXPIRED",
+  "message": "Inventory hold has expired or does not exist"
+}
+```
+
+No availability counters are recalculated here. **Finalization is a metadata transition**, not a quantity change.
+
+##### 4. `POST /inventory/release`
+
+Responsible for **reverting a temporary inventory hold** when a booking cannot be completed. This ensures that rooms are returned to the available pool and can be booked by other users.
+
+**Sample Request**
+
+```json
+POST /inventory/release
+Content-Type: application/json
+
+{
+  "holdId": "HOLD456",
+  "reservationId": "R789",
+  "reason": "PAYMENT_FAILED"
+}
+```
+
+**Business Logic**
+
+```java
+@Transactional
+public InventoryReleaseResponse releaseHold(
+		InventoryReleaseRequest request
+) {
+	List<Inventory> inventory =
+			inventoryRepository.findByHoldId(
+					request.getHoldId()
+			);
+
+	// Idempotency: already released
+	if (inventory.isEmpty()) {
+		return new InventoryReleaseResponse(
+				request.getHoldId(),
+				"RELEASED"
+		);
+	}
+
+	// Release inventory
+	inventory.forEach(item -> {
+		int qty = item.getReservedCountForHold(
+				request.getHoldId()
+		);
+		item.release(qty);
+	});
+
+	inventoryRepository.saveAll(inventory);
+
+	return new InventoryReleaseResponse(
+			request.getHoldId(),
+			"RELEASED"
+	);
+}
+```
+
+**Sample Success Response**
+
+```json
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{
+  "holdId": "HOLD456",
+  "status": "RELEASED"
+}
+```
+
+**Sample Failure Response**
+
+```json
+HTTP/1.1 404 Not Found
+Content-Type: application/json
+
+{
+  "error": "HOLD_NOT_FOUND",
+  "message": "Inventory hold does not exist or was already released"
+}
+```
+
+This endpoint plays a critical role in keeping inventory **accurate, self-healing, and leak-free**.
 
 #### Pricing Service
 
