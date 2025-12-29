@@ -262,7 +262,7 @@ This helps clarify how responsibilities are distributed across services and how 
 
 The **Hotel Service** is responsible for owning and serving **static hotel profile data**. This data changes infrequently, is optimized for read-heavy access through aggressive caching with long TTLs, and intentionally excludes dynamic information such as availability and pricing.
 
-Let's discuss the key endpoints exposed by the Reservation Service.
+Let's discuss the key endpoints exposed by the Hotel Service.
 
 ##### `1. GET /hotels`
 
@@ -398,6 +398,240 @@ public HotelDetailsResponse getHotelDetails(String hotelId) {
 This endpoint serves **static, read-only hotel metadata** required to render the hotel details page.
 
 #### Inventory Service
+
+The **Inventory Service** manages full inventory lifecycle, including real-time availability checks, temporary holds during booking, and finalizing or releasing inventory, while enforcing strong consistency to prevent overbooking under concurrent requests.
+
+Let's discuss the key endpoints exposed by the Inventory Service.
+
+##### 1. `POST /availability/batch`
+
+During hotel search, the system checks availability for **multiple hotels in batch**, allowing the Search Service to efficiently filter eligible hotels without incurring N+1 calls.
+
+**Sample Request**
+
+```json
+POST /availability/batch
+Content-Type: application/json
+
+{
+  "hotelIds": ["H123", "H456", "H789"],
+  "checkInDate": "2025-03-10",
+  "checkOutDate": "2025-03-12"
+}
+```
+
+**Business Logic**
+
+```java
+@Transactional(readOnly = true)
+public BatchAvailabilityResponse checkBatchAvailability(
+        BatchAvailabilityRequest request
+) {
+    List<Inventory> inventory =
+            inventoryRepository.findInventoryForHotels(
+                    request.getHotelIds(),
+                    request.getCheckInDate(),
+                    request.getCheckOutDate()
+            );
+
+    Map<String, Boolean> availabilityByHotel = new HashMap<>();
+
+    for (String hotelId : request.getHotelIds()) {
+
+        boolean hasAvailability = inventory.stream()
+                .anyMatch(i ->
+                        i.getHotelId().equals(hotelId) &&
+                        i.getAvailableCount() > 0
+                );
+
+        availabilityByHotel.put(hotelId, hasAvailability);
+    }
+
+    return new BatchAvailabilityResponse(availabilityByHotel);
+}
+```
+
+**Repository Query**
+
+```java
+@Query("""
+    SELECT i FROM Inventory i
+    WHERE i.hotelId IN :hotelIds
+      AND i.reservationDate >= :checkInDate
+      AND i.reservationDate < :checkOutDate
+""")
+List<Inventory> findInventoryForHotels(
+        List<String> hotelIds,
+        LocalDate checkInDate,
+        LocalDate checkOutDate
+);
+```
+
+**Sample Response**
+
+```json
+{
+  "availability": {
+    "H123": {
+      "available": true
+    },
+    "H456": {
+      "available": false
+    },
+    "H789": {
+      "available": true
+    }
+  }
+}
+```
+
+The batch availability API performs a fast, coarse-grained availability check across multiple hotels without room-level details, optimized for the Search Hotels flow.
+
+##### 2. `POST /inventory/hold`
+
+Places a temporary hold on room inventory to prevent double booking during payment. The hold is **time-bound** and automatically expires if payment is not completed, making it safe and self-healing.
+
+**Sample Request**
+
+```json
+POST /inventory/hold
+Content-Type: application/json
+
+{
+  "reservationId": "R789",
+  "hotelId": "H123",
+  "checkInDate": "2025-03-10",
+  "checkOutDate": "2025-03-12",
+  "rooms": {
+    "DELUXE": 2,
+    "STANDARD": 1
+  }
+}
+```
+
+**Business Logic**
+
+```java
+@Transactional
+public InventoryHoldResponse placeHold(InventoryHoldRequest request) {
+
+    List<Inventory> inventory =
+            inventoryRepository.lockInventory(
+                    request.getHotelId(),
+                    request.getRoomTypes(),
+                    request.getCheckInDate(),
+                    request.getCheckOutDate()
+            );
+
+    // Validate availability using derived availability
+    for (Inventory item : inventory) {
+        int requiredQty = request.getQuantity(item.getRoomType());
+
+        if (item.getAvailableCount() < requiredQty) {
+            throw new InventoryUnavailableException();
+        }
+    }
+
+    String holdId = UUID.randomUUID().toString();
+    Instant expiry = Instant.now().plus(Duration.ofMinutes(15));
+
+    // Apply holds
+    inventory.forEach(item -> {
+        int qty = request.getQuantity(item.getRoomType());
+        item.hold(holdId, expiry, qty);
+    });
+
+    return new InventoryHoldResponse(holdId, expiry);
+}
+```
+
+**Repository Query**
+
+```java
+@Lock(LockModeType.PESSIMISTIC_WRITE)
+@Query("""
+	SELECT i FROM Inventory i
+	WHERE i.hotelId = :hotelId
+	  AND i.roomType IN :roomTypes
+	  AND i.date BETWEEN :checkIn AND :checkOut
+""")
+List<Inventory> lockInventory(
+		String hotelId,
+		List<String> roomTypes,
+		LocalDate checkIn,
+		LocalDate checkOut
+);
+```
+
+
+**Inventory Entity**
+
+```java
+@Entity
+@Getter @Setter
+public class Inventory {
+
+    @Id
+    @GeneratedValue
+    private Long id;
+
+    private String hotelId;
+    private String roomType;
+    private LocalDate date;
+
+    private Integer totalCount;
+    private Integer reservedCount;
+
+    private String holdId;
+    private Instant holdExpiresAt;
+
+    public int getAvailableCount() {
+        return totalCount - reservedCount;
+    }
+
+    public void hold(String holdId, Instant expiry, int qty) {
+        this.reservedCount += qty;
+        this.holdId = holdId;
+        this.holdExpiresAt = expiry;
+    }
+
+    public void release(int qty) {
+        this.reservedCount -= qty;
+        this.holdId = null;
+        this.holdExpiresAt = null;
+    }
+
+    public void confirm() {
+        this.holdId = null;
+        this.holdExpiresAt = null;
+    }
+}
+```
+
+**Sample Success Response**
+
+```json
+{
+  "holdId": "HOLD456",
+  "expiresAt": "2025-03-10T12:15:00Z"
+}
+```
+
+**Sample Failure Response (Insufficient Inventory)**
+
+```json
+HTTP/1.1 409 Conflict
+Content-Type: application/json
+
+{
+  "error": "INSUFFICIENT_INVENTORY",
+  "message": "Not enough available rooms for DELUXE between 2025-03-10 and 2025-03-12"
+}
+```
+
+
+
+
 
 #### Pricing Service
 
@@ -621,11 +855,14 @@ If any step fails, the transaction is rolled back automatically, preserving data
 
 ##### 2. `POST /reservations/{reservationId}/confirm`
 
-Confirms a reservation after successful payment.
+Finalizes a reservation after **successful payment and inventory finalization**.
 
 **Sample Request**
 
 ```json
+POST /reservations/R789/confirm
+Content-Type: application/json
+
 {
   "paymentId": "pay_987654",
   "orderId": "order_123456",
@@ -636,8 +873,47 @@ Confirms a reservation after successful payment.
 
 **Business Logic**
 
+```java
+@Transactional
+public ReservationConfirmationResponse confirmReservation(
+		String reservationId,
+		PaymentConfirmationRequest request
+) {
+	Reservation reservation = reservationRepository
+			.findById(reservationId)
+			.orElseThrow(() ->
+					new NotFoundException("Reservation not found")
+			);
+
+	// Idempotency: already confirmed
+	if (reservation.getStatus() == ReservationStatus.CONFIRMED) {
+		return ReservationConfirmationResponse.from(reservation);
+	}
+
+	// Validate state
+	if (reservation.getStatus() != ReservationStatus.PENDING_PAYMENT) {
+		throw new IllegalStateException(
+				"Invalid state transition for reservation: " + reservation.getStatus()
+		);
+	}
+
+	// Persist payment details
+	reservation.setPaymentId(request.getPaymentId());
+	reservation.setPaymentOrderId(request.getOrderId());
+	reservation.setPaymentProvider(request.getPaymentProvider());
+	reservation.setPaidAt(request.getPaidAt());
+
+	// Transition state
+	reservation.setStatus(ReservationStatus.CONFIRMED);
+	reservation.setConfirmedAt(Instant.now());
+
+	reservationRepository.save(reservation);
+
+	return ReservationConfirmationResponse.from(reservation);
+}
 ```
-```
+
+If duplicate or retried confirmation requests arrive (which is common with payment callbacks), `@Transactional` ensures that state checks and updates are executed consistently, so the reservation cannot be confirmed twice or left in an intermediate state.
 
 **Sample Response**
 
@@ -649,7 +925,7 @@ Confirms a reservation after successful payment.
 }
 ```
 
-This endpoint is invoked by the PaymentService during Phase 2: Payment Processing & Reservation Confirmation to finalize the booking.
+This endpoint is invoked **only by the PaymentService** during **Phase 2: Payment Processing & Reservation Confirmation**.
 
 #### Payment Service
 
