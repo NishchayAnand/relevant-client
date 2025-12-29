@@ -1419,9 +1419,173 @@ This endpoint is invoked **after the user completes payment** (via redirect or w
 
 ### Data Model Design
 
+Different parts of the system evolve at very different rates and under different constraints. For example, hotel profile information such as names, amenities, and images changes infrequently and is primarily read-heavy, while inventory and reservation data changes constantly and must be updated with strong consistency under high concurrency. 
+
+By designing schemas around these change characteristics, each service can use storage structures, indexing strategies, and transactional guarantees that best fit its data. This approach naturally leads to different schemas and storage patterns across services, avoids forcing one-size-fits-all models, and prevents slow-moving, read-heavy data from interfering with fast-changing, correctness-critical workflows like booking and payment.
+
+Let’s examine the **data models** for each core service, focusing on the queries they must support, how their data volumes are expected to grow over a 10-year horizon, and the **partitioning, indexing, and storage strategies** required to sustain scalability, reliability, and performance at scale.
+
+#### Hotel Service
+
+The Hotel Service primarily supports the following query types:
+
+- Fetch a list of hotels by `location` (used by Search Service)
+- Fetch a complete hotel profile by `hotelId` (used by Hotel Details page)
+- Fetch room-type definitions for a hotel
+
+These queries are primarily **read-heavy** and designed to return results quickly with **low latency**. They do not require strict correctness guarantees because they deal with static or slow-changing data, and updates are **rare and infrequent**, meaning concurrent writes are uncommon. This makes them well suited for caching and read-optimized database access.
+
+##### **Schema Design**
+
+![hotel-booking-system](/hotel-reservation-system/hotel-service-er-diagram.png)
+
+Since this data changes infrequently and does not participate in transactional booking workflows, its schema is intentionally kept **simple and normalized**, modeling only static metadata.
+
+##### **Database Choice**
+
+A **relational database** works well for the Hotel Service because the data is clearly structured and naturally fits into tables with relationships.
+
+In addition, schema changes are easy to manage for slow-changing data, and constraints like unique `hotelId` or `(hotelId, roomType)` can be enforced directly at the database level, keeping the data clean and reliable with minimal application logic.
+
+##### **Indexing Strategy**
+
+Relational databases provide mature indexing and query optimization. A primary key and unique index on `hotelId` allows quick access to individual hotel profiles, while an index on `location` supports efficient hotel searches by city or region. 
+
+A composite index on `(hotelId, roomTypeCode)` enables fast lookups of room-type definitions for a given hotel.
+
+##### **Data Growth (10-Year Horizon)**
+
+Hotel metadata grows **slowly and predictably** over time, mainly as new hotels are onboarded. 
+
+Each hotel has a limited and fixed set of room types, amenities, and images, and there are no unbounded or time-based data additions. As a result, even at large scale, the overall data size remains manageable.
+
+##### **Partitioning Strategy**
+
+Partitioning is **not required initially** due to low write volume and predictable growth. If needed at very large scale, partitioning or sharding can be introduced by `location` (regional sharding).
+
+#### Inventory Service
+
+The Inventory Service must support several correctness-critical query patterns:
+
+- Check availability for a hotel across a **date range**
+- Place **temporary holds** on inventory for selected room types and quantities
+- Confirm or release previously held inventory
+- Batch availability checks across multiple hotels for search
+
+These queries are **write-heavy and highly contended**, with multiple users often trying to update the same inventory records at the same time.
+
+##### **Schema Design**
+
+![hotel-booking-system](/hotel-reservation-system/inventory-service-er-diagram.png)
+
+The schema is designed to support **strong consistency, fine-grained updates, and high write contention**, while still enabling efficient availability queries for search and booking flows.
+
+##### **Database Choice**
+
+A **relational database** is well suited for the Inventory Service because it provides strong transactional guarantees and supports row-level locking, which are essential for handling concurrent inventory holds safely. 
+
+Pessimistic locking mechanisms like `SELECT … FOR UPDATE` allow the system to serialize competing booking requests and prevent race conditions that could lead to overbooking. Since inventory correctness is more important than raw throughput, a strongly consistent relational database is a better choice than NoSQL or eventually consistent stores, which could allow conflicting updates and compromise booking accuracy.
+
+##### **Indexing Strategy**
+
+A composite key on `(hotelId, roomType, date)` ensures fast and precise access to individual inventory records, while an index on `(hotelId, date)` supports availability checks across date ranges. 
+
+An optional index on `holdId` enables quick confirm and release operations.
+
+##### **Data Growth (10-Year Horizon)**
+
+Inventory data grows **very rapidly** compared to other services:
+
+```
+hotels × roomTypes × days
+```
+
+As the number of hotels increases, inventory rows multiply across room types and calendar days. For example, with 50,000 hotels, 5 room types per hotel, and 365 days, the system generates roughly **90 million inventory records per year**, making inventory the **largest and most rapidly growing dataset** in the platform.
+
+##### **Partitioning Strategy**
+
+Partitioning the **Inventory** table by **date on a monthly basis** is a practical and scalable choice given the data’s time-series nature and high growth rate.
+
+By organizing inventory records into **monthly partitions** (such as `inventory_2025_01`, `inventory_2025_02`, and so on), the system ensures that **active data** for current and upcoming dates remains compact and efficient to query, while older data is naturally separated.
+
+Most availability checks, holds, and updates only touch the **current or near-future partitions**, which reduces the number of rows scanned, lowers lock contention, and improves overall query performance.
+
+#### Pricing Service
+
+The Pricing Service primarily supports the following queries:
+
+- Fetch base rates for a given `(hotelId, roomType)`
+- Fetch **bulk average per-night prices** for multiple hotels (used by Search Service)
+- Compute final prices for a hotel, room type, and date range
+
+These queries are **mostly read-heavy and focused on computation**, with very little write activity or contention.
+
+##### **Schema Design**
+
+![hotel-booking-system](/hotel-reservation-system/pricing-service-er-diagram.png)
+
+The schema is designed to support **fast, read-heavy access** and **deterministic price calculations**, while remaining small, stable, and easy to evolve as pricing rules change.
+
+##### **Database Choice**
+
+A **relational database** works well for the Pricing Service because the data is structured and easy to model with tables and relationships. While strong consistency is available, it is not heavily stressed since pricing data changes infrequently. 
+
+Schema changes are simple to manage over time, and index-based lookups provide fast and predictable reads. Because writes are rare, the database easily handles the workload without performance issues.
+
+##### **Indexing Strategy**
+
+A composite index on `(hotelId, roomType)` enables quick base-rate lookups, while optional date-range indexes support efficient rule evaluation. Frequently accessed pricing data can also be cached in memory to further reduce database load.
+
+##### **Data Growth (10-Year Horizon)**
+
+Pricing data grows **slowly and in a very controlled way**. Each hotel typically has only one base rate per room type, the number of pricing rules is limited, and there are no per-booking or time-series records generated. Because of this, even as the platform scales over many years, the overall size of pricing data remains **small and manageable**, especially when compared to rapidly growing datasets like inventory or reservations.
+
+##### **Partitioning Strategy**
+
+Partitioning is **not needed at the beginning** because pricing data is small and access patterns are stable. If the system grows significantly in the future, `room_rates` can be sharded by `hotelId`. 
+
+However, most scalability for the Pricing Service comes from **caching and stateless price computation**, rather than complex database partitioning.
+
+#### Reservation Service
+
+The Reservation Service must support the following queries efficiently:
+
+- Create a reservation using a `requestId` (idempotency key)
+- Fetch reservation details by `reservationId`
+- Update reservation state (`INITIATED → PENDING_PAYMENT → CONFIRMED`)
+- Scan for expired or timed-out reservations
+- Retrieve reservations for customer views or support tools
+
+These queries tend to be **write-heavy during booking spikes**, when many users are creating or updating reservations at the same time. After a booking is completed, the access pattern shifts and becomes **read-heavy**, as users and support systems frequently fetch reservation details for viewing, confirmation, or troubleshooting. 
+
+##### **Schema Design**
+
+![hotel-booking-system](/hotel-reservation-system/reservation-service-er-diagram.png)
+
+The schema is designed to support **safe state transitions, idempotent creation, and strong consistency**, while handling bursty traffic patterns during booking flows.
+
+##### **Database Choice**
+
+A **relational database** is well suited for the Reservation Service because it provides strong transactional guarantees needed for safe state transitions, enforces uniqueness and correctness through constraints and indexes, and prevents partial updates during failures using ACID transactions. 
+
+Since reservation data is business-critical and must remain consistent and auditable at all times, eventually consistent data stores are avoided to ensure the reservation state is never ambiguous.
+
+##### **Indexing Strategy**
+
+A unique index on `requestId` ensures idempotent reservation creation, while the primary key on `reservationId` enables fast lookups of individual bookings. An index on `status` supports background jobs such as expiry and cleanup, and optional indexes on `hotelId` and `createdAt` help with reporting and support queries. 
+
+Together, these indexes provide efficient reads while keeping write overhead at a manageable level.
+
+##### **Data Growth**
+
+
+
+#### Payment Service
+
+
 ---
 
-### Final Architecture Design
+### Final Architecture
 
 
 ---
