@@ -404,7 +404,7 @@ The **Inventory Service** manages the complete lifecycle of room inventory, incl
 Each inventory record represents availability at the granularity of **`(hotelId, roomType, date)`**.
 This allows the system to correctly handle bookings that span multiple dates.
 
-##### **Inventory Record**
+**Inventory Record**
 
 ```java
 @Entity
@@ -610,24 +610,12 @@ List<Inventory> lockInventory(
 );
 ```
 
-**Sample Success Response**
+**Sample Response**
 
 ```json
 {
   "holdId": "HOLD456",
   "expiresAt": "2025-03-10T12:15:00Z"
-}
-```
-
-**Sample Failure Response (Insufficient Inventory)**
-
-```json
-HTTP/1.1 409 Conflict
-Content-Type: application/json
-
-{
-  "error": "INSUFFICIENT_INVENTORY",
-  "message": "Not enough available rooms for DELUXE between 2025-03-10 and 2025-03-12"
 }
 ```
 
@@ -700,7 +688,7 @@ public InventoryConfirmResponse confirmHold(
 }
 ```
 
-**Sample Success Response**
+**Sample Response**
 
 ```json
 HTTP/1.1 200 OK
@@ -709,18 +697,6 @@ Content-Type: application/json
 {
   "holdId": "HOLD456",
   "status": "CONFIRMED"
-}
-```
-
-**Sample Failure Response**
-
-```json
-HTTP/1.1 409 Conflict
-Content-Type: application/json
-
-{
-  "error": "HOLD_EXPIRED",
-  "message": "Inventory hold has expired or does not exist"
 }
 ```
 
@@ -780,7 +756,7 @@ public InventoryReleaseResponse releaseHold(
 }
 ```
 
-**Sample Success Response**
+**Sample Response**
 
 ```json
 HTTP/1.1 200 OK
@@ -792,21 +768,180 @@ Content-Type: application/json
 }
 ```
 
-**Sample Failure Response**
-
-```json
-HTTP/1.1 404 Not Found
-Content-Type: application/json
-
-{
-  "error": "HOLD_NOT_FOUND",
-  "message": "Inventory hold does not exist or was already released"
-}
-```
-
 This endpoint plays a critical role in keeping inventory **accurate, self-healing, and leak-free**.
 
 #### Pricing Service
+
+The **Pricing Service** is responsible for **computing room prices** for a given hotel, date range, and room type. Key endpoints include:
+
+##### 1. `POST /pricing/batch`
+
+A **bulk endpoint** that returns the **average per-night price per hotel** across multiple hotel IDs.
+
+**Sample Response**
+
+```json
+POST /pricing/batch/
+Content-Type: application/json
+
+{
+  "hotelIds": ["H123", "H456", "H789"],
+  "checkInDate": "2025-03-10",
+  "checkOutDate": "2025-03-12"
+}
+```
+
+**Business Logic**
+
+```java
+@Transactional(readOnly = true)
+public AvgPriceBatchResponse calculateAvgPerNightPrices(
+		AvgPriceBatchRequest request
+) {
+	Map<String, BigDecimal> priceMap = new HashMap<>();
+
+	for (String hotelId : request.getHotelIds()) {
+
+		List<BigDecimal> baseRates =
+				rateRepository.getBaseRatesForHotel(hotelId);
+
+		BigDecimal avgBaseRate =
+				baseRates.stream()
+						 .reduce(BigDecimal.ZERO, BigDecimal::add)
+						 .divide(
+							 BigDecimal.valueOf(baseRates.size()),
+							 RoundingMode.HALF_UP
+							 );
+
+		BigDecimal adjustedRate =
+				ruleEngine.applyRules(
+						avgBaseRate,
+						request.getCheckInDate(),
+						request.getCheckOutDate()
+				);
+
+		priceMap.put(hotelId, adjustedRate);
+	}
+
+	return new AvgPriceBatchResponse("INR", priceMap);
+}
+```
+
+**Sample Response**
+
+```json
+{
+  "currency": "INR",
+  "prices": {
+    "H123": {
+      "avgPerNightPrice": 4200
+    },
+    "H456": {
+      "avgPerNightPrice": 5100
+    },
+    "H789": {
+      "avgPerNightPrice": 3900
+    }
+  }
+}
+```
+
+This bulk average price API is used **only by the Search Service**.
+
+##### 2. `POST /pricing`
+
+Calculates prices for available room types over a date range.
+
+**Sample Request**
+
+```json
+POST /pricing
+Content-Type: application/json
+
+{
+  "hotelId": "H123",
+  "checkInDate": "2025-03-10",
+  "checkOutDate": "2025-03-12",
+  "roomTypes": ["DELUXE", "STANDARD"]
+}
+```
+
+**Business Logic**
+
+```java
+@Transactional(readOnly = true)
+public PricingResponse calculatePricing(PricingRequest request) {
+
+	Map<String, RoomPricing> pricingMap = new HashMap<>();
+
+	for (String roomType : request.getRoomTypes()) {
+
+		BigDecimal baseRate =
+				rateRepository.getBaseRate(
+						request.getHotelId(),
+						roomType
+				);
+
+		BigDecimal adjustedRate =
+				ruleEngine.applyRules(
+						baseRate,
+						request.getCheckInDate(),
+						request.getCheckOutDate()
+				);
+
+		long nights =
+				ChronoUnit.DAYS.between(
+						request.getCheckInDate(),
+						request.getCheckOutDate()
+				);
+
+		BigDecimal total = adjustedRate.multiply(
+				BigDecimal.valueOf(nights)
+		);
+
+		BigDecimal taxes = taxService.calculate(total);
+
+		pricingMap.put(
+				roomType,
+				new RoomPricing(
+						adjustedRate,
+						total,
+						taxes,
+						total.add(taxes)
+				)
+		);
+	}
+
+	return new PricingResponse(
+			request.getHotelId(),
+			"INR",
+			pricingMap
+	);
+}
+```
+
+**Sample Response**
+
+```json
+{
+  "hotelId": "H123",
+  "currency": "INR",
+  "pricing": {
+    "DELUXE": {
+      "perNightPrice": 5000,
+      "totalPrice": 10000,
+      "taxes": 1200,
+      "finalPrice": 11200
+    },
+    "STANDARD": {
+      "perNightPrice": 3500,
+      "totalPrice": 7000,
+      "taxes": 840,
+      "finalPrice": 7840
+    }
+  }
+}
+```
 
 #### Search Service
 
@@ -1101,6 +1236,184 @@ If duplicate or retried confirmation requests arrive (which is common with payme
 This endpoint is invoked **only by the PaymentService** during **Phase 2: Payment Processing & Reservation Confirmation**.
 
 #### Payment Service
+
+The **Payment Service** is responsible for **payment orchestration**. It manages interactions with **external payment gateways**, handles retries and callbacks, and coordinates downstream services to **safely finalize a booking after payment**.
+
+Let's discuss the key endpoints exposed by the Payment Service.
+
+##### 1. `POST /payments/order`
+
+Creates a payment gateway order and returns a checkout URL.
+
+**Sample Request**
+
+```json
+POST /payments/order
+Content-Type: application/json
+
+{
+  "reservationId": "R789",
+  "amount": 11200,
+  "currency": "INR",
+  "paymentProvider": "RAZORPAY",
+  "returnUrl": "https://app.example.com/payment/return"
+}
+```
+
+**Business Logic**
+
+```java
+@Transactional
+public PaymentOrderResponse createOrder(
+		PaymentOrderRequest request
+) {
+	// 1. Validate reservation state
+	ReservationSnapshot reservation =
+			reservationClient.getReservation(
+					request.getReservationId()
+			);
+
+	if (!reservation.isPendingPayment()) {
+		throw new IllegalStateException(
+				"Reservation not eligible for payment"
+		);
+	}
+
+	// 2. Idempotency: existing payment order
+	Optional<Payment> existing =
+			paymentRepository.findByReservationId(
+					request.getReservationId()
+			);
+
+	if (existing.isPresent()) {
+		return PaymentOrderResponse.from(existing.get());
+	}
+
+	// 3. Create payment order with gateway
+	GatewayOrder gatewayOrder =
+			gatewayClient.createOrder(
+					request.getAmount(),
+					request.getCurrency(),
+					request.getReturnUrl()
+			);
+
+	// 4. Persist payment record
+	Payment payment = new Payment();
+	payment.setReservationId(request.getReservationId());
+	payment.setPaymentOrderId(gatewayOrder.getOrderId());
+	payment.setStatus(PaymentStatus.CREATED);
+	payment.setAmount(request.getAmount());
+	payment.setCurrency(request.getCurrency());
+	payment.setProvider(request.getPaymentProvider());
+	payment.setCreatedAt(Instant.now());
+
+	paymentRepository.save(payment);
+
+	// 5. Return checkout details
+	return PaymentOrderResponse.from(payment, gatewayOrder);
+}
+```
+
+**Sample Response**
+
+```json
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{
+  "paymentOrderId": "order_123456",
+  "checkoutUrl": "https://checkout.razorpay.com/v1/checkout.js?order_id=order_123456",
+  "expiresAt": "2025-03-10T12:15:00Z"
+}
+
+```
+
+This endpoint is invoked when the user clicks **“Pay Now”** and marks the start of **Phase 2: Payment Processing**.
+
+##### 2. `POST /payments/confirm`
+
+Verifies payment and finalizes the booking.
+
+**Sample Request**
+
+```json
+POST /payments/confirm
+Content-Type: application/json
+
+{
+  "reservationId": "R789",
+  "paymentOrderId": "order_123456",
+  "paymentId": "pay_987654",
+  "paymentProvider": "RAZORPAY",
+  "signature": "gateway_signature_value"
+}
+```
+
+**Business Logic**
+
+```java
+@Transactional
+public PaymentConfirmationResponse confirmPayment(
+		PaymentConfirmRequest request
+) {
+	Payment payment = paymentRepository
+			.findByPaymentOrderId(request.getPaymentOrderId())
+			.orElseThrow(() ->
+					new IllegalStateException("Payment order not found")
+			);
+
+	// Idempotency: already processed
+	if (payment.getStatus() == PaymentStatus.SUCCESS) {
+		return PaymentConfirmationResponse.success(
+				payment.getReservationId()
+		);
+	}
+
+	// 1. Verify payment with gateway
+	gatewayClient.verifyPayment(
+			request.getPaymentOrderId(),
+			request.getPaymentId(),
+			request.getSignature()
+	);
+
+	// 2. Finalize inventory
+	inventoryClient.confirmHold(payment.getHoldId());
+
+	// 3. Confirm reservation
+	reservationClient.confirmReservation(
+			payment.getReservationId(),
+			request.getPaymentId(),
+			request.getPaymentOrderId(),
+			request.getPaymentProvider()
+	);
+
+	// 4. Update payment state
+	payment.setStatus(PaymentStatus.SUCCESS);
+	payment.setPaymentId(request.getPaymentId());
+	payment.setCompletedAt(Instant.now());
+
+	paymentRepository.save(payment);
+
+	return PaymentConfirmationResponse.success(
+			payment.getReservationId()
+	);
+}
+```
+
+**Sample Response**
+
+```
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{
+  "reservationId": "R789",
+  "paymentStatus": "SUCCESS",
+  "bookingStatus": "CONFIRMED"
+}
+```
+
+This endpoint is invoked **after the user completes payment** (via redirect or webhook trigger). The **Payment Service acts as the orchestrator**, ensuring that booking is finalized only after payment is confirmed.
 
 ---
 
