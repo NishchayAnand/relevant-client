@@ -1427,13 +1427,7 @@ Let’s examine the **data models** for each core service, focusing on the queri
 
 #### Hotel Service
 
-The Hotel Service primarily supports the following query types:
-
-- Fetch a list of hotels by `location` (used by Search Service)
-- Fetch a complete hotel profile by `hotelId` (used by Hotel Details page)
-- Fetch room-type definitions for a hotel
-
-These queries are primarily **read-heavy** and designed to return results quickly with **low latency**. They do not require strict correctness guarantees because they deal with static or slow-changing data, and updates are **rare and infrequent**, meaning concurrent writes are uncommon. This makes them well suited for caching and read-optimized database access.
+The Hotel Service queries are primarily **read-heavy** and designed to return results quickly with **low latency**. They do not require strict correctness guarantees because they deal with static or slow-changing data, and updates are **rare and infrequent**, meaning concurrent writes are uncommon. This makes them well suited for caching and read-optimized database access.
 
 ##### **Schema Design**
 
@@ -1449,15 +1443,25 @@ In addition, schema changes are easy to manage for slow-changing data, and const
 
 ##### **Indexing Strategy**
 
-Relational databases provide mature indexing and query optimization. A primary key and unique index on `hotelId` allows quick access to individual hotel profiles, while an index on `location` supports efficient hotel searches by city or region. 
+The Hotel Service indexing strategy focuses on keeping **read queries fast and predictable**. 
 
-A composite index on `(hotelId, roomTypeCode)` enables fast lookups of room-type definitions for a given hotel.
+A primary key and unique index on `hotelId` enable quick access to individual hotel profiles, while a composite index on `(hotelId, roomTypeCode)` allows efficient retrieval of room-type definitions for a specific hotel. 
+
+For search queries that filter hotels by location, relying on a full table scan would be inefficient at scale and lead to high I/O and inconsistent latency. Introducing a B-tree index on `locationId` allows the database to locate matching rows directly through index lookups, avoiding full scans and significantly improving performance for low-latency search endpoints.
 
 ##### **Data Growth (10-Year Horizon)**
 
-Hotel metadata grows **slowly and predictably** over time, mainly as new hotels are onboarded. 
+Hotel metadata grows **slowly and in a highly predictable manner**, driven primarily by the onboarding of new hotels rather than frequent updates to existing records.
 
-Each hotel has a limited and fixed set of room types, amenities, and images, and there are no unbounded or time-based data additions. As a result, even at large scale, the overall data size remains manageable.
+```json
+- Assumption: Total Hotels over 10-Year span = 1 Million
+- Average Hotel Record Size = 1 KB (with indexes)
+- Total Storage for Hotels = 1,000,000 × 1 KB = 1 GB
+```
+
+Each hotel is associated with a **bounded and fixed** set of room types, amenities, and images. 
+
+There are no unbounded collections or time-series–style inserts in this model. As a result, even over a 10-year horizon and at large scale, the overall data footprint remains modest and easy to manage compared to dynamic datasets such as inventory or reservations.
 
 ##### **Partitioning Strategy**
 
@@ -1465,14 +1469,7 @@ Partitioning is **not required initially** due to low write volume and predictab
 
 #### Inventory Service
 
-The Inventory Service must support several correctness-critical query patterns:
-
-- Check availability for a hotel across a **date range**
-- Place **temporary holds** on inventory for selected room types and quantities
-- Confirm or release previously held inventory
-- Batch availability checks across multiple hotels for search
-
-These queries are **write-heavy and highly contended**, with multiple users often trying to update the same inventory records at the same time.
+The Inventory Service queries are **write-heavy and highly contended**, with multiple users often trying to update the same inventory records at the same time.
 
 ##### **Schema Design**
 
@@ -1488,37 +1485,47 @@ Pessimistic locking mechanisms like `SELECT … FOR UPDATE` allow the system to 
 
 ##### **Indexing Strategy**
 
-A composite key on `(hotelId, roomType, date)` ensures fast and precise access to individual inventory records, while an index on `(hotelId, date)` supports availability checks across date ranges. 
+Search and booking operations routinely filter inventory by `hotelId`, `roomType`, and `date`. Without proper indexing, these queries would degrade into **sequential scans over millions of rows**, especially when validating availability across multiple consecutive dates. This would lead to high I/O, lock contention, and unpredictable latency.
 
-An optional index on `holdId` enables quick confirm and release operations.
+By introducing a composite B-tree index on `(hotelId, roomType, date)`, the database can efficiently locate the exact inventory rows required and perform fast range scans over booking windows, ensuring consistent performance for both search and booking workflows.
+
+An optional index on `holdId` supports quick lookup during **confirm** and **release** operations, which are triggered frequently during payment success, failure, or timeout flows.
 
 ##### **Data Growth (10-Year Horizon)**
 
-Inventory data grows **very rapidly** compared to other services:
+As the number of hotels grows, **inventory data expands multiplicatively** across room types and calendar days, making it the fastest-growing dataset in the system.
+
+```json
+- Assumptions:
+    - Total Hotels = 1,000,000
+    - Avg Room Types per Hotel = 3 (Standard, Deluxe, Suite)
+    - Days per Year = 365
+
+- Rows per Year
+    = 1,000,000 × 3 × 365
+    ≈ 1,095,000,000 ≈ 1.1 - 1.2 Billion rows
+
+- Avg Row Size = ~50 bytes
+
+- Total Storage (10-Year Horizon)
+    = 10 × 1,200,000,000 × 50 bytes
+    ≈ 600,000,000,000 bytes ≈ 0.6 TB
 
 ```
-hotels × roomTypes × days
-```
 
-As the number of hotels increases, inventory rows multiply across room types and calendar days. For example, with 50,000 hotels, 5 room types per hotel, and 365 days, the system generates roughly **90 million inventory records per year**, making inventory the **largest and most rapidly growing dataset** in the platform.
+Because inventory is modeled at the **(hotel × roomType × date)** level, even modest growth in hotels results in massive data expansion over time. This makes inventory the **largest and most rapidly growing dataset** in the platform.
 
 ##### **Partitioning Strategy**
 
-Partitioning the **Inventory** table by **date on a monthly basis** is a practical and scalable choice given the data’s time-series nature and high growth rate.
+Partitioning the **Inventory** table by **date on a monthly basis** is a practical and scalable approach, given the data’s time-series nature and rapid growth. By organizing records into monthly partitions (for example, `inventory_2025_01`, `inventory_2025_02`, and so on), the system keeps **active inventory data** for current and upcoming dates compact and efficient to query, while naturally isolating older data.
 
-By organizing inventory records into **monthly partitions** (such as `inventory_2025_01`, `inventory_2025_02`, and so on), the system ensures that **active data** for current and upcoming dates remains compact and efficient to query, while older data is naturally separated.
+Most availability checks, inventory holds, and booking updates operate on a **small future window**, typically the next 30–90 days. With monthly partitioning, the database only scans the partitions whose date ranges overlap the query, instead of the entire table. This significantly reduces I/O, lowers lock contention, and improves overall query performance under concurrent load.
 
-Most availability checks, holds, and updates only touch the **current or near-future partitions**, which reduces the number of rows scanned, lowers lock contention, and improves overall query performance.
+From an operational perspective, recent partitions, such as the next **6–8 months**, can be kept on **fast, writable storage** and tuned for low-latency reads and writes, since this is where the majority of search and booking traffic is concentrated. Older partitions, which are rarely accessed for live bookings, can be **archived or moved to cheaper storage**, keeping the primary database lean and performant while still preserving historical data when needed.
 
 #### Pricing Service
 
-The Pricing Service primarily supports the following queries:
-
-- Fetch base rates for a given `(hotelId, roomType)`
-- Fetch **bulk average per-night prices** for multiple hotels (used by Search Service)
-- Compute final prices for a hotel, room type, and date range
-
-These queries are **mostly read-heavy and focused on computation**, with very little write activity or contention.
+The Pricing Service queries are **mostly read-heavy and focused on computation**, with very little write activity or contention.
 
 ##### **Schema Design**
 
@@ -1548,15 +1555,7 @@ However, most scalability for the Pricing Service comes from **caching and state
 
 #### Reservation Service
 
-The Reservation Service must support the following queries efficiently:
-
-- Create a reservation using a `requestId` (idempotency key)
-- Fetch reservation details by `reservationId`
-- Update reservation state (`INITIATED → PENDING_PAYMENT → CONFIRMED`)
-- Scan for expired or timed-out reservations
-- Retrieve reservations for customer views or support tools
-
-These queries tend to be **write-heavy during booking spikes**, when many users are creating or updating reservations at the same time. After a booking is completed, the access pattern shifts and becomes **read-heavy**, as users and support systems frequently fetch reservation details for viewing, confirmation, or troubleshooting. 
+The Reservation Service queries tend to be **write-heavy during booking spikes**, when many users are creating or updating reservations at the same time. After a booking is completed, the access pattern shifts and becomes **read-heavy**, as users and support systems frequently fetch reservation details for viewing, confirmation, or troubleshooting. 
 
 ##### **Schema Design**
 
@@ -1576,11 +1575,72 @@ A unique index on `requestId` ensures idempotent reservation creation, while the
 
 Together, these indexes provide efficient reads while keeping write overhead at a manageable level.
 
-##### **Data Growth**
+##### **Data Growth (10-Year Horizon)**
+
+Because reservation records are **transactional**, they are accessed most frequently within the first **12 months** after creation (for cancellations, modifications, customer support queries, chargebacks, and dispute resolution). Beyond this window, access frequency drops sharply, making older records far less relevant for day-to-day operations.
+
+```json
+- Assumption: Daily Bookings = 100,000
+- Assumption: Retention Window = 1 year (365 days)
+
+- Total Bookings per Year
+  = 100,000 × 365
+  = 36.5 Million
+
+- Avg Booking Record Size = ~1 KB (including indexes and overhead)
+
+- Total Storage per Year
+  = 36,500,000 × 1 KB
+  ≈ 36.5 GB
+
+```
+
+Reservation data grows **steadily and predictably** as booking volume increases over time. While it is much larger than static datasets such as hotel metadata or pricing rules, it remains **significantly smaller than inventory data**, which multiplies across dates and room types.
 
 
+##### **Partitioning Strategy**
+
+Reservations can be **partitioned by creation time**, typically using **monthly or yearly partitions**, to support long-term scalability as booking volume grows. 
+
+Recent partitions contain **active and frequently accessed reservations**, which keeps day-to-day queries fast and predictable. As reservations age and access frequency drops, older partitions can be **archived or moved to cold storage** without impacting live traffic.
 
 #### Payment Service
+
+The Payment Service queries are **write-heavy** when payments are created and confirmed, and **read-heavy** later for verification, retries, and customer or support lookups. 
+
+While these operations are generally **not extremely latency-sensitive**, they are **reliability-critical**, because payment state must always be correct and recoverable, even in the presence of retries, failures, or duplicate callbacks from external payment gateways.
+
+##### **Schema Design**
+
+![hotel-booking-system](/hotel-reservation-system/payment-service-er-diagram.png)
+
+The schema models the **full lifecycle of a payment**, from creation to completion or failure. Each payment record represents a single payment intent tied to a reservation.
+
+##### **Database Choice**
+
+A **relational database** is well suited for the Payment Service because it provides **strong consistency**, supports **unique constraints** to prevent duplicate processing.
+
+Eventual consistency is avoided since payment state must always be **accurate, deterministic, and auditable**.
+
+##### **Indexing Strategy**
+
+A unique index on `paymentOrderId` ensures idempotency and prevents duplicate processing, while an index on `reservationId` allows quick correlation with booking data across services. 
+
+An index on `status` supports operational tasks such as retries and monitoring, and an optional index on `createdAt` enables reporting and audit queries. 
+
+Together, these indexes provide fast and reliable lookups while keeping write overhead low and manageable.
+
+##### **Data Growth (10-Year Horizon)**
+
+Payment data grows **steadily over time**, increasing in proportion to the number of bookings. Each reservation typically generates one or more payment records, which must be retained for long periods to meet compliance and auditing requirements. 
+
+While the dataset becomes large over time, it remains **predictable and manageable**, and is much smaller than inventory data, though similar in size to reservation data.
+
+##### **Partitioning Strategy**
+
+Payment data is **partitioned by creation time** (monthly or yearly) so that recent, active payments stay in fast **hot partitions**, while older records can be archived or moved to cold storage. 
+
+This time-based partitioning makes it easier to manage long-term data retention, keeps day-to-day queries fast, and helps meet auditing and regulatory requirements as the system grows.
 
 
 ---
