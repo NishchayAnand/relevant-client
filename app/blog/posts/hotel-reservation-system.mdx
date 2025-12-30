@@ -1783,6 +1783,93 @@ With a high cache hit rate via **ElastiCache**, the Hotel Service can handle tra
 
 #### Inventory Service
 
+In the **Search Hotels** flow, the Search Service must determine **which hotels have availability** for a given date range. Since **availability is dynamic and correctness-critical**, this data cannot be embedded or denormalized into the Search or Hotel services. As a result, the Search Service must call the **Inventory Service**, creating fan-out.
+
+However, unlike Hotel metadata, **Inventory fan-out must be tightly controlled**, because Inventory is write-heavy, highly contended, and database-bound.
+
+```json
+- Assumptions:
+	- Inventory calls per search = 1 (batched)
+	- Safe instance capacity ≈ 150 - 200 RPS
+	  
+
+- Inventory Peak RPS (search-driven)
+	= Search Peak RPS × Inventory calls per search
+	= 1,250 × 1
+	= 1,250 RPS
+	
+- Required instances
+	= 1,250 RPS / 175 RPS per instance
+	≈ 7 - 8 instances
+```
+
+Scaling is conservative and driven by database throughput rather than RPS. Typically, **7 - 8 ECS instances** are sufficient, with careful tuning of connection pools and locking behavior.
+
+#### Pricing Service
+
+A stateless, compute-focused service that calculates prices on demand. Because pricing logic is isolated in the `PricingService`, the `SearchService` must call it during search, which introduces fan-out.
+
+However, the **pricing fan-out is much easier to control** than the inventory fan-out because pricing data is **read-heavy, stateless, and cacheable**.
+
+```json
+- Assumptions:
+	- Avg hotels per search result = 20
+	- Pricing calls per search = 1 (bulk)
+	- Safe instance capacity ≈ 300 - 400 RPS
+
+- Peak Search RPS = 1,250
+  
+- Pricing Peak RPS (search-driven)
+	= Search Peak RPS × Pricing calls per search
+	= 1,250 × 1
+	= 1,250 RPS
+
+Required instances
+	= 1,250 RPS / 350 RPS per instance
+	≈ 4 instances
+```
+
+For the target load, **3 - 4 ECS instances** are usually enough to handle both search-time bulk pricing and booking-time validation.
+
+#### Reservation Service
+
+Owns the booking lifecycle and reservation state machine. Traffic is low but correctness-critical and transactional. 
+
+```json
+- Assumptions:
+	- Safe instance capacity ≈ 10 - 15 RPS
+	  
+- Peak Reservation RPS = 5
+  
+Required instances
+	= 5 RPS / 12 RPS per instance
+	≈ 1 instance
+```
+
+The service is database-bound rather than network-bound, and typically requires **2 - 3 ECS instances** for redundancy and steady performance.
+
+#### Payment Service
+
+Integrates with external payment gateways and handles retries, callbacks, and asynchronous confirmations. Traffic volume is low, but reliability is paramount. 
+
+```json
+Assumptions:
+	- Payment success rate ≈ 95%
+	- Safe instance capacity ≈ 10 - 15 RPS
+	  
+- Reservation RPS ≈ 5
+- Pay Now RPS = 5 × 0.95 ≈ 5 RPS
+
+- Required instances
+	= 6 RPS / 12 RPS per instance
+	≈ 1 instance
+```
+
+A small fleet of **2 - 3 ECS instances** is sufficient, with scaling driven by failure handling rather than throughput.
+
+### Final AWS Architecture
+
+![hotel-booking-system](/hotel-reservation-system/final-aws-architecture.png)
 
 ---
 
