@@ -1730,7 +1730,58 @@ The **Make Reservation** use case is bandwidth-light but correctness-critical. P
 
 Reservation traffic is **negligible from a bandwidth perspective**. The service is not network-bound but **database and correctness-bound**.
 
-### Final Architecture
+### Architecture Design
+
+Let’s do a **service-by-service discussion of the final architecture**, grounded in AWS infrastructure and aligned with the workload, scaling, and correctness requirements identified earlier.
+
+#### Search Service
+
+Handles the highest traffic volume and sits at the front of the system. It is a read-optimized aggregator that coordinates with Hotel, Inventory, and Pricing services. 
+
+```json
+- Assumptions: 
+	- One ECS task can safely handle 80–100 RPS (aggregation + cache lookups)
+  
+- Peak Search Load ≈ 1,250 RPS   
+- Target utilization ≈ 70–75% for headroom
+
+- Required instances at peak
+	≈ 1,250 RPS / 90 RPS per instance
+	≈ 14 instances
+```
+
+With aggressive caching and image delivery offloaded to **CloudFront**, the service is primarily compute-bound. To handle a peak load of ~1250 RPS, the system typically requires **12 - 15 ECS instances**, spread across AZs for fault tolerance.
+
+#### Hotel Service
+
+The **Hotel Service peak load is primarily driven by the Search Hotels use case**, not by individual hotel detail views. During a search, the Search Service needs to fetch **hotel metadata for many hotels in a single request**, which creates a fan-out effect toward the Hotel Service.
+
+```json
+- Assumptions: 
+	- Avg hotels returned per search (location-based) = 20
+	- Hotel metadata fetched in batches (not one call per hotel)
+	- Assumption: Batch size per Hotel Service call = 10 hotels
+	- Safe capacity per instance ≈ 150–200 RPS
+  
+- Peak Search RPS = 1,250
+  
+- Hotel Service calls per search
+	= 20 / 10
+	= 2 calls
+	
+- Hotel Service Peak RPS
+	= Search Peak RPS × Calls per search
+	= 1,250 × 2
+	= 2,500 RPS
+
+- Required instances
+	= 2,500 RPS / 175 RPS per instance
+	≈ 14 instances
+```
+
+With a high cache hit rate via **ElastiCache**, the Hotel Service can handle traffic efficiently with **12 - 15 ECS instances**, backed by an RDS database with read replicas.
+
+#### Inventory Service
 
 
 ---
