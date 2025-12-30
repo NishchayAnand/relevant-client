@@ -1642,8 +1642,93 @@ Payment data is **partitioned by creation time** (monthly or yearly) so that rec
 
 This time-based partitioning makes it easier to manage long-term data retention, keeps day-to-day queries fast, and helps meet auditing and regulatory requirements as the system grows.
 
-
 ---
+
+### Bandwidth Estimation
+
+Bandwidth estimation ties your **logical design** to **capacity planning and infra decisions**.
+
+By analyzing each use case independently, we can understand the **ingress and egress traffic patterns** for the services involved and estimate the overall network load the system must handle. This helps us reason about **instance sizing**, **horizontal scaling**, and where **supporting infrastructure** such as CDNs, caches, or asynchronous queues can significantly reduce cost and improve performance.
+
+#### Search Hotels
+
+In the **Search Hotels** use case, the dominant bandwidth cost comes from images. If images are served directly as part of the search response, the payload size becomes very large.
+
+```json
+- Assumption: 10 images returned per request
+- Single Hotel Metadata Size ≈ 5 KB
+- Single Image Size ≈ 500 KB
+
+- Payload Size per Request
+  = 5 KB + (10 × 500 KB)
+  ≈ 5 MB
+
+- Average RPS ≈ 250
+- Average Throughput
+  = 5 MB × 250 RPS
+  = 1,250 MB/s
+  ≈ 10,000 Mbps (~10 Gbps)
+
+- Peak RPS ≈ 1,250
+- Peak Throughput
+  = 5 MB × 1,250 RPS
+  = 6,250 MB/s
+  ≈ 50,000 Mbps (~50 Gbps)
+```
+
+Serving images directly from backend APIs would require **tens of Gbps of bandwidth at peak**, which is impractical and expensive. This calculation strongly justifies serving images via a **CDN** and returning only image URLs in API responses.
+
+#### View Hotel Details
+
+The **View Hotel Details** use case returns richer metadata but for far fewer hotels per request. Pagination limits the payload size and keeps bandwidth requirements manageable.
+
+```json
+- Assumption: 20 hotel records per request (pagination)
+- Single Hotel Record Size ≈ 5 KB
+
+- Payload Size per Request
+  = 20 × 5 KB
+  = 100 KB
+
+- Average RPS ≈ 50
+- Average Throughput
+  = 100 KB × 50 RPS
+  = 5,000 KB/s
+  ≈ 5 MB/s
+  ≈ 40 Mbps
+
+- Peak RPS ≈ 250
+- Peak Throughput
+  = 100 KB × 250 RPS
+  = 25,000 KB/s
+  ≈ 25 MB/s
+  ≈ 200 Mbps (~0.2 Gbps)
+```
+
+Compared to search-with-images, this use case is **moderate in bandwidth usage** and very manageable with standard horizontal scaling and caching.
+
+#### Make Reservations
+
+The **Make Reservation** use case is bandwidth-light but correctness-critical. Payloads are small and consist mostly of structured data.
+
+```json
+- Assumption: Reservation request includes hotelId, dates,
+  room types, quantities, and idempotency key
+- Request Payload Size ≈ 2 KB
+- Response Payload Size ≈ 2 KB
+
+- Average RPS ≈ 1
+- Average Throughput
+  ≈ 4 KB × 1 RPS
+  = 4 KB/s (negligible)
+
+- Peak RPS ≈ 5
+- Peak Throughput
+  ≈ 4 KB × 4 RPS
+  = 20 KB/s
+```
+
+Reservation traffic is **negligible from a bandwidth perspective**. The service is not network-bound but **database and correctness-bound**.
 
 ### Final Architecture
 
