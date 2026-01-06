@@ -6,6 +6,8 @@ import hljs from 'highlight.js';
 import javascript from 'highlight.js/lib/languages/javascript';
 import React from 'react';
 import remarkGfm from "remark-gfm";
+import RemoveElementVisualizer from './remove-element-visualizer';
+import TwoPointerVisualizer from './two-pointer-visualizer';
 
 hljs.registerLanguage('javascript', javascript);
 
@@ -153,6 +155,8 @@ let components = {
   h4: createHeading(4),
   h5: createHeading(5),
   h6: createHeading(6),
+  RemoveElementVisualizer: RemoveElementVisualizer,
+  TwoPointerVisualizer: TwoPointerVisualizer,
   Image: RoundedImage,
   a: CustomLink,
   code: Code,

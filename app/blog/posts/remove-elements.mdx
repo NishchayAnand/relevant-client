@@ -1,0 +1,99 @@
+---
+title: 'Data Structures & Algorithms: Remove Elements'
+publishedAt: '2026-01-06'
+---
+
+Given an integer array `nums` and an integer `val`, remove all occurrences of `val` in `nums` in-place and return the new length of the array.
+
+The order of the elements can be changed. It doesn't matter what you leave beyond the new length.
+
+#### Example:
+
+```
+
+Input: nums = [0,1,2,2,3,0,4,2], val = 2
+
+Output: 5, nums = [0,1,4,0,3,_,_,_]
+
+Explanation: 
+    - Your function should return k = 5, with the first five elements of nums containing 0, 0, 1, 3, and 4.
+    - The five elements can be returned in any order.
+    - It does not matter what you leave beyond the returned k (hence they are underscores).
+
+```
+
+#### Constraints:
+
+`0 <= nums.length <= 100`,
+`0 <= nums[i] <= 50`,
+`0 <= val <= 100`
+
+---
+### Approach 1: Index Shifting
+
+While iterating over `nums`, whenever we encounter an element equal to `val`, shift all the subsequent elements one position to the left to overwrite it. After shifting, reduce the effective array length by `1`, since one occurrence of `val` has been removed.
+
+If a shift happens, we **don’t increment the index** immediately because the new element at that index needs to be checked again.
+
+#### Algorithm
+
+```
+
+- index = 0, n = nums.length;
+- while index < n:
+	- if nums[index] == val:
+		- for i in range [index, n-1): nums[i] = nums[i+1];
+		- n = n - 1;
+	- else:
+		- index = index + 1;
+- return n;
+
+```
+
+#### Visualization
+
+<RemoveElementVisualizer />
+
+#### Time Complexity
+
+In the worst-case scenario, i.e., when all elements in `nums` equal to `val`, for each index, we shift all remaining elements left by one. Hence, overall time complexity = `O(n²)`
+
+#### Space Complexity
+
+We are not using any extra space. Hence, overall space complexity = `O(1)`.
+
+---
+### Approach 2: Fast and Slow Pointer
+
+We can use two pointers:
+- `fast` to scan every element of the `nums` array.
+- `slow` to track the position where the next non-`val` element should be written.
+
+At the end, `slow` will represent the **new length** of the modified `nums` array.
+
+#### Algorithm
+
+```
+
+- slow = 0; // tracks the position where next non-val element should be written
+- for fast in range [0, n):
+	- if nums[fast] != val:
+		- nums[slow] = nums[fast];
+		- slow++;
+- return slow;
+
+```
+
+#### Visualization
+
+<TwoPointerVisualizer />
+
+#### Time Complexity
+
+We are iterating over each element in `nums` once. Hence, overall time complexity = `O(n)`.
+
+#### Space Complexity
+
+We are not using any extra space. Hence, overall space complexity = `O(1)`.
+
+---
