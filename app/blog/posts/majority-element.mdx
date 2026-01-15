@@ -1,0 +1,59 @@
+---
+title: 'Data Structures & Algorithms - Arrays & Strings: Majority Element '
+publishedAt: '2026-01-15'
+---
+
+Given an array `nums` of size `n`, return the majority element, i.e., the element that appears more than `⌊n / 2⌋`times.
+
+```
+Example 1:
+    Input -> nums = [3,2,3]
+    Output -> 3
+
+Example 2:
+    Input -> nums = [2,2,1,1,1,2,2]
+    Output -> 2
+```
+
+**Playground:** [Leetcode 169](https://leetcode.com/problems/majority-element/description/)
+
+---
+### Assumptions
+
+<span className="text-indigo-700">**Q.** Will the majority element always exist in the input array?</span>\
+**A. Yes,** you can assume that a majority element will always be there.
+
+---
+### Approach 1: Frequency Map
+
+We can use a hash map to count the frequency of each element in the array. As we iterate through the array, we increment the count for each element. If any element's count exceeds `[n / 2]`, we immediately return the element as the majority element.
+
+#### Algorithm
+
+```
+- n = nums.length
+- freqMap = {} // empty hash map to store element frequencies
+- for num in nums:
+    - if num exists in freqMap:
+        - freqMap[num] = freqMap[num] + 1
+    - else:
+        - freqMap[num] = 1
+    - if freqMap[num] > n / 2:
+        - return num
+```
+
+#### Visualization
+
+<MajorityElementFrequencyMapVisualizer />
+
+#### Time complexity
+
+We iterate through the array once, and hash map operations (insert and lookup) take `O(1)` time on average. Hence, overall time complexity = `O(n)`. 
+
+#### Space Complexity
+
+In the worst case, we might store all unique elements in the hash map. Hence, overall space complexity = `O(n)`.
+
+---
+
+

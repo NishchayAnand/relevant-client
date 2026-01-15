@@ -8,6 +8,7 @@ import React from 'react';
 import remarkGfm from "remark-gfm";
 import RemoveElementVisualizer from './remove-element-visualizer';
 import TwoPointerVisualizer from './two-pointer-visualizer';
+import MajorityElementFrequencyMapVisualizer from './majority-element-frequency-map';
 
 hljs.registerLanguage('javascript', javascript);
 
@@ -157,6 +158,7 @@ let components = {
   h6: createHeading(6),
   RemoveElementVisualizer: RemoveElementVisualizer,
   TwoPointerVisualizer: TwoPointerVisualizer,
+  MajorityElementFrequencyMapVisualizer: MajorityElementFrequencyMapVisualizer,
   Image: RoundedImage,
   a: CustomLink,
   code: Code,
