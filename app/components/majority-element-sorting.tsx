@@ -154,7 +154,7 @@ export default function MajorityElementSortingVisualizer() {
             </div>
           </div>
 
-          <div className="bg-gradient-to-br from-purple-50 to-indigo-50 p-6 rounded-xl border-2 border-purple-200">
+          <div className="bg-linear-to-br from-purple-50 to-indigo-50 p-6 rounded-xl border-2 border-purple-200">
             <div className="text-sm font-semibold text-gray-700 mb-4">Algorithm Explanation</div>
             <div className="space-y-3 text-sm text-gray-700">
               <div className={`p-3 rounded-lg ${step === 'initial' ? 'bg-blue-200' : 'bg-white'}`}>

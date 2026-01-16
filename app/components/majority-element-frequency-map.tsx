@@ -126,7 +126,7 @@ export default function MajorityElementFrequencyMapVisualizer() {
             </div>
           </div>
 
-          <div className="bg-gradient-to-br from-purple-50 to-indigo-50 p-6 rounded-xl border-2 border-purple-200">
+          <div className="bg-linear-to-br from-purple-50 to-indigo-50 p-6 rounded-xl border-2 border-purple-200">
             <div className="text-sm font-semibold text-gray-700 mb-4">Frequency Map</div>
             {Object.keys(freqMap).length === 0 ? (
               <div className="text-center text-gray-500 py-8">Empty map - no elements processed yet</div>
