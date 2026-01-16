@@ -30,16 +30,16 @@ We can use a hash map to count the frequency of each element in the array. As we
 
 #### Algorithm
 
-```
-- n = nums.length
-- freqMap = {} // empty hash map to store element frequencies
+```python
+- n = nums.length;
+- freqMap = {}; // empty hash map to store element frequencies
 - for num in nums:
     - if num exists in freqMap:
-        - freqMap[num] = freqMap[num] + 1
+        - freqMap[num] = freqMap[num] + 1;
     - else:
-        - freqMap[num] = 1
+        - freqMap[num] = 1;
     - if freqMap[num] > n / 2:
-        - return num
+        - return num;
 ```
 
 #### Visualization
@@ -55,5 +55,31 @@ We iterate through the array once, and hash map operations (insert and lookup) t
 In the worst case, we might store all unique elements in the hash map. Hence, overall space complexity = `O(n)`.
 
 ---
+### Approach 2: Sorting
+
+If we sort the `nums` array, it is guaranteed that the middle element at `index = n/2` is our majority element.
+
+### Algorithm
+
+```python
+- n = nums.length;
+- sorted_nums = sorted(nums);
+- return sorted_nums[n/2];
+```
+
+### Visualization
+
+<MajorityElementSortingVisualizer />
+
+### Time Complexity
+
+Time complexity of sorting an array of length `n` is `O(nlogn)`. Hence, overall time complexity = `O(nlogn)`.
+
+### Space Complexity
+
+We are not using any extra space. Hence, overall space complexity = `O(1)`.
+
+---
+
 
 

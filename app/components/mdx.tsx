@@ -9,6 +9,7 @@ import remarkGfm from "remark-gfm";
 import RemoveElementVisualizer from './remove-element-visualizer';
 import TwoPointerVisualizer from './two-pointer-visualizer';
 import MajorityElementFrequencyMapVisualizer from './majority-element-frequency-map';
+import MajorityElementSortingVisualizer from './majority-element-sorting';
 
 hljs.registerLanguage('javascript', javascript);
 
@@ -159,6 +160,7 @@ let components = {
   RemoveElementVisualizer: RemoveElementVisualizer,
   TwoPointerVisualizer: TwoPointerVisualizer,
   MajorityElementFrequencyMapVisualizer: MajorityElementFrequencyMapVisualizer,
+  MajorityElementSortingVisualizer: MajorityElementSortingVisualizer,
   Image: RoundedImage,
   a: CustomLink,
   code: Code,
