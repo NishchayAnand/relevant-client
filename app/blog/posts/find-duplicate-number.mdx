@@ -1,0 +1,84 @@
+---
+title: 'Data Structures & Algorithms - Arrays & Strings: Find the Duplicate Number'
+publishedAt: '2025-11-17'
+---
+
+Given an array of integers nums containing `n + 1` integers where each integer is in the range `[1, n]` inclusive. There is only one repeated number in nums, return this repeated number.
+
+```
+Example 1:
+Input -> nums = [1,3,4,2,2], Output -> 2
+
+Example 2:
+Input -> nums = [3,1,3,4,2], Output -> 3
+```
+
+You must solve the problem without modifying the array nums and using only constant extra space.
+
+[Leetcode 287](https://leetcode.com/problems/find-the-duplicate-number/description/)
+
+---
+### Approach 1: Brute Force (Nested Loops)
+
+Use nested loop to iterate over all possible pairs and as soon as you find a pair with equal numbers, return that number. 
+
+### Algorithm
+
+```python
+- for i in range: [0, n-1):
+    - for j in range: [i+1, n):
+        - if nums[i] == nums[j]: return nums[i];
+- return -1;
+```
+
+### Time complexity
+
+In the worst case scenario, i.e., when `nums[n-2]` and `nums[n-1]` represent the duplicate pair, we may iterate over all possible pairs. Hence, overall time complexity = `O(n^2)`.
+
+### Space Complexity
+
+We are not using any extra space. Hence, overall space complexity = `O(1)`.
+
+---
+### Approach 2: Floyd’s Tortoise & Hare (Trick)
+
+Treat the `nums` array as a linked list, where each index is a node and each value points to the next node. 
+
+The duplicated number is the node with two incoming connections and corresponds to the entry point of the cycle, which can be found using slow and fast pointers.
+
+### Algorithm
+
+```python
+slow = nums[0]
+fast = nums[nums[i]]
+
+# Phase 1: Detect Cycle 
+while slow != fast:
+    slow = nums[slow]
+    fast = nums[nums[fast]]
+
+# Phase 2: Find the entry point
+finder = nums[0]
+while finder != slow:
+    slow = nums[slow]
+    finder = nums[finder]
+
+return finder
+```
+
+### Visualization
+
+<FindDuplicateFloydVisualizer />
+
+### Time Complexity
+
+Both the phases traverse the array linear number of times. Hence, overall time complexity = `O(n)`.
+
+### Space Complexity
+
+We didn't use any extra space. Hence, overall space complexity = `O(n)`.
+
+---
+
+
+
