@@ -115,7 +115,69 @@ i.e., the two pointers will collide.
 
 #### Time Complexity
 
+Even though we use two pointers, we do not traverse the list multiple times. Let’s break it into two possible use cases.
 
+<span className='text-indigo-600 font-semibold'>Case 1: No cycle exists</span>
+<br/><br/>
+```
+1 → 2 → 3 → 4 → 5 → null
+```
 
+The `fast` reaches the end in at most `n/2` iterations. Considering, each iteration is `O(1)`, the overall time complexity = `O(n)`.
 
+<span className='text-indigo-600 font-semibold'>Case 2: Cycle exists</span>
+
+Assume:
+- k = number of nodes before the cycle starts
+- c = number of nodes inside the cycle
+
+<svg viewBox="0 0 760 220" width="100%" height="220" role="img" aria-label="Linked list with k nodes before cycle and c nodes in cycle">
+    <defs>
+        <marker id="arrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="currentColor" />
+        </marker>
+    </defs>
+
+    <rect x="20" y="80" width="60" height="40" rx="6" ry="6" fill="none" stroke="currentColor" />
+    <rect x="110" y="80" width="60" height="40" rx="6" ry="6" fill="none" stroke="currentColor" />
+    <rect x="200" y="80" width="60" height="40" rx="6" ry="6" fill="none" stroke="currentColor" />
+    <rect x="290" y="80" width="60" height="40" rx="6" ry="6" fill="none" stroke="currentColor" />
+
+    <line x1="80" y1="100" x2="110" y2="100" stroke="currentColor" markerEnd="url(#arrow)" />
+    <line x1="170" y1="100" x2="200" y2="100" stroke="currentColor" markerEnd="url(#arrow)" />
+    <line x1="260" y1="100" x2="290" y2="100" stroke="currentColor" markerEnd="url(#arrow)" />
+
+    <rect x="420" y="50" width="60" height="40" rx="6" ry="6" fill="none" stroke="currentColor" />
+    <rect x="520" y="50" width="60" height="40" rx="6" ry="6" fill="none" stroke="currentColor" />
+    <rect x="620" y="50" width="60" height="40" rx="6" ry="6" fill="none" stroke="currentColor" />
+    <rect x="520" y="140" width="60" height="40" rx="6" ry="6" fill="none" stroke="currentColor" />
+
+    <line x1="350" y1="100" x2="420" y2="70" stroke="currentColor" markerEnd="url(#arrow)" />
+    <line x1="480" y1="70" x2="520" y2="70" stroke="currentColor" markerEnd="url(#arrow)" />
+    <line x1="580" y1="70" x2="620" y2="70" stroke="currentColor" markerEnd="url(#arrow)" />
+    <line x1="650" y1="90" x2="560" y2="140" stroke="currentColor" markerEnd="url(#arrow)" />
+    <line x1="520" y1="160" x2="440" y2="90" stroke="currentColor" markerEnd="url(#arrow)" />
+
+    <text x="170" y="150" fontSize="14" fill="currentColor">k nodes before cycle</text>
+    <text x="500" y="200" fontSize="14" fill="currentColor">c nodes in cycle</text>
+</svg>
+
+The traversal can be split into two linear phases. 
+
+In the first phase, both pointers move through the non-cyclic part of the linked list. 
+The `slow` pointer advances one step at a time and reaches the start of the cycle in `k` steps, 
+while the `fast` pointer (moving twice as fast) also enters the cycle within at most `k` steps. 
+Therefore, this phase takes `O(k)` time.
+
+Once both pointers are inside the cycle, the `fast` pointer moves one node closer to the `slow` pointer in every iteration,
+so the gap between them keeps shrinking. Because the cycle has `c` nodes, they are guaranteed to meet within at most `c` 
+iterations, making this phase run in `O(c)` time.
+
+Hence, overall time complexity = `O(k + c) = O(n)`.
+
+#### Space Complexity
+
+We are not using any extra space. Hence, overall space complexity = `O(1)`.
+
+---
 

@@ -14,6 +14,7 @@ import FindDuplicateFloydVisualizer from './find-duplicate-floyd-visualizer';
 import DetectCycleVisitedSetVisualizer from './detect-cycle-visited-set-visualizer';
 import StripCollisionVisualizer from './strip-collision-visualizer';
 import DetectCycleFloydVisualizer from './detect-cycle-floyd-visualizer';
+import Phase1KStepsVisualizer from './phase1-k-steps-visualizer';
 
 hljs.registerLanguage('javascript', javascript);
 
@@ -169,6 +170,7 @@ let components = {
   DetectCycleVisitedSetVisualizer: DetectCycleVisitedSetVisualizer,
   StripCollisionVisualizer: StripCollisionVisualizer,
   DetectCycleFloydVisualizer: DetectCycleFloydVisualizer,
+  Phase1KStepsVisualizer: Phase1KStepsVisualizer,
   Image: RoundedImage,
   a: CustomLink,
   code: Code,

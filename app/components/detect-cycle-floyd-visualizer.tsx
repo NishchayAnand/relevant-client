@@ -118,16 +118,35 @@ export default function DetectCycleFloydVisualizer() {
           {message}
         </div>
 
-        <div className="flex flex-wrap items-center justify-center gap-2">
-          {values.map((value, idx) => {
-            const isSlow = idx === slow;
-            const isFast = idx === fast;
-            const isMet = idx === metAt;
-            const isLast = idx === values.length - 1;
-            return (
-              <div key={idx} className="flex items-center gap-2">
+        <div
+          className="grid gap-2 justify-center font-mono"
+          style={{
+            gridTemplateColumns: `repeat(${values.length * 2 - 1}, minmax(0, 1fr))`,
+          }}
+        >
+          {Array.from({ length: values.length * 2 - 1 }).map((_, colIdx) => {
+            const isNodeCol = colIdx % 2 === 0;
+            if (!isNodeCol) {
+              return (
                 <div
-                  className={`rounded-2xl border px-4 py-3 min-w-35 text-center transition-all ${
+                  key={`arrow-top-${colIdx}`}
+                  className="flex items-center justify-center text-gray-300 text-2xl"
+                >
+                  →
+                </div>
+              );
+            }
+
+            const nodeIdx = colIdx / 2;
+            const value = values[nodeIdx];
+            const isSlow = nodeIdx === slow;
+            const isFast = nodeIdx === fast;
+            const isMet = nodeIdx === metAt;
+
+            return (
+              <div key={`node-${nodeIdx}`} className="flex flex-col items-center">
+                <div
+                  className={`min-w-16 rounded-xl border px-3 py-2 text-center text-base font-semibold transition-all ${
                     isMet
                       ? "bg-amber-50 border-amber-300 shadow-sm"
                       : isSlow && isFast
@@ -139,27 +158,29 @@ export default function DetectCycleFloydVisualizer() {
                       : "bg-white border-gray-200"
                   }`}
                 >
-                  <div className="text-xs text-gray-500">index</div>
-                  <div className="font-mono text-lg font-semibold text-gray-800">
-                    {idx}
-                  </div>
-                  <div className="mt-2 text-xs text-gray-500">value</div>
-                  <div className="font-mono text-base font-semibold text-indigo-700">
-                    {value}
-                  </div>
-                  <div className="mt-2 text-xs text-gray-500">next</div>
-                  <div className="font-mono text-base font-semibold text-gray-700">
-                    → {nextIndices[idx]}
-                  </div>
-                  {isLast && (
-                    <div className="mt-2 text-[10px] text-amber-600">
-                      tail points to index {pos}
-                    </div>
-                  )}
+                  {value}
                 </div>
-                {!isLast && (
-                  <div className="text-gray-300 text-2xl font-semibold">→</div>
-                )}
+                <div className="mt-1 text-[10px] text-gray-400">index {nodeIdx}</div>
+              </div>
+            );
+          })}
+
+          {Array.from({ length: values.length * 2 - 1 }).map((_, colIdx) => {
+            const nodeCol = (idx: number) => idx * 2;
+            const lastCol = nodeCol(values.length - 1);
+            const targetCol = nodeCol(pos);
+            let symbol = "";
+
+            if (colIdx === lastCol) symbol = "↓";
+            else if (colIdx === targetCol) symbol = "↑";
+            else if (colIdx > targetCol && colIdx < lastCol) symbol = "←";
+
+            return (
+              <div
+                key={`arrow-bottom-${colIdx}`}
+                className="flex items-center justify-center text-gray-300 text-2xl"
+              >
+                {symbol}
               </div>
             );
           })}
