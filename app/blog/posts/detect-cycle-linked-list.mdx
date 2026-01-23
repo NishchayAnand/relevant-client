@@ -1,0 +1,164 @@
+---
+title: 'Data Structures & Algorithms - Linked List: Detect Cycle'
+publishedAt: '2025-11-16'
+---
+
+Given `head`, the head of a linked list, determine if the linked list has a cycle in it.
+
+There is a cycle in a linked list if there is some node in the list that can be reached again by continuously following the `next` pointer. 
+Internally, `pos` is used to denote the index of the node that tail's `next` pointer is connected to. 
+Note that `pos` is not passed as a parameter.
+
+Return `true` if there is a cycle in the linked list. Otherwise, return `false`.
+
+**Example 1:**
+
+```
+Input: head = [3,2,0,-4], pos = 1
+Output: true
+```
+
+![detect-cycle-example](/detect-cycle.png)
+
+**Playground:** [Leetcode 141](https://leetcode.com/problems/linked-list-cycle/description/)
+
+---
+### Approach 1: Visited Set
+
+Iterate through the linked list and use a hash set to keep track of the visited nodes. 
+During each iteration, check if the node is already in the set.
+If yes, that node is the start of the cycle, otherwise add it and continue.
+
+#### Algorithm
+
+```java
+/**
+ * Definition for singly-linked list.
+ * class ListNode {
+ *     int val;
+ *     ListNode next;
+ *     ListNode(int x) {
+ *         val = x;
+ *         next = null;
+ *     }
+ * }
+ */
+
+- hashSet = new HashSet();
+- ListNode curr = head;
+
+- while curr != null:
+    - if curr in hashSet:
+        - return true;
+    - hashSet.add(curr);
+    - curr = curr.next;
+
+- return false;
+```
+
+#### Visualization
+
+<DetectCycleVisitedSetVisualizer />
+
+#### Time Complexity
+
+We may iterate over the linked list once. Hence, overall time complexity = `O(n)`.
+
+#### Space Complexity
+
+The hash set will store at most `n` elements. Hence, overall space complexity = `O(n)`.
+
+---
+### Approach 2: Floyd Cycle Detection
+
+A cycle in a linked list can be thought of as an infinite strip.
+        
+Assume you have two pointers on an infinite strip separated by a distance of `k` units. 
+If you starting moving the first pointer (behind) by `2` units and the second pointer (ahead) by `1` unit, 
+the distance between the two pointers will start decreasing by `1` unit in each iteration and will eventually reduce to `0`, 
+i.e., the two pointers will collide.
+
+<svg
+    viewBox="0 0 720 180"
+    className="w-full max-w-3xl mx-auto my-6"
+    role="img"
+    aria-label="Two pointers on a strip converge as one moves faster than the other"
+>
+    <defs>
+        <linearGradient id="stripGradient" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stopColor="#E5E7EB" />
+            <stop offset="100%" stopColor="#F3F4F6" />
+        </linearGradient>
+        <marker
+            id="arrow"
+            markerWidth="10"
+            markerHeight="10"
+            refX="6"
+            refY="3"
+            orient="auto"
+        >
+            <path d="M0,0 L6,3 L0,6" fill="#6B7280" />
+        </marker>
+    </defs>
+
+    <rect x="40" y="70" width="640" height="40" rx="20" fill="url(#stripGradient)" />
+    <line x1="80" y1="90" x2="640" y2="90" stroke="#9CA3AF" strokeWidth="2" strokeDasharray="6 8" />
+
+    <text x="60" y="145" fontSize="14" fill="#6B7280">behind (2x)</text>
+    <text x="560" y="145" fontSize="14" fill="#6B7280">ahead (1x)</text>
+
+    <g>
+        <circle r="10" cy="90" fill="#2563EB">
+            <animate
+                attributeName="cx"
+                values="120;520"
+                dur="3s"
+                repeatCount="indefinite"
+            />
+        </circle>
+        <line y1="90" y2="90" stroke="#2563EB" strokeWidth="3" markerEnd="url(#arrow)">
+            <animate
+                attributeName="x1"
+                values="120;520"
+                dur="3s"
+                repeatCount="indefinite"
+            />
+            <animate
+                attributeName="x2"
+                values="170;570"
+                dur="3s"
+                repeatCount="indefinite"
+            />
+        </line>
+    </g>
+
+    <g>
+        <circle r="10" cy="90" fill="#F59E0B">
+            <animate
+                attributeName="cx"
+                values="460;520"
+                dur="3s"
+                repeatCount="indefinite"
+            />
+        </circle>
+        <line y1="90" y2="90" stroke="#F59E0B" strokeWidth="3" markerEnd="url(#arrow)">
+            <animate
+                attributeName="x1"
+                values="460;520"
+                dur="3s"
+                repeatCount="indefinite"
+            />
+            <animate
+                attributeName="x2"
+                values="495;555"
+                dur="3s"
+                repeatCount="indefinite"
+            />
+        </line>
+    </g>
+
+    <text x="305" y="55" fontSize="13" fill="#6B7280">distance k → 0</text>
+</svg>
+
+### Algorithm
+

@@ -11,6 +11,7 @@ import TwoPointerVisualizer from './two-pointer-visualizer';
 import MajorityElementFrequencyMapVisualizer from './majority-element-frequency-map';
 import MajorityElementSortingVisualizer from './majority-element-sorting';
 import FindDuplicateFloydVisualizer from './find-duplicate-floyd-visualizer';
+import DetectCycleVisitedSetVisualizer from './detect-cycle-visited-set-visualizer';
 
 hljs.registerLanguage('javascript', javascript);
 
@@ -163,6 +164,7 @@ let components = {
   MajorityElementFrequencyMapVisualizer: MajorityElementFrequencyMapVisualizer,
   MajorityElementSortingVisualizer: MajorityElementSortingVisualizer,
   FindDuplicateFloydVisualizer: FindDuplicateFloydVisualizer,
+  DetectCycleVisitedSetVisualizer: DetectCycleVisitedSetVisualizer,
   Image: RoundedImage,
   a: CustomLink,
   code: Code,

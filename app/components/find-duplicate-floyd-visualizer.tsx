@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Pause, Play, RotateCcw, SkipForward } from "lucide-react";
 
 const DEFAULT_NUMS = [1, 3, 4, 2, 2];
@@ -23,8 +23,6 @@ export default function FindDuplicateFloydVisualizer() {
   const [foundDuplicate, setFoundDuplicate] = useState<number | null>(null);
   const [steps, setSteps] = useState(0);
 
-  const maxIndex = nums.length - 1;
-
   const pointers = useMemo(() => {
     return nums.map((_, idx) => {
       const labels: PointerLabel[] = [];
@@ -44,15 +42,7 @@ export default function FindDuplicateFloydVisualizer() {
     return counts;
   }, [nums]);
 
-  useEffect(() => {
-    if (!isPlaying || phase === "Found") return;
-    const timer = setTimeout(() => {
-      executeStep();
-    }, 1100);
-    return () => clearTimeout(timer);
-  }, [isPlaying, phase, slow, fast, finder, steps]);
-
-  const executeStep = () => {
+  const executeStep = useCallback(() => {
     if (phase === "Found") return;
 
     if (phase === "Detect Cycle") {
@@ -98,7 +88,15 @@ export default function FindDuplicateFloydVisualizer() {
         `Phase 2: slow -> ${nextSlow}, finder -> ${nextFinder}. Moving both one step.`
       );
     }
-  };
+  }, [phase, nums, slow, fast, finder, steps]);
+
+  useEffect(() => {
+    if (!isPlaying || phase === "Found") return;
+    const timer = setTimeout(() => {
+      executeStep();
+    }, 1100);
+    return () => clearTimeout(timer);
+  }, [isPlaying, phase, executeStep]);
 
   const reset = () => {
     setNums(DEFAULT_NUMS);
