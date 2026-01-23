@@ -13,6 +13,7 @@ import MajorityElementSortingVisualizer from './majority-element-sorting';
 import FindDuplicateFloydVisualizer from './find-duplicate-floyd-visualizer';
 import DetectCycleVisitedSetVisualizer from './detect-cycle-visited-set-visualizer';
 import StripCollisionVisualizer from './strip-collision-visualizer';
+import DetectCycleFloydVisualizer from './detect-cycle-floyd-visualizer';
 
 hljs.registerLanguage('javascript', javascript);
 
@@ -167,6 +168,7 @@ let components = {
   FindDuplicateFloydVisualizer: FindDuplicateFloydVisualizer,
   DetectCycleVisitedSetVisualizer: DetectCycleVisitedSetVisualizer,
   StripCollisionVisualizer: StripCollisionVisualizer,
+  DetectCycleFloydVisualizer: DetectCycleFloydVisualizer,
   Image: RoundedImage,
   a: CustomLink,
   code: Code,

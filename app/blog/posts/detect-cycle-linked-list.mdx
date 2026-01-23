@@ -82,3 +82,40 @@ i.e., the two pointers will collide.
 
 ### Algorithm
 
+```java
+/**
+ * Definition for singly-linked list.
+ * class ListNode {
+ *     int val;
+ *     ListNode next;
+ *     ListNode(int x) {
+ *         val = x;
+ *         next = null;
+ *     }
+ * }
+ */
+
+- slow = head;
+- fast = head;
+
+// fast = null -> we are already at the end of the list
+// fast.next = null -> we are at the last node, the list ends here
+- while fast != null and fast.next != null: 
+    - slow = slow.next;
+    - fast = fast.next.next;
+
+    - if slow == fast: return true; // cycle detected
+
+- return false;
+```
+
+#### Visualization
+
+<DetectCycleFloydVisualizer />
+
+#### Time Complexity
+
+
+
+
+
