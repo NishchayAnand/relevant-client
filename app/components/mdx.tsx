@@ -15,6 +15,8 @@ import DetectCycleVisitedSetVisualizer from './detect-cycle-visited-set-visualiz
 import StripCollisionVisualizer from './strip-collision-visualizer';
 import DetectCycleFloydVisualizer from './detect-cycle-floyd-visualizer';
 import Phase1KStepsVisualizer from './phase1-k-steps-visualizer';
+import RemoveDuplicatesSortedVisualizer from './remove-duplicates-sorted-visualizer';
+import BestTimeStockGreedyVisualizer from './best-time-stock-greedy-visualizer';
 
 hljs.registerLanguage('javascript', javascript);
 
@@ -171,6 +173,8 @@ let components = {
   StripCollisionVisualizer: StripCollisionVisualizer,
   DetectCycleFloydVisualizer: DetectCycleFloydVisualizer,
   Phase1KStepsVisualizer: Phase1KStepsVisualizer,
+  RemoveDuplicatesSortedVisualizer: RemoveDuplicatesSortedVisualizer,
+  BestTimeStockGreedyVisualizer: BestTimeStockGreedyVisualizer,
   Image: RoundedImage,
   a: CustomLink,
   code: Code,

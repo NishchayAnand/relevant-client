@@ -1,0 +1,65 @@
+---
+title: 'Data Structures & Algorithms - Arrays & Strings: Remove Duplicates from Sorted Array'
+publishedAt: '2025-09-09'
+---
+
+Given an integer array `nums` sorted in non-decreasing order, remove the duplicates in-place such that each unique element appears only once. 
+The relative order of the elements should be kept the same.
+
+Consider the number of unique elements in `nums` to be `k`​​​​​​​​​​​​​​. After removing duplicates, return the number of unique elements `k`.
+
+> **NOTE:** The first `k` elements of `nums` should contain the unique numbers in sorted order. The remaining elements beyond index `k - 1` can be ignored.
+
+```
+Example 1:
+
+Input: nums = [0,0,1,1,1,2,2,3,3,4]
+Output: 5, nums = [0,1,2,3,4,_,_,_,_,_]
+Explanation: Your function should return k = 5, with the first five elements of nums being 0, 1, 2, 3, and 4 respectively.
+It does not matter what you leave beyond the returned k (hence they are underscores).
+```
+
+> **Playground:** [Leetcode 26](https://leetcode.com/problems/remove-duplicates-from-sorted-array/description/)
+
+---
+
+### Two Pointers Technique
+
+Iterate over `nums` using one pointer `i`. Maintain another pointer `k` that keeps track of the position where the next unique element should be placed.
+
+Whenever we encounter a unique element (comparing the current element with the previous one), overwrite the next position at `index = k` and increment `k` forward. 
+By the end of the iteration, the first `k` indices will contain all unique elements.
+
+> **NOTE**: Considering `nums` is sorted, the element at `index = 0` will represent the smallest unique element.
+
+#### Algorithm
+
+```java
+- k = 1;
+
+- for i in range = [1, nums.length]:
+    - if nums[i-1] != nums[i]:
+        - nums[k] = nums[i];
+        - k = k + 1;
+        
+return k;
+```
+
+#### Visualization
+
+<RemoveDuplicatesSortedVisualizer />
+
+#### Time Complexity
+
+We will only iterate the array once. Hence, overall time complexity = `O(n)`.
+
+#### Space Complexity
+
+We are not using any extra space. Hence, overall space complexity = `O(1)`.
+
+---
+
+
+
+
+
