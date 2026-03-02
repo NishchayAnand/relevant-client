@@ -17,6 +17,7 @@ import DetectCycleFloydVisualizer from './detect-cycle-floyd-visualizer';
 import Phase1KStepsVisualizer from './phase1-k-steps-visualizer';
 import RemoveDuplicatesSortedVisualizer from './remove-duplicates-sorted-visualizer';
 import BestTimeStockGreedyVisualizer from './best-time-stock-greedy-visualizer';
+import TwoSumHashMapVisualizer from './two-sum-hashmap-visualizer';
 
 hljs.registerLanguage('javascript', javascript);
 
@@ -175,6 +176,7 @@ let components = {
   Phase1KStepsVisualizer: Phase1KStepsVisualizer,
   RemoveDuplicatesSortedVisualizer: RemoveDuplicatesSortedVisualizer,
   BestTimeStockGreedyVisualizer: BestTimeStockGreedyVisualizer,
+  TwoSumHashMapVisualizer: TwoSumHashMapVisualizer,
   Image: RoundedImage,
   a: CustomLink,
   code: Code,

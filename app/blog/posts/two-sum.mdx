@@ -1,0 +1,87 @@
+---
+title: 'Data Structures & Algorithms - HashMap: Two Sum'
+publishedAt: '2025-09-10'
+---
+
+Given an array of integers `nums` and an integer `target`, return indices of the two numbers such that they add up to `target`.
+
+```
+Example 1:
+
+Input: nums = [2,7,11,15], target = 9
+Output: [0,1]
+Explanation: Because nums[0] + nums[1] == 9, we return [0, 1].
+```
+
+> **Playground:** [Leetcode 1](https://leetcode.com/problems/two-sum/)
+
+---
+
+### Brute Force Approach - Nested Loops
+
+Use a nested loop to iterate over all possible pairs and find the first whose sum = `target`.
+
+#### Algorithm
+
+```java
+public int[] twoSum(int[] nums, int target) {
+
+    for( int i = 0; i < nums.length; i++ ) {
+        for( int j = i+1; j < nums.length; j++) {
+            if( nums[i] + nums[j] == target ) {
+                return new int[]{i, j};
+            } 
+        }
+    }
+
+    return new int[]{};
+
+}
+```
+
+#### Time Complexity
+
+In the worst case scenario, the algorithm will run for `n^2` times before finding the pair at `[n-2, n-1]` indices. Hence, overall time complexity = `O(n^2)`.
+
+#### Space Complexity
+
+We are not using any extra space. Hence, overall space complexity = `O(1)`.
+
+---
+
+### Optimized Approach: HashMap
+
+Iterate over `nums` and keep track of every visited number and its index in a `HashMap`. While iterating, if we find a number `nums[i]` such that `target - nums[i]` already exist in `HashMap`, we have found a resultant pair.
+
+#### Algorithm
+
+```java
+public int[] twoSum(int[] nums, int target) {
+
+    // Store [value, index] as key-value pair.
+    Map<Integer, Integer> map = new HashMap<>();
+
+    for( int i = 0; i < nums.length; i++ ) {
+        if(map.containsKey(target - nums[i])) return new int[]{i, map.get(target - nums[i])};
+        map.put(nums[i], i);
+    }
+
+    return new int[]{};
+
+}
+```
+
+#### Visualisation 
+
+<TwoSumHashMapVisualizer />
+
+#### Time Complexity
+
+We iterate through the array once, and each `HashMap` operation (`containsKey`, `put`, `get`) is `O(1)` on average. Hence, overall time complexity = `O(n)`.
+
+#### Space Complexity
+
+In the worst case, all elements are stored in the `HashMap`. Hence, overall space complexity = `O(n)`.
+
+---
+
