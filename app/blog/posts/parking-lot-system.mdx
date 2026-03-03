@@ -13,4 +13,21 @@ occupancy tracking, and seamless vehicle exit, ensuring a smooth and reliable pa
 
 ### Functional Requirements
 
+1. Support parking for motorcycles, cars, and trucks.
 
+2. Maintain three spot types (compact, regular, oversized) with appropriate capacity.
+
+3. Assign spots based on vehicle size.
+
+4. Calculate fees using vehicle size and parking duration, with time-of-day rate variations.
+<br/>
+---
+
+### Sequence Flow
+
+Let's discuss the step by step flow to identify the core entities involved:
+
+1. `Vehicle (Motorcycle, Car, Truck)` arrives at the entry gate. The `ParkingLot` system captures basic details such 
+as `licenseNumber`, `vehicleType` and `arrivalTime`.
+
+2. The `ParkingLot` evaluates the `vehicleType` and searches across its managed `Map<VehicleType, List<ParkingSpot>>` to find the best available match `ParkingSpot` (`CompactSpot`, `RegularSpot`, or `OversizedSpot`).
