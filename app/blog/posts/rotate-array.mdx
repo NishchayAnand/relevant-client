@@ -24,8 +24,6 @@ rotate 3 steps to the right: [5,6,7,1,2,3,4]
 1. When `k` equals `0` or is a multiple of `nums.length`, the array remains unchanged. We can optimize by 
 using `k = k % nums.length` to handle cases where `k` exceeds the array length.
 
-    <RotateArrayModuloVisualizer />
-
 2. Each element at index `i` will move to index `(i + k) % n` after rotation.
 
 ---
