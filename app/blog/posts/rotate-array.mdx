@@ -1,0 +1,78 @@
+---
+title: 'Data Structures & Algorithms - Arrays & Strings: Rotate Elements'
+publishedAt: '2025-08-05'
+---
+
+Given an integer array `nums`, rotate the array to the right by `k` steps, where `k` is non-negative.
+
+```
+Example 1:
+
+Input: nums = [1,2,3,4,5,6,7], k = 3
+Output: [5,6,7,1,2,3,4]
+Explanation:
+rotate 2 steps to the right: [6,7,1,2,3,4,5]
+rotate 3 steps to the right: [5,6,7,1,2,3,4]
+```
+
+> **Playground:** [Leetcode 189](https://leetcode.com/problems/rotate-array/description/)
+
+---
+
+### General Observations
+
+1. When `k` equals `0` or is a multiple of `nums.length`, the array remains unchanged. We can optimize by 
+using `k = k % nums.length` to handle cases where `k` exceeds the array length.
+
+    <RotateArrayModuloVisualizer />
+
+2. Each element at index `i` will move to index `(i + k) % n` after rotation.
+
+---
+
+### Brute Force Approach - Extra Array
+
+Create a temporary array and place each element from index `i` to its new position at `(i + k) % n`. 
+Then copy the temporary array back to the original array.
+
+#### Algorithm
+
+```java
+public void rotate(int[] nums, int k) {
+    
+    // Step 1: Handle cases where k exceeds nums.length
+    int n = nums.length;
+    k = k % n;
+
+    // Step 2: Create a temporay array
+    int[] temp = new int[n];
+    for(int i = 0; i < n; i++) {
+        int index = (i + k) % n;
+        temp[index] = nums[i];
+    }
+
+    // Step 3: Copy temporary array back to original array
+    for(int i = 0; i < n; i++) {
+        nums[i] = temp[i];
+    }
+
+}
+```
+
+#### Visualisation
+
+<RotateArrayBruteForceVisualizer />
+
+#### Time Complexity
+
+We iterate through the arrays twice: once to populate the temporary array and once to copy it back to the original array. Hence, overall time complexity = `O(n)`.
+
+#### Space Complexity 
+
+We are creating a temporary array of size `n`. Hence, overall space complexity = `O(n)`.
+
+
+
+
+
+

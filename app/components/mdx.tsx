@@ -18,6 +18,8 @@ import Phase1KStepsVisualizer from './phase1-k-steps-visualizer';
 import RemoveDuplicatesSortedVisualizer from './remove-duplicates-sorted-visualizer';
 import BestTimeStockGreedyVisualizer from './best-time-stock-greedy-visualizer';
 import TwoSumHashMapVisualizer from './two-sum-hashmap-visualizer';
+import RotateArrayBruteForceVisualizer from './rotate-array-bruteforce-visualizer';
+import RotateArrayModuloVisualizer from './rotate-array-modulo-visualizer';
 
 hljs.registerLanguage('javascript', javascript);
 
@@ -177,6 +179,8 @@ let components = {
   RemoveDuplicatesSortedVisualizer: RemoveDuplicatesSortedVisualizer,
   BestTimeStockGreedyVisualizer: BestTimeStockGreedyVisualizer,
   TwoSumHashMapVisualizer: TwoSumHashMapVisualizer,
+  RotateArrayBruteForceVisualizer: RotateArrayBruteForceVisualizer,
+  RotateArrayModuloVisualizer: RotateArrayModuloVisualizer,
   Image: RoundedImage,
   a: CustomLink,
   code: Code,
