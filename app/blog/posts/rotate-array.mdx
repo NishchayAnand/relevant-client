@@ -57,7 +57,7 @@ public void rotate(int[] nums, int k) {
 }
 ```
 
-#### Visualisation
+#### Visualization
 
 <RotateArrayBruteForceVisualizer />
 
@@ -68,6 +68,75 @@ We iterate through the arrays twice: once to populate the temporary array and on
 #### Space Complexity 
 
 We are creating a temporary array of size `n`. Hence, overall space complexity = `O(n)`.
+
+---
+
+### Optimized Approach: Reverse Method
+
+The key insight is that rotating right by `k` steps is equivalent to moving the last `k` elements to the front of the array.
+
+For example:
+
+```
+- k = 1: Move the last 1 element to the front
+- k = 2: Move the last 2 elements to the front
+- k = 3: Move the last 3 elements to the front
+- .
+- .
+- .
+- k = n-1: Move the last (n - 1) elements to the front
+```
+
+This can be achieved efficiently by performing the following steps:
+
+1. **Reverse the entire array:** Brings the last `k` elements to the front, but in reversed order.
+2. **Reverse the first `k` elements:** Restores the correct order of the rotated portion.
+3. **Reverse the remaining `n - k` elements:** Restores the correct order of the rest of the array.
+
+#### Algorithm
+
+```java
+public void reverse(int[] nums, int start, int end) {
+    while(start<end) {
+        // Step 1: Swap the elements at start and end index
+        int temp = nums[start];
+        nums[start] = nums[end];
+        nums[end] = temp;
+        // Step 2: Increment the start index, decrement the end index
+        start++;
+        end--;
+    }
+}
+
+public void rotate(int[] nums, int k) {
+    // Step 1: Handle cases where k exceeds nums.length
+    int n = nums.length;
+    k = k % n;
+    // Step 2: Reverse the entire array
+    reverse(nums, 0, n-1);
+    // Step 3: Reverse the first k elements
+    reverse(nums, 0, k-1);
+    // Step 4: Reverse the remaining (n-k) elements
+    reverse(nums, k, n-1);
+}
+```
+
+#### Visualization
+
+<RotateArrayReverseVisualizer />
+
+#### Time Complexity
+
+We traverse the array a constant number of times (three reversals), each taking O(n). Therefore, the overall time complexity is O(n).
+
+#### Space Complexity
+
+The array is modified in place and no additional data structures are used. Hence, overall space complexity is O(1).
+
+---
+
+
+
 
 
 

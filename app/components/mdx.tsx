@@ -20,6 +20,7 @@ import BestTimeStockGreedyVisualizer from './best-time-stock-greedy-visualizer';
 import TwoSumHashMapVisualizer from './two-sum-hashmap-visualizer';
 import RotateArrayBruteForceVisualizer from './rotate-array-bruteforce-visualizer';
 import RotateArrayModuloVisualizer from './rotate-array-modulo-visualizer';
+import RotateArrayReverseVisualizer from './rotate-array-reverse-visualizer';
 
 hljs.registerLanguage('javascript', javascript);
 
@@ -181,6 +182,7 @@ let components = {
   TwoSumHashMapVisualizer: TwoSumHashMapVisualizer,
   RotateArrayBruteForceVisualizer: RotateArrayBruteForceVisualizer,
   RotateArrayModuloVisualizer: RotateArrayModuloVisualizer,
+  RotateArrayReverseVisualizer: RotateArrayReverseVisualizer,
   Image: RoundedImage,
   a: CustomLink,
   code: Code,
