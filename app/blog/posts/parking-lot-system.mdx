@@ -23,11 +23,18 @@ occupancy tracking, and seamless vehicle exit, ensuring a smooth and reliable pa
 <br/>
 ---
 
-### Sequence Flow
+### Understanding Primary Use Cases
+
+Primary use case: Park vehicle and unpark vehicle 
 
 Let's discuss the step by step flow to identify the core entities involved:
 
 1. `Vehicle (Motorcycle, Car, Truck)` arrives at the entry gate. The `ParkingLot` system captures basic details such 
 as `licenseNumber`, `vehicleType` and `arrivalTime`.
 
-2. The `ParkingLot` evaluates the `vehicleType` and searches across its managed `Map<VehicleType, List<ParkingSpot>>` to find the best available match `ParkingSpot` (`CompactSpot`, `RegularSpot`, or `OversizedSpot`).
+2. The `ParkingLot` evaluates the `vehicleType` and searches across its managed `Map<VehicleType, List<ParkingSpot>>` 
+to find the best available match `ParkingSpot` (`CompactSpot`, `RegularSpot`, or `OversizedSpot`).
+
+### General Observation
+
+

@@ -1,0 +1,22 @@
+---
+title: 'Data Structures & Algorithms: Design Browser History'
+publishedAt: '2025-10-01'
+---
+
+You have a browser with a single tab that starts on a homepage. From there, you can visit new URLs, 
+move backward in the browsing history by a given number of steps, or move forward in the history.
+
+Implement the `BrowserHistory` class:
+
+1. `BrowserHistory(string homepage)`: Initializes the browser with the given homepage.
+
+2. `void visit(string url)`: Navigates to the specified URL from the current page. This action clears any forward history.
+
+3. `string back(int steps)`: Moves backward by the given number of steps in the history. 
+If fewer steps are available, move back as much as possible. Return the current URL after moving.
+
+4. `string forward(int steps)`: Moves forward by the given number of steps in the history. 
+If fewer steps are available, move forward as much as possible. Return the current URL after moving.
+
+<BrowserHistoryVisualizer />
+

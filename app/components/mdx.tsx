@@ -21,6 +21,7 @@ import TwoSumHashMapVisualizer from './two-sum-hashmap-visualizer';
 import RotateArrayBruteForceVisualizer from './rotate-array-bruteforce-visualizer';
 import RotateArrayModuloVisualizer from './rotate-array-modulo-visualizer';
 import RotateArrayReverseVisualizer from './rotate-array-reverse-visualizer';
+import BrowserHistoryVisualizer from './browser-history-visualizer';
 
 hljs.registerLanguage('javascript', javascript);
 
@@ -183,6 +184,7 @@ let components = {
   RotateArrayBruteForceVisualizer: RotateArrayBruteForceVisualizer,
   RotateArrayModuloVisualizer: RotateArrayModuloVisualizer,
   RotateArrayReverseVisualizer: RotateArrayReverseVisualizer,
+  BrowserHistoryVisualizer: BrowserHistoryVisualizer,
   Image: RoundedImage,
   a: CustomLink,
   code: Code,
