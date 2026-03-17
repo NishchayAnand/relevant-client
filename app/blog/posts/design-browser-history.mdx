@@ -20,3 +20,59 @@ If fewer steps are available, move forward as much as possible. Return the curre
 
 <BrowserHistoryVisualizer />
 
+---
+
+### Brute Force Approach: Dynamic Array + Pointer
+
+Maintain a list of all visited URLs along with a pointer to keep track of the current page being viewed in the browser.
+
+When a new URL is visited, any forward history (i.e., elements after the current pointer) is discarded, and the new URL is appended to the list. 
+This truncation of the forward history can take `O(n)` time in the worst case. 
+
+The back and forward operations are handled by simply adjusting the pointer within valid bounds, making both operations `O(1)`.
+
+#### Algorithm
+
+```java
+class BrowserHistory {
+    private List<String> history;
+    private int currentIndex;
+
+    public BrowserHistory(String homepage) {
+        this.history = new ArrayList<>();
+        history.add(homepage);
+        currentIndex = 0;
+    }
+
+    public void visit(String url) {
+        // remove all forward history
+        while(history.size() > currentIndex + 1) {
+            history.remove(history.size() - 1);
+        }
+        // Add new page
+        history.add(url);
+        currentIndex++;
+    }
+
+    public String back(int steps) {
+        currentIndex = Math.max(0, currentIndex - steps);
+        return history.get(currentIndex);
+    }
+
+    public String forward(int steps) {
+        currentIndex = Math.min(history.size() - 1, currentIndex + steps);
+        return history.get(currentIndex);
+    }
+
+}
+```
+<br/>
+---
+
+
+
+
+
+
+
+
