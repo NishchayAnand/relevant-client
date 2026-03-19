@@ -23,11 +23,12 @@ occupancy tracking, and seamless vehicle exit, ensuring a smooth and reliable pa
 <br/>
 ---
 
-### Understanding Primary Use Cases
+### Sequence Flow
 
-Primary use case: Park vehicle and unpark vehicle 
+At its core, a parking lot system revolves around two main operations: parking and unparking a vehicle. 
+Let's discuss the step by step flow of each use case to identify the core entities involved:
 
-Let's discuss the step by step flow to identify the core entities involved:
+#### Park Vehicle
 
 1. `Vehicle (Motorcycle, Car, Truck)` arrives at the entry gate. The `ParkingLot` system captures basic details such 
 as `licenseNumber`, `vehicleType` and `arrivalTime`.
@@ -35,6 +36,17 @@ as `licenseNumber`, `vehicleType` and `arrivalTime`.
 2. The `ParkingLot` evaluates the `vehicleType` and searches across its managed `Map<VehicleType, List<ParkingSpot>>` 
 to find the best available match `ParkingSpot` (`CompactSpot`, `RegularSpot`, or `OversizedSpot`).
 
-### General Observation
+#### Unpark Vehicle
+
+---
+
+### Data Model Design
+
+---
+
+### Class Model Design
+
+---
+
 
 
