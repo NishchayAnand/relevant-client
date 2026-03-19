@@ -22,7 +22,7 @@ If fewer steps are available, move forward as much as possible. Return the curre
 
 ---
 
-### Brute Force Approach: Dynamic Array + Pointer
+### Dynamic Array Approach
 
 Maintain a list of all visited URLs along with a pointer to keep track of the current page being viewed in the browser.
 
@@ -66,11 +66,83 @@ class BrowserHistory {
 
 }
 ```
-<br/>
+
+#### Drawbacks
+
+The main issue lies with the `visit()` operation. When you visit a new URL after going back, you must delete all the forward history.
+
+In a list (e.g., `ArrayList`), this means removing elements one by one from the end which can take `O(n)` time in the worst case.
+
 ---
 
+### Doubly Linked List Approach 
 
+Browser history can be modeled as a doubly linked list, where each node represents a URL and contains pointers to the `previous` and `next` page. 
 
+Maintain a `current` pointer that always points to the node representing the page currently displayed in the browser. 
+When visiting a new page, the `next` pointer of the `current` node can set to `null`, effectively discarding all forward history. 
+The new URL node is then appended as the `next` node. This operation takes `O(1)` time.
+
+Moving back or forward simply involves shifting the current pointer to `previous` or `next`, making both operations `O(1)`.
+
+#### Algorithm
+
+```java
+class BrowserHistory {
+
+    class Node {
+        String url;
+        Node previous, next;
+        
+        Node(String url) {
+            this.url = url;
+        }
+    }
+
+    private Node current;
+
+    BrowserHistory(String homepage) {
+        current = new Node(homepage);
+    }
+
+    public void visit(String url) {
+        Node newNode = new Node(url);
+
+        // Remove forward history (Optional)
+        current.next = null;
+
+        // Link the new node
+        newNode.previous = current;
+        current.next = newNode;
+
+        // Make new node as the current node
+        current = newNode;
+    }
+
+    public String back(int steps) {
+        while(steps > 0 && current.next != null) {
+            current = current.previous;
+            step--;
+        }
+        return current.url;
+    }
+
+    public String forward(int steps) {
+        while(steps > 0 ** current.next != null) {
+            current = current.next;
+            step--;
+        }
+        return current.url;
+    }
+
+}
+```
+
+#### Drawbacks
+
+Although a doubly linked list provides true constant-time operations, it introduces additional memory overhead and pointer management complexity.
+
+---
 
 
 
