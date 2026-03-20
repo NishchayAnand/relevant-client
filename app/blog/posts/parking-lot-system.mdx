@@ -30,13 +30,24 @@ Let's discuss the step by step flow of each use case to identify the core entiti
 
 #### Park Vehicle
 
-1. `Vehicle (Motorcycle, Car, Truck)` arrives at the entry gate. The `ParkingLot` system captures basic details such 
-as `licenseNumber`, `vehicleType` and `arrivalTime`.
+1. A `Vehicle` (e.g., `Motorcycle`, `Car`, `Truck`) arrives at the entry gate. 
 
-2. The `ParkingLot` evaluates the `vehicleType` and searches across its managed `Map<VehicleType, List<ParkingSpot>>` 
-to find the best available match `ParkingSpot` (`CompactSpot`, `RegularSpot`, or `OversizedSpot`).
+2. The `ParkingLot` system records essential vehicle details such as `licenseNumber`, `vehicleType`
+ and `arrivalTime`,  and identifies an appropriate available `ParkingSpot` (e.g., `CompactSpot`, `RegularSpot`, 
+ or `OversizedSpot`) based on the entered `vehicleType`.
+
+3. If a suitable spot exists, the `ParkingLot` system assigns the `ParkingSpot` to the `Vehicle`, 
+generates a `Ticket` and returns its `ticketId` to the user.
 
 #### Unpark Vehicle
+
+1. The `Vehicle` arrives at the exit gate and provides the `ticketId` to the `ParkingLot` system.
+
+2. The `ParkingLot` system retrieves the corresponding `Ticket` and calculates the parking fee based
+on the duration of the stay. 
+
+3. After the `Payment` is completed, the `ParkingLot` system marks the associated `ParkingSpot` as available,
+updates the `Ticket`, and allows the `Vehicle` to exit.
 
 ---
 
