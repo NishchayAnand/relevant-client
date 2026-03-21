@@ -23,6 +23,7 @@ import RotateArrayModuloVisualizer from './rotate-array-modulo-visualizer';
 import RotateArrayReverseVisualizer from './rotate-array-reverse-visualizer';
 import BrowserHistoryVisualizer from './browser-history-visualizer';
 import { MinimumSizeSubarrayNestedVisualizer } from './minimum-size-subarray-nested-visualizer';
+import MinimumSizeSubarraySlidingWindowVisualizer from './minimum-size-subarray-sliding-window-visualizer';
 
 hljs.registerLanguage('javascript', javascript);
 
@@ -187,6 +188,7 @@ let components = {
   RotateArrayReverseVisualizer: RotateArrayReverseVisualizer,
   BrowserHistoryVisualizer: BrowserHistoryVisualizer,
   MinimumSizeSubarrayNestedVisualizer: MinimumSizeSubarrayNestedVisualizer,
+  MinimumSizeSubarraySlidingWindowVisualizer: MinimumSizeSubarraySlidingWindowVisualizer,
   Image: RoundedImage,
   a: CustomLink,
   code: Code,

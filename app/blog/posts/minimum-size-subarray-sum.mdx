@@ -43,6 +43,10 @@ A. No, `1 <= nums[i] <= 10⁴`.
 Use nested loops to explore all possible subarrays, aggregating their sums, and whenever
 the sum reaches or exceeds the `target`, update the minimum length and stop expanding the subarray further.
 
+#### Visualization
+
+<MinimumSizeSubarrayNestedVisualizer target={7} nums={[2, 3, 1, 2, 4, 3]} />
+
 #### Algorithm
 
 ```java
@@ -61,10 +65,6 @@ public int minSubArrayLen(int target, int[] nums) {
     return minLength == Integer.MAX_VALUE ? 0 : minLength;
 }
 ```
-
-#### Visualization
-
-<MinimumSizeSubarrayNestedVisualizer target={7} nums={[2, 3, 1, 2, 4, 3]} />
 
 #### Time Complexity
 
@@ -104,21 +104,45 @@ This allows us to treat a portion of the array as a dynamic window that we can e
 for every possible subarray, we reuse previous computations by adjusting the window, making the process
 much more efficient.
 
+#### Visualization
+
+<MinimumSizeSubarraySlidingWindowVisualizer />
+
 #### Algorithm
 
 ```java
 public int minSubArrayLen(int target, int[] nums) {
     int minLength = Integer.MAX_VALUE;
-    int left = 0, right = 0;
-    while (left <= right) {
+    int currSum = 0;
+    int left = 0;
 
+    for (int right = 0; right < nums.length; right++) {
+        currSum += nums[right];
+
+        while(currSum >= target) {
+            minLength = Math.min(minLength, right - left + 1);
+            currSum -= nums[left];
+            left++;
+        }
     }
+
     return minLength == Integer.MAX_VALUE ? 0 : minLength;
 }
 ```
 
+#### Time Complexity
 
+In the worst case, each element would be:
+- Added to the `currSum` once (when `right` pointer moves forward) 
+- Removed from the `currSum` once (when `left` pointer moves forward)
 
+Hence, overall time complexity = `O(2n)` ~ `O(n)`.
+
+#### Space Complexity
+
+We are not using any extra space. Hence, overall space complexity = `O(1)`.
+
+---
 
 
 
