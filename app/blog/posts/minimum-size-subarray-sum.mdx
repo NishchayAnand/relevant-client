@@ -3,6 +3,8 @@ title: 'Data Structures & Algorithms - Sliding Window: Minimum Size Subarray Sum
 publishedAt: '2025-09-01'
 ---
 
+import { MinimumSizeSubarrayNestedVisualizer } from '@/app/components/minimum-size-subarray-nested-visualizer';
+
 Given an array of positive integers `nums` and a positive integer `target`, 
 return the minimal length of a subarray whose sum is greater than or equal to `target`. 
 If there is no such subarray, return `0` instead.
@@ -29,6 +31,38 @@ Output: 0
 
 ---
 
-### Nested Loop Approach
+### General Observations
 
-Use nested loop to iterate over all possible subarrays and keep track of the minimal length of visited subarrays whose sum >= target.
+Q. Can `nums` contain negative integers?\
+A. No, `1 <= nums[i] <= 10^4`.
+
+---
+
+### Brute Force: Nested Loop Approach
+
+Use nested loops to explore all possible subarrays, aggregating their sums, and whenever
+the sum reaches or exceeds the `target`, update the minimum length and stop expanding the subarray further.
+
+### Algorithm
+
+```java
+public int minSubArrayLen(int target, int[] nums) {
+    int minLength = Integer.MAX_VALUE;
+    for(int i = 0; i < nums.length; i++) {
+        int currSum = 0;
+        for(int j = i; j < nums.length; j++) {
+            currSum += nums[j];
+            if(currSum >= target) {
+                minLength = Math.min(minLength, j-i+1);
+                break;
+            }
+        }
+    }
+    return minLength == Integer.MAX_VALUE ? 0 : minLength;
+}
+```
+
+### Visualization
+
+<MinimumSizeSubarrayNestedVisualizer target={7} nums={[2, 3, 1, 2, 4, 3]} />
+
