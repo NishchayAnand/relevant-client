@@ -39,6 +39,8 @@ Let's discuss the step by step flow of each use case to identify the core entiti
 3. If a suitable spot exists, the `ParkingLot` system assigns the `ParkingSpot` to the `Vehicle`, 
 generates a `Ticket` and returns its `ticketId` to the user.
 
+![park-vehicle-mermaid-diagram](/parking-lot-system/park-vehicle.png)
+
 #### Unpark Vehicle
 
 1. The `Vehicle` arrives at the exit gate and provides the `ticketId` to the `ParkingLot` system.
@@ -48,6 +50,8 @@ on the duration of the stay.
 
 3. After the `Payment` is completed, the `ParkingLot` system marks the associated `ParkingSpot` as available,
 updates the `Ticket`, and allows the `Vehicle` to exit.
+
+![unpark-vehicle-mermaid-diagram](/parking-lot-system/unpark-vehicle.png)
 
 ---
 
