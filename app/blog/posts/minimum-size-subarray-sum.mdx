@@ -34,7 +34,7 @@ Output: 0
 ### General Observations
 
 Q. Can `nums` contain negative integers?\
-A. No, `1 <= nums[i] <= 10^4`.
+A. No, `1 <= nums[i] <= 10⁴`.
 
 ---
 
@@ -43,7 +43,7 @@ A. No, `1 <= nums[i] <= 10^4`.
 Use nested loops to explore all possible subarrays, aggregating their sums, and whenever
 the sum reaches or exceeds the `target`, update the minimum length and stop expanding the subarray further.
 
-### Algorithm
+#### Algorithm
 
 ```java
 public int minSubArrayLen(int target, int[] nums) {
@@ -62,7 +62,65 @@ public int minSubArrayLen(int target, int[] nums) {
 }
 ```
 
-### Visualization
+#### Visualization
 
 <MinimumSizeSubarrayNestedVisualizer target={7} nums={[2, 3, 1, 2, 4, 3]} />
+
+#### Time Complexity
+
+Considering the operations inside the inner loop are constant time, the time 
+complexity of the algorithm only depends on how many times the inner loop runs.
+
+In the worst case, for each starting index `i`, the inner loop runs (n-i) times:
+
+| Starting Index (i) | Inner Loop Runs |
+| ------------------ | --------------- |
+| 0                  | n               |
+| 1                  | n - 1           |
+| 2                  | n - 2           |
+| ...                | ...             |
+| ...                | ...             |
+| n - 1              | 1               |
+
+Total operations performed = n + (n-1) + (n-2) + (n-3) + ... + 1 = n(n+1)/2 = (n² + n)/2. 
+Ignoring the constants and lower-order terms, the overall time complexity simplifies to `O(n²)`.
+
+#### Space Complexity
+
+We are not using any extra space, hence overall space complexity = `O(1)`.
+
+---
+
+### Optimization: Sliding Window Approach
+
+We can use two pointers: `left` and `right` to maintain a sliding window representing the current subarray.
+
+Since all elements in the `nums` array are positive, the total sum behaves predictably. 
+When we move the right pointer forward, the sum increases, and when we move the left pointer forward,
+the sum decreases.
+
+This allows us to treat a portion of the array as a dynamic window that we can expand to reach the 
+`target` sum and then shrink to find the smallest possible valid subarray. Instead of recomputing sums 
+for every possible subarray, we reuse previous computations by adjusting the window, making the process
+much more efficient.
+
+#### Algorithm
+
+```java
+public int minSubArrayLen(int target, int[] nums) {
+    int minLength = Integer.MAX_VALUE;
+    int left = 0, right = 0;
+    while (left <= right) {
+
+    }
+    return minLength == Integer.MAX_VALUE ? 0 : minLength;
+}
+```
+
+
+
+
+
+
+
 
