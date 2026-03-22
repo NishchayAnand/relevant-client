@@ -57,7 +57,93 @@ updates the `Ticket`, and allows the `Vehicle` to exit.
 
 ### Object Model Design
 
+Let's identify the core classes involved in the parking lot system and outline their responsibilities,
+focusing on how each class encapsulates specific data and behavior to support the overall 
+system functionality.
 
+#### Vehicle
+
+The `Vehicle` class represents a vehicle entering the parking lot. It serves primarily as a 
+data holder, capturing essential details such as `licenseNumber` and `vehicleType` with 
+minimal behavior.
+
+To model parking constraints like "Which vehicle can park in which type of spot?", we can define 
+specific subclasses:
+
+- **Motorcycle:** The smallest vehicle type, which can be accomodated in compact spots.
+- **Car:** A medium-sized vehicle that can fit in either compact or regular spots.
+- **Truck:** The largest vehicle type, which requires oversized spots.
+
+The design leverages inheritance to represent the "is-a" relationship between vehicle types.
+This avoids large conditional logic and makes the system more extensible when introducing new vehicle types. 
+
+![vehicle-class-diagram](/parking-lot-system/vehicle-class-diagram.png)
+
+#### ParkingSpot
+
+The `ParkingSpot` class represents an individual parking space within the parking lot and is 
+responsible for managing its occupancy state. It will maintain state such as `spotId`, `spotType`, 
+and `isAvailable`, along with a reference to the assigned `Vehicle`.
+
+Each parking spot supports basic operations to manage its occupancy, including assigning a 
+`Vehicle` when occupied and removing the `Vehicle` when it becomes available.
+
+```java
+void assignVehicle(Vehicle v) {
+    this.vehicle = v;
+    this.isOccupied = true;
+}
+
+void removeVehicle() {
+    this.vehicle = null;
+    this.isOccupied = false;
+}
+```
+
+By encapsulating these updates within controlled methods, the system ensures the state changes 
+occur atomically and the spot’s state remains consistent and up to date.
+
+
+
+
+
+
+
+
+
+
+
+
+
+The base `ParkingSpot` class defines common behavior 
+
+
+
+for properties like `spotId`, 
+`spotType`, and `isAvailable`. Subclasses include:
+
+- **CompactSpot**: For motorcycles and cars
+- **RegularSpot**: For cars and trucks
+- **OversizedSpot**: For trucks only
+
+#### Ticket
+
+The `Ticket` class tracks parking sessions with `ticketId`, `vehicle`, `parkingSpot`, `entryTime`, 
+`exitTime`, and `fee`. It calculates the parking duration and fee based on time-of-day rates.
+
+#### ParkingRate
+
+The `ParkingRate` class manages pricing logic with different rates for peak and off-peak hours. 
+It calculates fees based on vehicle type and parking duration.
+
+#### ParkingLot
+
+The `ParkingLot` class serves as the main controller, managing:
+
+- Vehicle entry and spot allocation
+- Ticket generation and retrieval
+- Fee calculation and payment processing
+- Spot availability tracking
 
 ---
 
