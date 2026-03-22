@@ -74,8 +74,8 @@ specific subclasses:
 - **Car:** A medium-sized vehicle that can fit in either compact or regular spots.
 - **Truck:** The largest vehicle type, which requires oversized spots.
 
-The design leverages inheritance to represent the "is-a" relationship between vehicle types.
-This avoids large conditional logic and makes the system more extensible when introducing new vehicle types. 
+This design leverages inheritance to represent the "is-a" relationship between vehicle types.
+It avoids large conditional logic and makes the system more extensible when introducing new vehicle types. 
 
 ![vehicle-class-diagram](/parking-lot-system/vehicle-class-diagram.png)
 
@@ -103,47 +103,58 @@ void removeVehicle() {
 By encapsulating these updates within controlled methods, the system ensures the state changes 
 occur atomically and the spot’s state remains consistent and up to date.
 
+We can use inheritance to model different types of parking spots as specialized variants of a 
+base `ParkingSpot` class.
 
+- **CompactSpot:** Suitable for smaller vehicles such as motorcycles and cars.
+- **RegularSpot:** Designed for standard vehicles like cars.
+- **OversizedSpot:** Intended for larger vehicles like trucks.
 
-
-
-
-
-
-
-
-
-
-
-The base `ParkingSpot` class defines common behavior 
-
-
-
-for properties like `spotId`, 
-`spotType`, and `isAvailable`. Subclasses include:
-
-- **CompactSpot**: For motorcycles and cars
-- **RegularSpot**: For cars and trucks
-- **OversizedSpot**: For trucks only
+![parking-spot-class-diagram](/parking-lot-system/parking-spot-class-diagram.png)
 
 #### Ticket
 
-The `Ticket` class tracks parking sessions with `ticketId`, `vehicle`, `parkingSpot`, `entryTime`, 
-`exitTime`, and `fee`. It calculates the parking duration and fee based on time-of-day rates.
+The `Ticket` class represents a parking session and acts as a record of a vehicle's entry and 
+exit within the parking lot. It captures essential details such as associated `Vehicle`, assigned 
+`ParkingSpot`, `entryTime`, and `exitTime`, along with the total parking `amount`.
 
-#### ParkingRate
+It primarily acts as a data holder with minimal behavior, such as updating the `exitTime` and 
+`amount`. Core business logic such as fee calculation and releasing the associated parking spot 
+can be delegated to separate components, ensuring proper separation of concerns.
 
-The `ParkingRate` class manages pricing logic with different rates for peak and off-peak hours. 
-It calculates fees based on vehicle type and parking duration.
+![ticket-class-diagram](/parking-lot-system/ticket-class-diagram.png)
 
 #### ParkingLot
 
-The `ParkingLot` class serves as the main controller, managing:
+The `ParkingLot` class acts as the central orchestrator (facade) of the system, coordinating all 
+core operations such as `findAvailableSpot(VehicleType type)`, `calculatePrice(Ticket ticket)`, or 
+`processPayment(double amount)` involved in parking and unparking vehicles.
 
-- Vehicle entry and spot allocation
-- Ticket generation and retrieval
-- Fee calculation and payment processing
-- Spot availability tracking
+Instead of handling all responsibilities directly, it can delegate responsibilities to specialized components.
+
+```java
+// ✅ Good design
+ParkingLot → SpotManager: find spot  
+ParkingLot → Ticket: create ticket 
+ParkingLot → PriceCalculator: calculate fee  
+ParkingLot → PaymentProcessor: process payment  
+ParkingLot → ParkingSpot: free spot   
+```
+
+This design promotes a clear separation of concerns by ensuring that each component is 
+responsible for a specific piece of functionality.
+
+During unparking, the system uses the `ticketId` to retrieve all related parking details. 
+To make this efficient, the `ParkingLot` can hold a `Map<String, Ticket>`, allowing direct and 
+constant-time access to the corresponding `Ticket` without needing to search through all records.
+
+![parking-lot-class-diagram](/parking-lot-system/parking-lot-class-diagram.png)
+
+#### SpotManager
+
+#### PriceCalculator
+
+#### PaymentProcessor
 
 ---
 
