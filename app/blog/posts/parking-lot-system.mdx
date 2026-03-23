@@ -152,11 +152,61 @@ constant-time access to the corresponding `Ticket` without needing to search thr
 
 #### SpotManager
 
+The `SpotManager` class is responsible for managing parking spots. It encapsulates the logic of 
+finding an appropriate available `ParkingSpot` based on the `vehicleType`.
+
+To efficiently manage parking spots, instead of maintaining all spots in a single collection, we 
+can divide them into two groups: available spots (free to use) and occupied spots (currently in use). 
+
+```java
+Map<SpotType, List<ParkingSpot>> availableSpots;
+Map<SpotType, List<ParkingSpot>> occupiedSpots;
+```
+
+When a vehicle arrives, the system only checks the available spots, avoiding the need to scan all 
+spots and reducing lookup time from `O(n)` to near `O(1)`.
+
+As the state changes:
+
+- **Parking:** the spot is moved from available → occupied
+- **Unparking:** the spot is moved from occupied → available
+
+This approach ensures efficient allocation, quick state updates, and accurate tracking of parking 
+spot availability.
+
+![spot-manager-class-diagram](/parking-lot-system/spot-manager-class-diagram.png)
+
 #### PriceCalculator
+
+The `PriceCalculator` class is responsible for computing the parking fee based on the duration of 
+a parking session. It uses the details stored in the `Ticket`, such as `entryTime` and `exitTime`, 
+to determine the total amount to be charged.
+
+<span className='text-purple-800'><strong>NOTE:</strong> Pricing in a parking lot system is not 
+fixed and can vary based on business rules such as hourly rates, flat fees, weekend pricing, or 
+peak-hour charges.</span>
+
+To handle price variability, we can use the **Strategy Pattern** to encapsulate different pricing 
+algorithms into separate classes. This allows us to switch pricing logic dynamically and add new 
+strategies without modifying existing code, ensuring flexibility and maintainability.
+
+![price-calculator-class-diagram](/parking-lot-system/price-calculator-class-diagram.png)
 
 #### PaymentProcessor
 
+The `PaymentProcessor` class is responsible for handling payment operations during the unparking 
+process. After the parking fee is calculated, it processes the payment and determines whether the 
+transaction is successful before allowing the vehicle to exit.
+
+To support multiple payment methods, we can use the **Strategy Pattern**, allowing different 
+payment implementations to be plugged in without modifying the core system.
+
+![payment-processor-class-diagram](/parking-lot-system/payment-processor-class-diagram.png)
+
+
 ---
+
+### Final Implementation
 
 
 
