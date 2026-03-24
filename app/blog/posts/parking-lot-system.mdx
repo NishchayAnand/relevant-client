@@ -203,10 +203,324 @@ payment implementations to be plugged in without modifying the core system.
 
 ![payment-processor-class-diagram](/parking-lot-system/payment-processor-class-diagram.png)
 
-
 ---
 
 ### Final Implementation
+
+Let's discuss the low-level design and complexities for each functionality.
+This will help us build a system that is efficient, scalable, and optimized for real-world usage.
+
+#### Vehicle 
+
+```java
+// ================= ENUMS =================
+enum VehicleType {
+    MOTORCYCLE, CAR, TRUCK
+}
+
+// ================= VEHICLE =================
+abstract class Vehicle {
+    protected String licenseNumber;
+    protected VehicleType vehicleType;
+
+    public Vehicle(String licenseNumber, VehicleType vehicleType) {
+        this.licenseNumber = licenseNumber;
+        this.vehicleType = vehicleType;
+    }
+
+    public VehicleType getVehicleType() {
+        return vehicleType;
+    }
+}
+
+class Motorcycle extends Vehicle {
+    public Motorcycle(String licenseNumber) {
+        super(licenseNumber, VehicleType.MOTORCYCLE);
+    }
+}
+
+class Car extends Vehicle {
+    public Car(String licenseNumber) {
+        super(licenseNumber, VehicleType.CAR);
+    }
+}
+
+class Truck extends Vehicle {
+    public Truck(String licenseNumber) {
+        super(licenseNumber, VehicleType.TRUCK);
+    }
+}
+```
+
+#### ParkingSpot
+
+```java
+// ================= ENUMS =================
+enum SpotType {
+    COMPACT, REGULAR, OVERSIZED
+}
+
+// ================= PARKING SPOT =================
+abstract ParkingSpot {
+    protected String spotId;
+    protected SpotType type;
+    protected boolean isOccupied;
+    protected Vehicle vehicle;
+
+    public ParkingSpot(String spotId, SpotType type) {
+        this.spotId = spotId;
+        this.type = type;
+        this.isOccupied = false;
+    }
+
+    public boolean isAvailable() {
+        return !isOccupied;
+    }
+
+    public void assignVehicle(Vehicle vehicle) {
+        this.vehicle = vehicle;
+        this.isOccupied = true;
+    }
+
+    public void removeVehicle() {
+        this.vehicle = null;
+        this.isOccupied = false;
+    }
+
+    public SpotType getType() {
+        return type;
+    }
+}
+
+class CompactSpot extends ParkingSpot {
+    public CompactSpot(String id) {
+        super(id, SpotType.COMPACT);
+    }
+}
+
+class RegularSpot extends ParkingSpot {
+    public RegularSpot(String id) {
+        super(id, SpotType.COMPACT);
+    }
+}
+
+class OversizedSpot extends ParkingSpot {
+    public OversizedSpot(String id) {
+        super(id, SpotType.OVERSIZED);
+    }
+}
+```
+
+#### Ticket
+
+```java
+class Ticket {
+    private String ticketId;
+    private Vehicle vehicle;
+    private ParkingSpot parkingSpot;
+    private LocalDateTime entryTime;
+    private LocalDateTime exitTime;
+    private double amount;
+
+    public Ticket(Vehicle vehicle, ParkingSpot spot) {
+        this.ticketId = UUID.randomUUID().toString();
+        this.vehicle = vehicle;
+        this.spot = spot;
+        this.entryTime = LocalDateTime.now();
+    }
+
+    public String getTicketId() {
+        return ticketId;
+    }
+
+    public LocalDateTime getEntryTime() {
+        return entryTime;
+    }
+
+    public void closeTicket(LocalDateTime exitTime, double amount) {
+        this.exitTime = exitTime;
+        this.amount = amount;
+    }
+
+    public ParkingSpot getSpot() {
+        return spot;
+    }
+}
+```
+
+#### SpotManager
+
+```java
+class SpotManager {
+    private Map<SpotType, List<ParkingSpot>> availableSpots = new HashMap<>();
+    private Map<SpotType, List<ParkingSpot>> occupiedSpots = new HashMap<>();
+
+    public SpotManager() {
+        for(SpotType type: SpotType.values()) {
+            availableSpots.put(type, new ArrayList<>());
+            occupiedSpots.put(type, new ArrayList<>());
+        }
+    }
+
+    public void addSpot(ParkingSpot spot) {
+        availableSpots.get(spot.getType()).add(spot);
+    }
+
+    public ParkingSpot findAvailableSpot(VehicleType vehicle) {
+        List<SpotType> allowedTypes = getAllowedSpotTypes(vehicleType);
+    }
+
+    public List<SpotType> getAllowedSpotTypes(VehicleType type) {
+        switch (type) {
+            case MOTORCYCLE:
+                return List.of(SpotType.COMPACT);
+            case CAR:
+                return List.of(SpotType.COMPACT, SpotType.REGULAR);
+            case TRUCK:
+                return List.of(SpotType.OVERSIZED);
+        }
+        return new ArrayList<>();
+    }
+}
+```
+
+#### PriceCalculator 
+
+```java
+interface PricingStrategy {
+    double calculate(Ticket ticket);
+}
+
+class HourlyPricingStrategy implements PricingStrategy {
+    public double calculate(Ticket ticket) {
+        long hours = Duration.between(ticket.getEntryTime, LocalDateTime.now()).toHours();
+        return Math.max(hours, 1) * 10;
+    }
+}
+
+class PriceCalculator {
+    private PricingStrategy strategy;
+
+    public PriceCalculator(PricingStrategy strategy) {
+        this.strategy = strategy;
+    }
+
+    public double calculateFee(Ticket ticket) {
+        return strategy.calculate(ticket);
+    }
+}
+```
+
+#### PaymentProcessor 
+
+```java
+interface PaymentStrategy {
+    boolean pay(double amount);
+}
+
+class CashPayment implements PaymentStrategy {
+    public boolean pay(double amount) {
+        return true;
+    }
+}
+
+class PaymentProcessor {
+    private PaymentStrategy strategy;
+
+    public PaymentProcessor(PaymentStrategy strategy) {
+        this.strategy = strategy;
+    }
+
+    public boolean processPayment(double amount) {
+        return strategy.pay(amount);
+    }
+}
+```
+
+#### ParkingLot
+
+```java
+class ParkingLot {
+    private SpotManager SpotManager;
+    private PriceCalculator priceCalculator;
+    private PaymentProcessor paymentProcessor;
+    private Map<String, Ticket> tickets = new HashMap<>();
+
+    public ParkingLot(SpotManager spotManager,
+                        PriceCalculator priceCalculator,
+                        PaymentProcessor paymentProcessor) {
+        this.spotManager = spotManager;
+        this.priceCalculator = priceCalculator;
+        this.paymentProcessor = paymentProcessor;
+    }
+
+    public Ticket parkVehicle(Vehicle vehicle) {
+        ParkingSpot spot = spotManager.findAvailableSpot(vehicle.getVehicleType());
+        if (spot == null) throw new RuntimeException("No spot available");
+
+        spot.assignVehicle(vehicle);
+        Ticket ticket = new Ticket(vehicle, spot);
+        tickets.put(ticket.getTicketId(), ticket);
+        return ticket;
+    }
+
+    public double unparkVehicle(String ticketId) {
+        Ticket ticket = tickets.get(ticketId);
+        if (ticket == null) throw new RuntimeException("Invalid Exception");
+
+        double fee = priceCalculator.calculateFee(ticket);
+
+        if (!paymentProcessor.processPayment(fee)) {
+            throw new RuntimeException("Payment failed");
+        }
+
+        ParkingSpot spot = ticket.getSpot();
+        spot.removeVehicle();
+        spotManager.freeSpot(spot);
+
+        ticket.closeTicket(LocalDateTime.now(), fee);
+        return fee;
+    }
+}
+```
+
+### Unit Test 
+
+```java
+public class Main {
+    public static void main(String[] args) {
+        SpotManager spotManager = new SpotManager();
+        spotManager.addSpot(new CompactSpot("C1"));
+        spotManager.addSpot(new RegularSpot("R1"));
+        spotManager.addSpot(new OversizedSpot("O1"));
+
+        PriceCalculator priceCalculator = new PriceCalculator(new HourlyPricingStrategy());
+        PaymentProcessor paymentProcessor = new PaymentProcessor(new CashPayment());
+
+        ParkingLot parkingLot = new ParkingLot(spotManager, priceCalculator, paymentProcessor);
+
+        Vehicle car = new Car("DL1234");
+        Ticket ticket = parkingLot.parkVehicle(car);
+
+        System.out.println("Parked with Ticket: " + ticket.getTicketId());
+
+        double fee = parkingLot.unparkVehicle(ticket.getTicketId());
+        System.out.println("Fee: " + fee);
+    }
+}
+```
+
+---
+
+### Further Reading
+
+#### Strategy Design Pattern
+
+#### Facade Design Pattern
+
+---
+
+
 
 
 
