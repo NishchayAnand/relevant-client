@@ -366,8 +366,23 @@ class SpotManager {
         availableSpots.get(spot.getType()).add(spot);
     }
 
-    public ParkingSpot findAvailableSpot(VehicleType vehicle) {
+    public ParkingSpot findAvailableSpot(VehicleType vehicleType) {
         List<SpotType> allowedTypes = getAllowedSpotTypes(vehicleType);
+
+        for (SpotType type : allowedTypes) {
+            List<ParkingSpot> spots = availableSpots.get(type);
+            if (!spots.isEmpty()) {
+                ParkingSpot spot = spots.remove(0);
+                occupiedSpots.get(type).add(spot);
+                return spot;
+            }
+        }
+        return null;
+    }
+
+    public void freeSpot(ParkingSpot spot) {
+        occupiedSpots.get(spot.getType()).remove(spot);
+        availableSpots.get(spot.getType()).add(spot);
     }
 
     public List<SpotType> getAllowedSpotTypes(VehicleType type) {
