@@ -23,7 +23,7 @@ occupancy tracking, and seamless vehicle exit, ensuring a smooth and reliable pa
 <br/>
 ---
 
-### Sequence Flow
+### Primary Use Cases
 
 At its core, a parking lot system revolves around two main operations: parking and unparking a vehicle. 
 Let's discuss the step by step flow of each use case to identify the core entities involved:
@@ -38,8 +38,6 @@ Let's discuss the step by step flow of each use case to identify the core entiti
 
 3. If a suitable spot exists, the `ParkingLot` system assigns the `ParkingSpot` to the `Vehicle`, 
 generates a `Ticket` and returns its `ticketId` to the user.
-<br/>
-![park-vehicle-sequence-flow-diagram](/parking-lot-system/simple-park-vehicle-sequence-flow-diagram.png)
 
 #### Unpark Vehicle
 
@@ -50,9 +48,7 @@ on the duration of the stay.
 
 3. After the `Payment` is completed, the `ParkingLot` system marks the associated `ParkingSpot` as available,
 updates the `Ticket`, and allows the `Vehicle` to exit.
-<br/>
-![unpark-vehicle-mermaid-diagram](/parking-lot-system/simple-unpark-vehicle-sequence-flow-diagram.png)
-<br/>
+
 ---
 
 ### Object Model Design
@@ -60,14 +56,6 @@ updates the `Ticket`, and allows the `Vehicle` to exit.
 Let's identify the core classes involved in the parking lot system and outline their responsibilities,
 focusing on how each class encapsulates specific data and behavior to support the overall 
 system functionality.
-
-#### Vehicle
-
-The `Vehicle` class represents a vehicle entering the parking lot. It serves primarily as a 
-data holder, capturing essential details such as `licenseNumber` and `vehicleType` with 
-minimal behavior.
-
-![simple-vehicle-class-diagram](/parking-lot-system/vehicle-simple-class-diagram.png)
 
 #### ParkingLot
 
@@ -89,6 +77,73 @@ This design promotes a clear separation of concerns by ensuring that each compon
 responsible for a specific piece of functionality.
 
 ![parking-lot-class-diagram](/parking-lot-system/parking-lot-class-diagram.png)
+
+#### SpotManager
+
+The `SpotManager` class is responsible for managing parking spots. It encapsulates the logic of 
+finding an appropriate available `ParkingSpot` based on the `vehicleType`.
+
+To efficiently manage parking spots, instead of maintaining all spots in a single collection, we 
+can divide them into two groups: available spots (free to use) and occupied spots (currently in use). 
+
+```java
+Map<SpotType, List<ParkingSpot>> availableSpots;
+Map<SpotType, List<ParkingSpot>> occupiedSpots;
+```
+
+When a vehicle arrives, the system only checks the available spots, avoiding the need to scan all 
+spots and reducing lookup time from `O(n)` to near `O(1)`.
+
+As the state changes:
+
+- **Parking:** the spot is moved from available → occupied
+- **Unparking:** the spot is moved from occupied → available
+
+This approach ensures efficient allocation, quick state updates, and accurate tracking of parking 
+spot availability.
+
+![spot-manager-class-diagram](/parking-lot-system/spot-manager-class-diagram.png)
+
+#### TicketManager
+
+During unparking, the system uses the `ticketId` to retrieve all related parking details. 
+To make this efficient, the `ParkingLot` can hold a `Map<String, Ticket>`, allowing direct and 
+constant-time access to the corresponding `Ticket` without needing to search through all records.
+
+#### PriceCalculator
+
+The `PriceCalculator` class is responsible for computing the parking fee based on the duration of 
+a parking session. It uses the details stored in the `Ticket`, such as `entryTime` and `exitTime`, 
+to determine the total amount to be charged.
+
+<span className='text-purple-800'><strong>NOTE:</strong> Pricing in a parking lot system is not 
+fixed and can vary based on business rules such as hourly rates, flat fees, weekend pricing, or 
+peak-hour charges.</span>
+
+To handle price variability, we can use the **Strategy Pattern** to encapsulate different pricing 
+algorithms into separate classes. This allows us to switch pricing logic dynamically and add new 
+strategies without modifying existing code, ensuring flexibility and maintainability.
+
+![price-calculator-class-diagram](/parking-lot-system/price-calculator-class-diagram.png)
+
+#### PaymentProcessor
+
+The `PaymentProcessor` class is responsible for handling payment operations during the unparking 
+process. After the parking fee is calculated, it processes the payment and determines whether the 
+transaction is successful before allowing the vehicle to exit.
+
+To support multiple payment methods, we can use the **Strategy Pattern**, allowing different 
+payment implementations to be plugged in without modifying the core system.
+
+![payment-processor-class-diagram](/parking-lot-system/payment-processor-class-diagram.png)
+
+#### Vehicle
+
+The `Vehicle` class represents a vehicle entering the parking lot. It serves primarily as a 
+data holder, capturing essential details such as `licenseNumber` and `vehicleType` with 
+minimal behavior.
+
+![simple-vehicle-class-diagram](/parking-lot-system/vehicle-simple-class-diagram.png)
 
 #### ParkingSpot
 
@@ -135,70 +190,18 @@ can be delegated to separate components, ensuring proper separation of concerns.
 
 ![ticket-class-diagram](/parking-lot-system/ticket-class-diagram.png)
 
-#### SpotManager
+---
 
-The `SpotManager` class is responsible for managing parking spots. It encapsulates the logic of 
-finding an appropriate available `ParkingSpot` based on the `vehicleType`.
+### Sequence Flow
 
-To efficiently manage parking spots, instead of maintaining all spots in a single collection, we 
-can divide them into two groups: available spots (free to use) and occupied spots (currently in use). 
-
-```java
-Map<SpotType, List<ParkingSpot>> availableSpots;
-Map<SpotType, List<ParkingSpot>> occupiedSpots;
-```
-
-When a vehicle arrives, the system only checks the available spots, avoiding the need to scan all 
-spots and reducing lookup time from `O(n)` to near `O(1)`.
-
-As the state changes:
-
-- **Parking:** the spot is moved from available → occupied
-- **Unparking:** the spot is moved from occupied → available
-
-This approach ensures efficient allocation, quick state updates, and accurate tracking of parking 
-spot availability.
-
-![spot-manager-class-diagram](/parking-lot-system/spot-manager-class-diagram.png)
-
-#### TicketManager
-
-During unparking, the system uses the `ticketId` to retrieve all related parking details. 
-To make this efficient, the `ParkingLot` can hold a `Map<String, Ticket>`, allowing direct and 
-constant-time access to the corresponding `Ticket` without needing to search through all records.
-
-
-
-#### PriceCalculator
-
-The `PriceCalculator` class is responsible for computing the parking fee based on the duration of 
-a parking session. It uses the details stored in the `Ticket`, such as `entryTime` and `exitTime`, 
-to determine the total amount to be charged.
-
-<span className='text-purple-800'><strong>NOTE:</strong> Pricing in a parking lot system is not 
-fixed and can vary based on business rules such as hourly rates, flat fees, weekend pricing, or 
-peak-hour charges.</span>
-
-To handle price variability, we can use the **Strategy Pattern** to encapsulate different pricing 
-algorithms into separate classes. This allows us to switch pricing logic dynamically and add new 
-strategies without modifying existing code, ensuring flexibility and maintainability.
-
-![price-calculator-class-diagram](/parking-lot-system/price-calculator-class-diagram.png)
-
-#### PaymentProcessor
-
-The `PaymentProcessor` class is responsible for handling payment operations during the unparking 
-process. After the parking fee is calculated, it processes the payment and determines whether the 
-transaction is successful before allowing the vehicle to exit.
-
-To support multiple payment methods, we can use the **Strategy Pattern**, allowing different 
-payment implementations to be plugged in without modifying the core system.
-
-![payment-processor-class-diagram](/parking-lot-system/payment-processor-class-diagram.png)
+![park-vehicle-sequence-flow-diagram](/parking-lot-system/simple-park-vehicle-sequence-flow-diagram.png)
+<br/>
+![unpark-vehicle-mermaid-diagram](/parking-lot-system/simple-unpark-vehicle-sequence-flow-diagram.png)
+<br/>
 
 ---
 
-### Final Implementation
+### Low Level Design
 
 Let's discuss the low-level design and complexities for each functionality.
 This will help us build a system that is efficient, scalable, and optimized for real-world usage.
@@ -576,3 +579,10 @@ It avoids large conditional logic and makes the system more extensible when intr
 For a basic implementation, we can store tickets inside `ParkingLot` using a map. However, to follow the Single Responsibility 
 Principle and make the system more scalable and extensible, we can introduce a separate `TicketManager` to handle all 
 ticket-related operations.
+
+### Final UML Diagram
+
+
+
+
+---
