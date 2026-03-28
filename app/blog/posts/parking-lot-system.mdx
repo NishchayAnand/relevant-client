@@ -1,6 +1,6 @@
 ---
 title: 'Object Oriented Design: Parking Lot System'
-publishedAt: '2025-12-18'
+publishedAt: '2025-12-19'
 ---
 
 Build a comprehensive solution for efficiently managing a parking lot. The system should automate 
@@ -38,8 +38,8 @@ Let's discuss the step by step flow of each use case to identify the core entiti
 
 3. If a suitable spot exists, the `ParkingLot` system assigns the `ParkingSpot` to the `Vehicle`, 
 generates a `Ticket` and returns its `ticketId` to the user.
-
-![park-vehicle-mermaid-diagram](/parking-lot-system/park-vehicle.png)
+<br/>
+![park-vehicle-sequence-flow-diagram](/parking-lot-system/simple-park-vehicle-sequence-flow-diagram.png)
 
 #### Unpark Vehicle
 
@@ -50,9 +50,9 @@ on the duration of the stay.
 
 3. After the `Payment` is completed, the `ParkingLot` system marks the associated `ParkingSpot` as available,
 updates the `Ticket`, and allows the `Vehicle` to exit.
-
-![unpark-vehicle-mermaid-diagram](/parking-lot-system/unpark-vehicle.png)
-
+<br/>
+![unpark-vehicle-mermaid-diagram](/parking-lot-system/simple-unpark-vehicle-sequence-flow-diagram.png)
+<br/>
 ---
 
 ### Object Model Design
@@ -67,17 +67,28 @@ The `Vehicle` class represents a vehicle entering the parking lot. It serves pri
 data holder, capturing essential details such as `licenseNumber` and `vehicleType` with 
 minimal behavior.
 
-To model parking constraints like "Which vehicle can park in which type of spot?", we can define 
-specific subclasses:
+![simple-vehicle-class-diagram](/parking-lot-system/vehicle-simple-class-diagram.png)
 
-- **Motorcycle:** The smallest vehicle type, which can be accomodated in compact spots.
-- **Car:** A medium-sized vehicle that can fit in either compact or regular spots.
-- **Truck:** The largest vehicle type, which requires oversized spots.
+#### ParkingLot
 
-This design leverages inheritance to represent the "is-a" relationship between vehicle types.
-It avoids large conditional logic and makes the system more extensible when introducing new vehicle types. 
+The `ParkingLot` class acts as the central orchestrator (facade) of the system, coordinating all 
+core operations such as `findAvailableSpot(VehicleType type)`, `calculatePrice(Ticket ticket)`, or 
+`processPayment(double amount)` involved in parking and unparking vehicles.
 
-![vehicle-class-diagram](/parking-lot-system/vehicle-class-diagram.png)
+Instead of handling all responsibilities directly, it can delegate responsibilities to specialized components.
+
+```java
+// ✅ Good design
+ParkingLot → SpotManager: find spot, free spot 
+ParkingLot → TicketManager: create ticket, fetch ticket
+ParkingLot → PriceCalculator: calculate fee  
+ParkingLot → PaymentProcessor: process payment 
+```
+
+This design promotes a clear separation of concerns by ensuring that each component is 
+responsible for a specific piece of functionality.
+
+![parking-lot-class-diagram](/parking-lot-system/parking-lot-class-diagram.png)
 
 #### ParkingSpot
 
@@ -124,32 +135,6 @@ can be delegated to separate components, ensuring proper separation of concerns.
 
 ![ticket-class-diagram](/parking-lot-system/ticket-class-diagram.png)
 
-#### ParkingLot
-
-The `ParkingLot` class acts as the central orchestrator (facade) of the system, coordinating all 
-core operations such as `findAvailableSpot(VehicleType type)`, `calculatePrice(Ticket ticket)`, or 
-`processPayment(double amount)` involved in parking and unparking vehicles.
-
-Instead of handling all responsibilities directly, it can delegate responsibilities to specialized components.
-
-```java
-// ✅ Good design
-ParkingLot → SpotManager: find spot  
-ParkingLot → Ticket: create ticket 
-ParkingLot → PriceCalculator: calculate fee  
-ParkingLot → PaymentProcessor: process payment  
-ParkingLot → ParkingSpot: free spot   
-```
-
-This design promotes a clear separation of concerns by ensuring that each component is 
-responsible for a specific piece of functionality.
-
-During unparking, the system uses the `ticketId` to retrieve all related parking details. 
-To make this efficient, the `ParkingLot` can hold a `Map<String, Ticket>`, allowing direct and 
-constant-time access to the corresponding `Ticket` without needing to search through all records.
-
-![parking-lot-class-diagram](/parking-lot-system/parking-lot-class-diagram.png)
-
 #### SpotManager
 
 The `SpotManager` class is responsible for managing parking spots. It encapsulates the logic of 
@@ -175,6 +160,14 @@ This approach ensures efficient allocation, quick state updates, and accurate tr
 spot availability.
 
 ![spot-manager-class-diagram](/parking-lot-system/spot-manager-class-diagram.png)
+
+#### TicketManager
+
+During unparking, the system uses the `ticketId` to retrieve all related parking details. 
+To make this efficient, the `ParkingLot` can hold a `Map<String, Ticket>`, allowing direct and 
+constant-time access to the corresponding `Ticket` without needing to search through all records.
+
+
 
 #### PriceCalculator
 
@@ -527,7 +520,59 @@ public class Main {
 <br/>
 ---
 
+### Design Improvements
 
+In the current design, `SpotManager` contains conditional logic to determine allowed spot types, 
+which makes it rigid and hard to extend.
 
+```java
+public List<SpotType> getAllowedSpotTypes(VehicleType type) {
+    switch (type) {
+        case MOTORCYCLE:
+            return List.of(SpotType.COMPACT);
+        case CAR:
+            return List.of(SpotType.COMPACT, SpotType.REGULAR);
+        case TRUCK:
+            return List.of(SpotType.OVERSIZED);
+    }
+    return new ArrayList<>();
+}
+```
 
+By introducing inheritance in Vehicle and moving this logic into subclasses, 
+we leverage polymorphism, eliminate switch-case statements, and adhere to the Open/Closed Principle. 
+This makes the system more maintainable and scalable.
 
+```java
+abstract class Vehicle {
+    abstract boolean canFitInSpot(ParkingSpot spot);
+}
+
+class Car extends Vehicle {
+    List<SpotType> getAllowedSpotTypes() {
+        return List.of(SpotType.COMPACT, SpotType.REGULAR);
+    }
+}
+
+class Truck extends Vehicle {
+    List<SpotType> getAllowedSpotTypes() {
+        return List.of(SpotType.OVERSIZED);
+    }
+}
+```
+
+To model parking constraints like "Which vehicle can park in which type of spot?", we can define 
+specific subclasses:
+
+- **Motorcycle:** The smallest vehicle type, which can be accomodated in compact spots.
+- **Car:** A medium-sized vehicle that can fit in either compact or regular spots.
+- **Truck:** The largest vehicle type, which requires oversized spots.
+
+This design leverages inheritance to represent the "is-a" relationship between vehicle types.
+It avoids large conditional logic and makes the system more extensible when introducing new vehicle types. 
+
+![vehicle-class-diagram](/parking-lot-system/vehicle-class-diagram.png)
+
+For a basic implementation, we can store tickets inside `ParkingLot` using a map. However, to follow the Single Responsibility 
+Principle and make the system more scalable and extensible, we can introduce a separate `TicketManager` to handle all 
+ticket-related operations.
