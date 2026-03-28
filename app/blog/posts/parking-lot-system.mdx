@@ -25,21 +25,23 @@ occupancy tracking, and seamless vehicle exit, ensuring a smooth and reliable pa
 
 ### Primary Use Cases
 
-At its core, a parking lot system revolves around two main operations: parking and unparking a vehicle. 
-Let's discuss the step by step flow of each use case to identify the core entities involved:
+The parking lot system operates around two primary workflows: **vehicle entry** and **vehicle exit**. 
+Here's how each process works:
 
-#### Park Vehicle
+#### Vehicle Entry
 
-1. A `Vehicle` (e.g., `Motorcycle`, `Car`, `Truck`) arrives at the entry gate. 
+1. A `Vehicle` (e.g., `Motorcycle`, `Car`, `Truck`) arrives at the entry point. 
 
-2. The `ParkingLot` system records essential vehicle details such as `licenseNumber`, `vehicleType`
- and `arrivalTime`,  and identifies an appropriate available `ParkingSpot` (e.g., `CompactSpot`, `RegularSpot`, 
- or `OversizedSpot`) based on the entered `vehicleType`.
+2. The `ParkingLot` system captures essential details such as `licenseNumber`, `vehicleType`
+ and `arrivalTime`,  and identifies an appropriate available `ParkingSpot` (e.g., `Compact`, `Regular`, 
+ or `Oversized`) based on the `vehicleType`.
 
-3. If a suitable spot exists, the `ParkingLot` system assigns the `ParkingSpot` to the `Vehicle`, 
-generates a `Ticket` and returns its `ticketId` to the user.
+3. If a suitable spot is available, the `ParkingLot` system assigns the `ParkingSpot` to the `Vehicle`, 
+generates a `Ticket`, and returns the corresponding `ticketId` to the user.
 
-#### Unpark Vehicle
+![vehicle-entry](/parking-lot-system/vehicle-entry.png)
+
+#### Vehicle Exit
 
 1. The `Vehicle` arrives at the exit gate and provides the `ticketId` to the `ParkingLot` system.
 
