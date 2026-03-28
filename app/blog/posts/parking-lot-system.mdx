@@ -33,13 +33,11 @@ Here's how each process works:
 1. A `Vehicle` (e.g., `Motorcycle`, `Car`, `Truck`) arrives at the entry point. 
 
 2. The `ParkingLot` system captures essential details such as `licenseNumber`, `vehicleType`
- and `arrivalTime`,  and identifies an appropriate available `ParkingSpot` (e.g., `Compact`, `Regular`, 
+ and `arrivalTime`,  and finds an appropriate available `ParkingSpot` (e.g., `Compact`, `Regular`, 
  or `Oversized`) based on the `vehicleType`.
 
 3. If a suitable spot is available, the `ParkingLot` system assigns the `ParkingSpot` to the `Vehicle`, 
 generates a `Ticket`, and returns the corresponding `ticketId` to the user.
-
-![vehicle-entry](/parking-lot-system/vehicle-entry.png)
 
 #### Vehicle Exit
 
@@ -61,56 +59,58 @@ system functionality.
 
 #### ParkingLot
 
-The `ParkingLot` class acts as the central orchestrator (facade) of the system, coordinating all 
-core operations such as `findAvailableSpot(VehicleType type)`, `calculatePrice(Ticket ticket)`, or 
-`processPayment(double amount)` involved in parking and unparking vehicles.
+The `ParkingLot` class acts as the central orchestrator of the system, coordinating all core operations such as
+finding available spots, generating tickets, calculating fees, and processing payments.
 
-Instead of handling all responsibilities directly, it can delegate responsibilities to specialized components.
+However, handling all these operations within a single class leads to a violation of the **Single Responsibility
+Principle (SRP)**. To address this, the `ParkingLot` class can act as a facade, delegating responsibilities to 
+specialized components.
 
-```java
+```
 // ✅ Good design
-ParkingLot → SpotManager: find spot, free spot 
-ParkingLot → TicketManager: create ticket, fetch ticket
-ParkingLot → PriceCalculator: calculate fee  
-ParkingLot → PaymentProcessor: process payment 
+
+ParkingLot → SpotManager        : find spot, free spot 
+ParkingLot → TicketManager      : create ticket, fetch ticket
+ParkingLot → PriceCalculator    : calculate fee  
+ParkingLot → PaymentProcessor   : process payment 
 ```
 
 This design promotes a clear separation of concerns by ensuring that each component is 
 responsible for a specific piece of functionality.
 
-![parking-lot-class-diagram](/parking-lot-system/parking-lot-class-diagram.png)
+![parking-lot-class-diagram](/parking-lot-system/simple-parking-lot-class-diagram.png)
 
 #### SpotManager
 
 The `SpotManager` class is responsible for managing parking spots. It encapsulates the logic of 
 finding an appropriate available `ParkingSpot` based on the `vehicleType`.
 
-To efficiently manage parking spots, instead of maintaining all spots in a single collection, we 
-can divide them into two groups: available spots (free to use) and occupied spots (currently in use). 
+We can maintain a list of all `ParkingSpot`. However, this would require traversing the entire list each time we need to find 
+an available spot. To optimize this, we can divide the spots into two separate collections: `availableSpots` (free to use) and 
+`occupiedSpots` (currently in use). 
 
 ```java
 Map<SpotType, List<ParkingSpot>> availableSpots;
 Map<SpotType, List<ParkingSpot>> occupiedSpots;
 ```
 
-When a vehicle arrives, the system only checks the available spots, avoiding the need to scan all 
-spots and reducing lookup time from `O(n)` to near `O(1)`.
+When a vehicle arrives, the system only needs to check the `availableSpots` collection, avoiding the need to scan all 
+parking spots. This reduces the lookup time from `O(n)` to near `O(1)`.
 
-As the state changes:
-
-- **Parking:** the spot is moved from available → occupied
-- **Unparking:** the spot is moved from occupied → available
-
-This approach ensures efficient allocation, quick state updates, and accurate tracking of parking 
-spot availability.
-
-![spot-manager-class-diagram](/parking-lot-system/spot-manager-class-diagram.png)
+![spot-manager-class-diagram](/parking-lot-system/simple-spot-manager-class-diagram.png)
 
 #### TicketManager
 
-During unparking, the system uses the `ticketId` to retrieve all related parking details. 
-To make this efficient, the `ParkingLot` can hold a `Map<String, Ticket>`, allowing direct and 
-constant-time access to the corresponding `Ticket` without needing to search through all records.
+The `TicketManager` class encapsulates the logic for generating and managing parking tickets.
+
+During the parking process, it generates a new `Ticket` by associating the `Vehicle` with a  
+`ParkingSpot` and returns a unique `ticketId`. During the unparking process, it uses the `ticketId` to 
+retrieve the corresponding `Ticket`, which contains all relevant parking details.
+
+To enable efficient retrieval, the `TicketManager` maintains a `Map<String, Ticket>`, 
+allowing direct, constant-time access to tickets without scanning through all records.
+
+![ticker-manager-class-diagram](/parking-lot-system/ticket-manager-class-diagram.png)
 
 #### PriceCalculator
 
@@ -118,15 +118,7 @@ The `PriceCalculator` class is responsible for computing the parking fee based o
 a parking session. It uses the details stored in the `Ticket`, such as `entryTime` and `exitTime`, 
 to determine the total amount to be charged.
 
-<span className='text-purple-800'><strong>NOTE:</strong> Pricing in a parking lot system is not 
-fixed and can vary based on business rules such as hourly rates, flat fees, weekend pricing, or 
-peak-hour charges.</span>
-
-To handle price variability, we can use the **Strategy Pattern** to encapsulate different pricing 
-algorithms into separate classes. This allows us to switch pricing logic dynamically and add new 
-strategies without modifying existing code, ensuring flexibility and maintainability.
-
-![price-calculator-class-diagram](/parking-lot-system/price-calculator-class-diagram.png)
+![simple-price-calculator-class-diagram](/parking-lot-system/simple-price-calculator-class-diagram.png)
 
 #### PaymentProcessor
 
@@ -367,7 +359,7 @@ class SpotManager {
     public ParkingSpot findAvailableSpot(VehicleType vehicleType) {
         List<SpotType> allowedTypes = getAllowedSpotTypes(vehicleType);
 
-        for (SpotType type : allowedTypes) {
+        for (SpotType type : allowedTypes) {    
             List<ParkingSpot> spots = availableSpots.get(type);
             if (!spots.isEmpty()) {
                 ParkingSpot spot = spots.remove(0);
@@ -581,6 +573,18 @@ It avoids large conditional logic and makes the system more extensible when intr
 For a basic implementation, we can store tickets inside `ParkingLot` using a map. However, to follow the Single Responsibility 
 Principle and make the system more scalable and extensible, we can introduce a separate `TicketManager` to handle all 
 ticket-related operations.
+
+
+<span className='text-purple-800'><strong>NOTE:</strong> Pricing in a parking lot system is not 
+fixed and can vary based on business rules such as hourly rates, flat fees, weekend pricing, or 
+peak-hour charges.</span>
+
+To handle price variability, we can use the **Strategy Pattern** to encapsulate different pricing 
+algorithms into separate classes. This allows us to switch pricing logic dynamically and add new 
+strategies without modifying existing code, ensuring flexibility and maintainability.
+
+![price-calculator-class-diagram](/parking-lot-system/price-calculator-class-diagram.png)
+
 
 ### Final UML Diagram
 
