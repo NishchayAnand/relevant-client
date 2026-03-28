@@ -153,10 +153,10 @@ export function MaximumSubarrayNestedVisualizer({
           </div>
         </div>
 
-        <div className="rounded-xl border border-gray-200 bg-white p-4 mb-5">
+        {/* <div className="rounded-xl border border-gray-200 bg-white p-4 mb-5">
           <div className="text-sm text-gray-600">Array: [{nums.join(', ')}]</div>
           <div className="text-sm font-medium text-gray-800 mt-1 min-h-5">{message}</div>
-        </div>
+        </div> */}
 
         <div className="flex flex-wrap gap-3 justify-center mb-6">
           {nums.map((num, idx) => {
