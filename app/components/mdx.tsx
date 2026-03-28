@@ -25,6 +25,7 @@ import BrowserHistoryVisualizer from './browser-history-visualizer';
 import { MinimumSizeSubarrayNestedVisualizer } from './minimum-size-subarray-nested-visualizer';
 import MinimumSizeSubarraySlidingWindowVisualizer from './minimum-size-subarray-sliding-window-visualizer';
 import { MaximumSubarrayNestedVisualizer } from './maximum-subarray-nested-visualizer';
+import MaximumSubarrayKadaneVisualizer from './maximum-subarray-kadane-visualizer';
 
 hljs.registerLanguage('javascript', javascript);
 
@@ -191,6 +192,7 @@ let components = {
   MinimumSizeSubarrayNestedVisualizer: MinimumSizeSubarrayNestedVisualizer,
   MinimumSizeSubarraySlidingWindowVisualizer: MinimumSizeSubarraySlidingWindowVisualizer,
   MaximumSubarrayNestedVisualizer: MaximumSubarrayNestedVisualizer,
+  MaximumSubarrayKadaneVisualizer: MaximumSubarrayKadaneVisualizer,
   Image: RoundedImage,
   a: CustomLink,
   code: Code,

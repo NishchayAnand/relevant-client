@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 260" width="100%" role="img" aria-labelledby="title desc">
+  <title id="title">Kadane intuition decision</title>
+  <desc id="desc">At index 1 in array [-2, 1], restarting with [1] gives sum 1, while extending [-2, 1] gives -1.</desc>
+
+  <defs>
+    <style>
+      .label { font: 600 15px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif; fill: #0f172a; }
+      .small { font: 500 13px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif; fill: #475569; }
+      .value { font: 700 22px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif; fill: #0f172a; }
+      .sumBad { font: 700 18px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif; fill: #b91c1c; }
+      .sumGood { font: 700 18px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif; fill: #047857; }
+    </style>
+  </defs>
+
+  <rect x="1" y="1" width="858" height="258" rx="16" fill="#ffffff" stroke="#e2e8f0"/>
+
+  <text x="30" y="40" class="label">Decision at i = 1 for array [-2, 1]</text>
+  <text x="30" y="64" class="small">Choose between extending previous subarray or restarting from current element.</text>
+
+  <line x1="430" y1="84" x2="430" y2="230" stroke="#e2e8f0" stroke-width="1"/>
+
+  <rect x="30" y="92" width="380" height="138" rx="12" fill="#fff1f2" stroke="#fecdd3"/>
+  <text x="50" y="122" class="label">Option A: Extend previous</text>
+  <rect x="50" y="138" width="72" height="44" rx="8" fill="#fda4af"/>
+  <rect x="132" y="138" width="72" height="44" rx="8" fill="#fb7185"/>
+  <text x="86" y="166" text-anchor="middle" class="value">-2</text>
+  <text x="168" y="166" text-anchor="middle" class="value">1</text>
+  <text x="50" y="206" class="sumBad">sum = -1 (drop)</text>
+
+  <rect x="450" y="92" width="380" height="138" rx="12" fill="#ecfdf5" stroke="#a7f3d0"/>
+  <text x="470" y="122" class="label">Option B: Restart at current</text>
+  <rect x="470" y="138" width="72" height="44" rx="8" fill="#6ee7b7"/>
+  <text x="506" y="166" text-anchor="middle" class="value">1</text>
+  <text x="470" y="206" class="sumGood">sum = 1 (keep)</text>
+
+  <text x="760" y="40" text-anchor="end" class="small">Kadane picks max(current, extend)</text>
+</svg>
