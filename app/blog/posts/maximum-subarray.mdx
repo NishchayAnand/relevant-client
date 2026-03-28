@@ -42,30 +42,35 @@ keep track of maximum sum found.
 
 ```java
 public int maxSubArray(int[] nums) {
-	int maxSum = Integer.MIN_VALUE;
+    int maxSum = Integer.MIN_VALUE;
+	
+    for(int i = 0; i < nums.length; i++) {
+        int currentSum = 0;
+        for(int j = i; j < nums.length; j++) {
+            currentSum += nums[j];
+            maxSum = Math.max(maxSum, currentSum);
+        }
+    }
 
-	for (int i = 0; i < nums.length; i++) {
-		int currentSum = 0;
-		for (int j = i; j < nums.length; j++) {
-			currentSum += nums[j];
-			maxSum = Math.max(maxSum, currentSum);
-		}
-	}
-
-	return maxSum;
+    return maxSum;
 }
 ```
 
 #### Time Complexity
 
-We explore every subarray starting at each index `i`, and for each start index, the inner loop runs from `i` to `n - 1`.
+For each start index `i`, the inner loop runs from `i` to `n - 1`. 
 That yields `n + (n - 1) + (n - 2) + ... + 1` iterations, which simplifies to `n(n + 1) / 2`.
-Ignoring constants and lower-order terms, the overall time complexity is `O(n²)`.
+Ignoring constants and lower-order terms, the overall time complexity = `O(n²)`.
 
 #### Space Complexity
 
-We only use a few scalar variables such as `maxSum`, `currentSum`, `i`, and `j`, so the extra space used is `O(1)`.
+We only use a few scalar variables such as `maxSum`, `currentSum`, `i`, and `j`. 
+Since, constant extra space is used, overall space complexity = `O(1)`.
 
 ---
+
+### Kadane's Algorithm
+
+
 
 
