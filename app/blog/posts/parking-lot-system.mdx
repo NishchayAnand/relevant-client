@@ -81,18 +81,41 @@ highlighting how responsibilities are coordinated to achieve the desired functio
 
 #### Vehicle Entry (Park Vehicle)
 
-1. The `Vehicle` arrives and sends a parking request with its details (`licenseNumber`, `vehicleType`).
+1. The `Vehicle` arrives and sends a parking request to the `ParkingLot` system, along with its 
+details (`licenseNumber`, `vehicleType`).
 
-2. The `ParkingLot` delegates the request to the `SpotManager` to `findAvailableParkingSpot(Vehicle)` based 
-on vehicle's allowed spot types.
+2. The `ParkingLot` system:
 
-3. 
+    - Calls the `SpotManager` to `findAvailableParkingSpot(Vehicle)` 
+based on vehicle's allowed `SpotType`.
 
+    - If a spot is found, the `ParkingLot` system marks the `ParkingSpot` as occupied and calls the 
+`TicketManager` to `generateTicketTicket(Vehicle, ParkingSpot)`.
+
+3. Returns the generated `ticketId` to the user. Otherwise, the request is 
+rejected if no spot is available.
+
+<br/>
 ![park-vehicle-sequence-flow-diagram](/parking-lot-system/simple-park-vehicle-sequence-flow-diagram.png)
 <br/>
 
-#### Vehicle Exit
+#### Vehicle Exit (Unpark Vehicle)
 
+1. The `Vehicle` arrives at the exit and provides the `ticketId` to the `ParkingLot` system.
+
+2. The `ParkingLot` system:
+
+    - Calls the `TicketManager` to `retrieveTicket(ticketId)` and 
+passes it to the `PriceCalculator` to `calculateFee(Ticket)` based on the duration of the stay.
+
+    - Retrieves the `ParkingSpot` associated with the `Ticket` and instructs the 
+`SpotManager` to `freeParkingSpot(ParkingSpot)`.
+
+    - Updates the `Ticket` with the `exitTime` and calculated `amount`.
+
+3. The parking fee is returned, and the `Vehicle` is allowed to exit.
+
+<br/>
 ![unpark-vehicle-mermaid-diagram](/parking-lot-system/simple-unpark-vehicle-sequence-flow-diagram.png)
 <br/>
 
