@@ -96,8 +96,9 @@ details (`licenseNumber`).
 
 3. Returns the generated `ticketId` to the user. Otherwise, the request is 
 rejected if no spot is available.
-
-![park-vehicle-sequence-flow-diagram](/parking-lot-system/simple-park-vehicle-sequence-flow-diagram.png)
+<br/>
+![park-vehicle-sequence-flow-diagram](/parking-lot-system/vehicle-entry.png)
+<br/>
 
 #### Vehicle Exit (Unpark Vehicle)
 
@@ -115,7 +116,8 @@ passes it to the `PriceCalculator` to `calculateFee(Ticket)` based on the durati
 
 3. The parking fee is returned, and the `Vehicle` is allowed to exit.
 
-![unpark-vehicle-mermaid-diagram](/parking-lot-system/simple-unpark-vehicle-sequence-flow-diagram.png)
+<br/>
+![unpark-vehicle-mermaid-diagram](/parking-lot-system/vehicle-exit.png)
 <br/>
 
 ---
@@ -128,7 +130,7 @@ This will help us build a system that is efficient, scalable, and optimized for 
 #### ParkingLot
 
 ```java
-class ParkingLot {
+public class ParkingLot {
     private SpotManager SpotManager;
     private TicketManager ticketManager;
     private PriceCalculator priceCalculator;
@@ -182,7 +184,7 @@ To optimize this, we can maintain two separate maps: `availableSpots` (free spot
 improves the lookup time from `O(n)` to near `O(1)` for spot allocation.
 
 ```java
-class SpotManager {
+public class SpotManager {
     private Map<SpotType, List<ParkingSpot>> availableSpots = new HashMap<>();
     private Map<SpotType, List<ParkingSpot>> occupiedSpots = new HashMap<>();
 
@@ -278,12 +280,25 @@ Each parking spot supports basic operations to manage its occupancy, including a
 
 ```java
 // ================= ENUMS =================
-enum SpotType {
-    COMPACT, REGULAR, OVERSIZED
+public enum SpotType {
+
+    COMPACT(10),
+    REGULAR(20),
+    OVERSIZED(30);
+
+    private final double baseRate;
+
+    SpotType(double baseRate) {
+        this.baseRate = baseRate;
+    }
+
+    public double getBaseRate() {
+        return baseRate;
+    }
 }
 
 // ================= PARKING SPOT =================
-class ParkingSpot {
+public class ParkingSpot {
     private String spotId;
     private SpotType type;
     private boolean isOccupied;
@@ -327,7 +342,7 @@ To enable efficient retrieval, the `TicketManager` maintains a `Map<ticketId, Ti
 allowing direct, constant-time access to tickets without scanning through all records.
 
 ```java
-class TicketManager {
+public class TicketManager {
     private Map<String, Ticket> ticketMap;
 
     public TicketManager() {
@@ -362,7 +377,7 @@ It primarily acts as a data holder with minimal behavior, such as updating the `
 `amount`.
 
 ```java
-class Ticket {
+public class Ticket {
     private String ticketId;
     private Vehicle vehicle;
     private ParkingSpot parkingSpot;
@@ -398,65 +413,136 @@ class Ticket {
 
 #### PriceCalculator
 
-The `PriceCalculator` class is responsible for computing the parking fee based on the duration of 
-a parking session. It uses the details stored in the `Ticket`, such as `entryTime` and `exitTime`, 
-to determine the total amount to be charged.
+The `PriceCalculator` class is responsible for computing the parking fee based on the selected 
+`ParkingSpot` (or `SpotType`) and the duration of the parking session.
 
-<span className='text-purple-800'><strong>NOTE:</strong> Pricing in a parking lot system is not 
-fixed and can vary based on business rules such as hourly rates, flat fees, weekend pricing, or 
-peak-hour charges.</span>
+Since pricing is not fixed and can vary based on business rules such as hourly rates, weekend 
+pricing, or peak-hour charges, the pricing logic should be flexible and extensible. 
+To achieve this, we can use the **Strategy Pattern**, where different pricing algorithms are 
+encapsulated into separate strategy classes.
 
-To handle price variability, we can use the **Strategy Pattern** to encapsulate different pricing 
-algorithms into separate classes. This allows us to switch pricing logic dynamically and add new 
-strategies without modifying existing code, ensuring flexibility and maintainability.
+This design allows the system to dynamically switch or combine pricing strategies without 
+modifying existing code, thereby adhering to the **Open/Closed Principle** and improving 
+maintainability.
+
 
 ```java
-interface PricingStrategy {
-    double calculate(Ticket ticket);
+public interface PricingStrategy {
+    double apply(double currentPrice, Ticket ticket);
 }
 
-class HourlyPricingStrategy implements PricingStrategy {
+public class BasePricingStrategy implements PricingStrategy {
+
+    @Override
+    public double apply(double currentPrice, Ticket ticket) {
+        SpotType type = ticket.getSpot().getType();
+
+        double baseRate = type.getBaseRate(); // from enum
+        long hours = Math.max(
+                Duration.between(ticket.getEntryTime(), LocalDateTime.now()).toHours(),
+                1
+        );
+
+        return baseRate * hours;
+    }
+}
+
+public class WeekendPricingStrategy implements PricingStrategy {
+
+    @Override
+    public double apply(double currentPrice, Ticket ticket) {
+        DayOfWeek day = LocalDateTime.now().getDayOfWeek();
+
+        if (day == DayOfWeek.SATURDAY || day == DayOfWeek.SUNDAY) {
+            return currentPrice * 1.5; // 50% surge
+        }
+
+        return currentPrice;
+    }
+}
+
+public class PriceCalculator {
+
+    private List<PricingStrategy> strategies;
+
+    public PriceCalculator(List<PricingStrategy> strategies) {
+        this.strategies = strategies;
+    }
+
     public double calculate(Ticket ticket) {
-        long hours = Duration.between(ticket.getEntryTime, LocalDateTime.now()).toHours();
-        return Math.max(hours, 1) * 10;
-    }
-}
+        double price = 0;
 
-class PriceCalculator {
-    private PricingStrategy strategy;
+        for (PricingStrategy strategy : strategies) {
+            price = strategy.apply(price, ticket);
+        }
 
-    public PriceCalculator(PricingStrategy strategy) {
-        this.strategy = strategy;
-    }
-
-    public double calculateFee(Ticket ticket) {
-        return strategy.calculate(ticket);
+        return price;
     }
 }
 ```
 
-### Unit Test 
+### Main 
 
 ```java
 public class Main {
+
     public static void main(String[] args) {
+
+        // Initialize SpotManager
         SpotManager spotManager = new SpotManager();
-        spotManager.addSpot(new CompactSpot("C1"));
-        spotManager.addSpot(new RegularSpot("R1"));
-        spotManager.addSpot(new OversizedSpot("O1"));
+        spotManager.addSpot(new ParkingSpot("S1", SpotType.COMPACT));
+        spotManager.addSpot(new ParkingSpot("S2", SpotType.REGULAR));
+        spotManager.addSpot(new ParkingSpot("S3", SpotType.OVERSIZED));
 
-        PriceCalculator priceCalculator = new PriceCalculator(new HourlyPricingStrategy());
-        PaymentProcessor paymentProcessor = new PaymentProcessor(new CashPayment());
+        // Initialize TicketManager (in-memory)
+        TicketManager ticketManager = new TicketManager();
 
-        ParkingLot parkingLot = new ParkingLot(spotManager, priceCalculator, paymentProcessor);
+        // Initialize Pricing Strategies
+        List<PricingStrategy> strategies = List.of(
+                new BasePricingStrategy(),
+                new WeekendPricingStrategy(),
+                new PeakHourPricingStrategy()
+        );
 
-        Vehicle car = new Car("DL1234");
-        Ticket ticket = parkingLot.parkVehicle(car);
+        PriceCalculator priceCalculator = new PriceCalculator(strategies);
 
-        System.out.println("Parked with Ticket: " + ticket.getTicketId());
+        // Simulate Vehicle Entry
+        System.out.println("---- VEHICLE ENTRY ----");
 
-        double fee = parkingLot.unparkVehicle(ticket.getTicketId());
-        System.out.println("Fee: " + fee);
+        Car car = new Car("DL-123");
+        ParkingSpot spot = spotManager.findSpot(car);
+
+        if (spot == null) {
+            System.out.println("No parking spot available!");
+            return;
+        }
+
+        spot.assignVehicle(car);
+
+        Ticket ticket = ticketManager.createTicket(car, spot);
+
+        System.out.println("Vehicle parked. Ticket ID: " + ticket.getTicketId());
+
+        // Simulate some time passing (for demo only)
+        try {
+            Thread.sleep(2000); // 2 seconds
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        // Simulate Vehicle Exit
+        System.out.println("\n---- VEHICLE EXIT ----");
+
+        Ticket fetchedTicket = ticketManager.getTicket(ticket.getTicketId());
+
+        double fee = priceCalculator.calculate(fetchedTicket);
+
+        spotManager.freeSpot(fetchedTicket.getSpot());
+
+        ticketManager.closeTicket(ticket.getTicketId(), fee);
+
+        System.out.println("Parking fee: ₹" + fee);
+        System.out.println("Vehicle exited successfully.");
     }
 }
 ```
@@ -464,7 +550,10 @@ public class Main {
 
 ---
 
-### Final Object Model Design
+### Final UML Diagram
 
+<br/>
+![final-uml-diagram](/parking-lot-system/final-uml-diagram.png)
+<br/>
 
 ---
