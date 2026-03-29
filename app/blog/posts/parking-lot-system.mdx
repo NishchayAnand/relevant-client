@@ -17,9 +17,11 @@ occupancy tracking, and seamless vehicle exit, ensuring a smooth and reliable pa
 
 2. Maintain three spot types (compact, regular, oversized) with appropriate capacity.
 
-3. Assign spots based on vehicle size.
+3. Assign spots based on vehicle size, where a given vehicle type may be compatible with 
+multiple spot types. For example, a car can be accommodated in either a compact spot or a 
+regular spot.
 
-4. Calculate fees using vehicle size and parking duration, with time-of-day rate variations.
+4. Calculate fees using spot type and parking duration, with time-of-day rate variations.
 <br/>
 ---
 
@@ -82,12 +84,12 @@ highlighting how responsibilities are coordinated to achieve the desired functio
 #### Vehicle Entry (Park Vehicle)
 
 1. The `Vehicle` arrives and sends a parking request to the `ParkingLot` system, along with its 
-details (`licenseNumber`, `vehicleType`).
+details (`licenseNumber`).
 
 2. The `ParkingLot` system:
 
-    - Calls the `SpotManager` to `findAvailableParkingSpot(Vehicle)` 
-based on vehicle's allowed `SpotType`.
+    - Calls the `SpotManager` to `findAvailableSpot(Vehicle)` based on vehicle's allowed 
+`List<SpotType>`.
 
     - If a spot is found, the `ParkingLot` system marks the `ParkingSpot` as occupied and calls the 
 `TicketManager` to `generateTicketTicket(Vehicle, ParkingSpot)`.
@@ -95,9 +97,7 @@ based on vehicle's allowed `SpotType`.
 3. Returns the generated `ticketId` to the user. Otherwise, the request is 
 rejected if no spot is available.
 
-<br/>
 ![park-vehicle-sequence-flow-diagram](/parking-lot-system/simple-park-vehicle-sequence-flow-diagram.png)
-<br/>
 
 #### Vehicle Exit (Unpark Vehicle)
 
@@ -109,13 +109,12 @@ rejected if no spot is available.
 passes it to the `PriceCalculator` to `calculateFee(Ticket)` based on the duration of the stay.
 
     - Retrieves the `ParkingSpot` associated with the `Ticket` and instructs the 
-`SpotManager` to `freeParkingSpot(ParkingSpot)`.
+`SpotManager` to `freeSpot(ParkingSpot)`.
 
     - Updates the `Ticket` with the `exitTime` and calculated `amount`.
 
 3. The parking fee is returned, and the `Vehicle` is allowed to exit.
 
-<br/>
 ![unpark-vehicle-mermaid-diagram](/parking-lot-system/simple-unpark-vehicle-sequence-flow-diagram.png)
 <br/>
 
@@ -126,49 +125,156 @@ passes it to the `PriceCalculator` to `calculateFee(Ticket)` based on the durati
 Let's discuss the low-level design and complexities for each functionality.
 This will help us build a system that is efficient, scalable, and optimized for real-world usage.
 
-#### Vehicle 
+#### ParkingLot
 
 ```java
-// ================= ENUMS =================
-enum VehicleType {
-    MOTORCYCLE, CAR, TRUCK
+class ParkingLot {
+    private SpotManager SpotManager;
+    private TicketManager ticketManager;
+    private PriceCalculator priceCalculator;
+
+    public ParkingLot(SpotManager spotManager,
+                        TicketManager ticketManager,
+                        PriceCalculator priceCalculator) {
+        this.spotManager = spotManager;
+        this.ticketManager = ticketManager;
+        this.priceCalculator = priceCalculator;
+    }
+
+    public Ticket parkVehicle(Vehicle vehicle) {
+        ParkingSpot spot = spotManager.findAvailableSpot(vehicle);
+        if (spot == null) throw new RuntimeException("No spot available");
+
+        spot.assignVehicle(vehicle);
+        Ticket ticket = ticketManager.generateTicket(vehicle, spot);
+        return ticket;
+    }
+
+    public double unparkVehicle(String ticketId) {
+        Ticket ticket = ticketManager.retrieveTicket(ticketId);
+        if (ticket == null) throw new RuntimeException("Invalid ticket Id");
+
+        double fee = priceCalculator.calculateFee(ticket);
+
+        ParkingSpot spot = ticket.getSpot();
+        spot.removeVehicle();
+        spotManager.freeParkingSpot(spot);
+
+        ticket.closeTicket(LocalDateTime.now(), fee);
+        return fee;
+    }
 }
+```
 
-// ================= VEHICLE =================
+#### SpotManager
+
+The `SpotManager` class is responsible for managing parking spot allocation, including 
+handling queries such as **finding an available `ParkingSpot` for a given vehicle type**.
+
+Since any given vehicle type can be accomodated in multiple `SpotType`, it is efficient to 
+maintain a `Map<SpotType, List<ParkingSpot>>`, grouping parking spots by their type. However, if 
+all spots (both free and occupied) are stored together, we would need to traverse the entire list 
+each time to find an available spot, resulting in an `O(n)` lookup. 
+
+To optimize this, we can maintain two separate maps: `availableSpots` (free spots) and 
+`occupiedSpots` (in-use spots). When a vehicle arrives, the system only checks the 
+`availableSpots` map for the relevant `SpotType`, eliminating the need to scan all spots. This 
+improves the lookup time from `O(n)` to near `O(1)` for spot allocation.
+
+```java
+class SpotManager {
+    private Map<SpotType, List<ParkingSpot>> availableSpots = new HashMap<>();
+    private Map<SpotType, List<ParkingSpot>> occupiedSpots = new HashMap<>();
+
+    public SpotManager() {
+        for(SpotType type: SpotType.values()) {
+            availableSpots.put(type, new ArrayList<>());
+            occupiedSpots.put(type, new ArrayList<>());
+        }
+    }
+
+    public void addSpot(ParkingSpot spot) {
+        availableSpots.get(spot.getType()).add(spot);
+    }
+
+    public ParkingSpot findAvailableSpot(Vehicle vehicle) {
+        List<SpotType> allowedTypes = vehicle.getAllowedSpotTypes();
+
+        for (SpotType type : allowedTypes) {    
+            List<ParkingSpot> spots = availableSpots.get(type);
+            if (!spots.isEmpty()) {
+                ParkingSpot spot = spots.remove(0);
+                occupiedSpots.get(type).add(spot);
+                return spot;
+            }
+        }
+        return null;
+    }
+
+    public void freeSpot(ParkingSpot spot) {
+        occupiedSpots.get(spot.getType()).remove(spot);
+        availableSpots.get(spot.getType()).add(spot);
+    }
+
+    /* Bad Design - Violates the Open-Closed Principle. Instead of writing 
+                    conditional logic, each vehicle should define its own
+                    parking rules.
+
+    public List<SpotType> getAllowedSpotTypes(VehicleType type) {
+        switch (type) {
+            case MOTORCYCLE:
+                return List.of(SpotType.COMPACT);
+            case CAR:
+                return List.of(SpotType.COMPACT, SpotType.REGULAR);
+            case TRUCK:
+                return List.of(SpotType.OVERSIZED);
+        }
+        return new ArrayList<>();
+    }
+    */
+}
+```
+
+#### Vehicle
+
+The `Vehicle` class represents any vehicle entering the parking lot and serves as an abstract 
+base class for all specific vehicle types such as `Motorcycle`, `Car`, and `Truck`.
+
+```java
 abstract class Vehicle {
-    protected String licenseNumber;
-    protected VehicleType vehicleType;
+    protected String licenseNumber; // accessible within subclasses, even in different packages
 
-    public Vehicle(String licenseNumber, VehicleType vehicleType) {
+    public Vehicle(String licenseNumber) {
         this.licenseNumber = licenseNumber;
-        this.vehicleType = vehicleType;
     }
 
-    public VehicleType getVehicleType() {
-        return vehicleType;
-    }
+    public abstract List<SpotType> getAllowedSpotTypes();
 }
 
 class Motorcycle extends Vehicle {
-    public Motorcycle(String licenseNumber) {
-        super(licenseNumber, VehicleType.MOTORCYCLE);
+    public List<SpotType> getAllowedSpotTypes() {
+        return List.of(SpotType.COMPACT);
     }
 }
 
 class Car extends Vehicle {
-    public Car(String licenseNumber) {
-        super(licenseNumber, VehicleType.CAR);
+    public List<SpotType> getAllowedSpotTypes() {
+        return List.of(SpotType.COMPACT, SpotType.REGULAR);
     }
 }
 
 class Truck extends Vehicle {
-    public Truck(String licenseNumber) {
-        super(licenseNumber, VehicleType.TRUCK);
+    public List<SpotType> getAllowedSpotTypes() {
+        return List.of(SpotType.OVERSIZED);
     }
 }
 ```
 
 #### ParkingSpot
+
+The `ParkingSpot` class represents an individual parking space within the parking lot.
+Each parking spot supports basic operations to manage its occupancy, including assigning a 
+`Vehicle` when occupied and removing the `Vehicle` when it becomes available.
 
 ```java
 // ================= ENUMS =================
@@ -177,11 +283,11 @@ enum SpotType {
 }
 
 // ================= PARKING SPOT =================
-abstract ParkingSpot {
-    protected String spotId;
-    protected SpotType type;
-    protected boolean isOccupied;
-    protected Vehicle vehicle;
+class ParkingSpot {
+    private String spotId;
+    private SpotType type;
+    private boolean isOccupied;
+    private Vehicle vehicle;
 
     public ParkingSpot(String spotId, SpotType type) {
         this.spotId = spotId;
@@ -205,24 +311,6 @@ abstract ParkingSpot {
 
     public SpotType getType() {
         return type;
-    }
-}
-
-class CompactSpot extends ParkingSpot {
-    public CompactSpot(String id) {
-        super(id, SpotType.COMPACT);
-    }
-}
-
-class RegularSpot extends ParkingSpot {
-    public RegularSpot(String id) {
-        super(id, SpotType.COMPACT);
-    }
-}
-
-class OversizedSpot extends ParkingSpot {
-    public OversizedSpot(String id) {
-        super(id, SpotType.OVERSIZED);
     }
 }
 ```
@@ -260,57 +348,6 @@ class Ticket {
 
     public ParkingSpot getSpot() {
         return spot;
-    }
-}
-```
-
-#### SpotManager
-
-```java
-class SpotManager {
-    private Map<SpotType, List<ParkingSpot>> availableSpots = new HashMap<>();
-    private Map<SpotType, List<ParkingSpot>> occupiedSpots = new HashMap<>();
-
-    public SpotManager() {
-        for(SpotType type: SpotType.values()) {
-            availableSpots.put(type, new ArrayList<>());
-            occupiedSpots.put(type, new ArrayList<>());
-        }
-    }
-
-    public void addSpot(ParkingSpot spot) {
-        availableSpots.get(spot.getType()).add(spot);
-    }
-
-    public ParkingSpot findAvailableSpot(VehicleType vehicleType) {
-        List<SpotType> allowedTypes = getAllowedSpotTypes(vehicleType);
-
-        for (SpotType type : allowedTypes) {    
-            List<ParkingSpot> spots = availableSpots.get(type);
-            if (!spots.isEmpty()) {
-                ParkingSpot spot = spots.remove(0);
-                occupiedSpots.get(type).add(spot);
-                return spot;
-            }
-        }
-        return null;
-    }
-
-    public void freeSpot(ParkingSpot spot) {
-        occupiedSpots.get(spot.getType()).remove(spot);
-        availableSpots.get(spot.getType()).add(spot);
-    }
-
-    public List<SpotType> getAllowedSpotTypes(VehicleType type) {
-        switch (type) {
-            case MOTORCYCLE:
-                return List.of(SpotType.COMPACT);
-            case CAR:
-                return List.of(SpotType.COMPACT, SpotType.REGULAR);
-            case TRUCK:
-                return List.of(SpotType.OVERSIZED);
-        }
-        return new ArrayList<>();
     }
 }
 ```
@@ -368,53 +405,6 @@ class PaymentProcessor {
 }
 ```
 
-#### ParkingLot
-
-```java
-class ParkingLot {
-    private SpotManager SpotManager;
-    private PriceCalculator priceCalculator;
-    private PaymentProcessor paymentProcessor;
-    private Map<String, Ticket> tickets = new HashMap<>();
-
-    public ParkingLot(SpotManager spotManager,
-                        PriceCalculator priceCalculator,
-                        PaymentProcessor paymentProcessor) {
-        this.spotManager = spotManager;
-        this.priceCalculator = priceCalculator;
-        this.paymentProcessor = paymentProcessor;
-    }
-
-    public Ticket parkVehicle(Vehicle vehicle) {
-        ParkingSpot spot = spotManager.findAvailableSpot(vehicle.getVehicleType());
-        if (spot == null) throw new RuntimeException("No spot available");
-
-        spot.assignVehicle(vehicle);
-        Ticket ticket = new Ticket(vehicle, spot);
-        tickets.put(ticket.getTicketId(), ticket);
-        return ticket;
-    }
-
-    public double unparkVehicle(String ticketId) {
-        Ticket ticket = tickets.get(ticketId);
-        if (ticket == null) throw new RuntimeException("Invalid Exception");
-
-        double fee = priceCalculator.calculateFee(ticket);
-
-        if (!paymentProcessor.processPayment(fee)) {
-            throw new RuntimeException("Payment failed");
-        }
-
-        ParkingSpot spot = ticket.getSpot();
-        spot.removeVehicle();
-        spotManager.freeSpot(spot);
-
-        ticket.closeTicket(LocalDateTime.now(), fee);
-        return fee;
-    }
-}
-```
-
 ### Unit Test 
 
 ```java
@@ -458,21 +448,6 @@ system functionality.
 
 #### SpotManager
 
-The `SpotManager` class is responsible for managing parking spots. It encapsulates the logic of 
-finding an appropriate available `ParkingSpot` based on the `vehicleType`.
-
-We can maintain a list of all `ParkingSpot`. However, this would require traversing the entire list each time we need to find 
-an available spot. To optimize this, we can divide the spots into two separate collections: `availableSpots` (free to use) and 
-`occupiedSpots` (currently in use). 
-
-```java
-Map<SpotType, List<ParkingSpot>> availableSpots;
-Map<SpotType, List<ParkingSpot>> occupiedSpots;
-```
-
-When a vehicle arrives, the system only needs to check the `availableSpots` collection, avoiding the need to scan all 
-parking spots. This reduces the lookup time from `O(n)` to near `O(1)`.
-
 ![spot-manager-class-diagram](/parking-lot-system/simple-spot-manager-class-diagram.png)
 
 #### TicketManager
@@ -506,20 +481,7 @@ transaction is successful before allowing the vehicle to exit.
 
 #### Vehicle
 
-The `Vehicle` class represents a vehicle entering the parking lot. It serves primarily as a 
-data holder, capturing essential details such as `licenseNumber` and `vehicleType` with 
-minimal behavior.
-
 ![simple-vehicle-class-diagram](/parking-lot-system/vehicle-simple-class-diagram.png)
-
-#### ParkingSpot
-
-The `ParkingSpot` class represents an individual parking space within the parking lot.
-Each parking spot supports basic operations to manage its occupancy, including assigning a 
-`Vehicle` when occupied and removing the `Vehicle` when it becomes available.
-
-
-
 
 #### Ticket
 
