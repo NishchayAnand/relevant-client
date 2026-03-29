@@ -92,7 +92,7 @@ details (`licenseNumber`).
 `List<SpotType>`.
 
     - If a spot is found, the `ParkingLot` system marks the `ParkingSpot` as occupied and calls the 
-`TicketManager` to `generateTicketTicket(Vehicle, ParkingSpot)`.
+`TicketManager` to `createTicket(Vehicle, ParkingSpot)`.
 
 3. Returns the generated `ticketId` to the user. Otherwise, the request is 
 rejected if no spot is available.
@@ -105,7 +105,7 @@ rejected if no spot is available.
 
 2. The `ParkingLot` system:
 
-    - Calls the `TicketManager` to `retrieveTicket(ticketId)` and 
+    - Calls the `TicketManager` to `getTicket(ticketId)` and 
 passes it to the `PriceCalculator` to `calculateFee(Ticket)` based on the duration of the stay.
 
     - Retrieves the `ParkingSpot` associated with the `Ticket` and instructs the 
@@ -315,7 +315,51 @@ class ParkingSpot {
 }
 ```
 
+#### TicketManager
+
+The `TicketManager` class encapsulates the logic for generating and managing parking tickets.
+
+During the parking process, it generates a new `Ticket` by associating the `Vehicle` with a
+`ParkingSpot` and returns a unique `ticketId`. During the unparking process, it uses the `ticketId` to 
+retrieve the corresponding `Ticket`, which contains all relevant parking details.
+
+To enable efficient retrieval, the `TicketManager` maintains a `Map<ticketId, Ticket>`, 
+allowing direct, constant-time access to tickets without scanning through all records.
+
+```java
+class TicketManager {
+    private Map<String, Ticket> ticketMap;
+
+    public TicketManager() {
+        this.ticketMap = new HashMap<>();
+    }
+
+    // Create ticket during parking
+    public Ticket createTicket(Vehicle vehicle, ParkingSpot spot) {
+        Ticket ticket = new Ticket(vehicle, spot);
+        ticketMap.put(ticket.getTicketId(), ticket);
+        return ticket();
+    }
+
+    // Fetch ticket during unparking
+    public Ticket getTicket(String ticketId) {
+        Ticket ticket = ticketMap.get(ticketId);
+        if (ticket == null) {
+            throw new RuntimeException("Invalid ticketId");
+        }
+        return ticket;
+    }
+}
+```
+
 #### Ticket
+
+The `Ticket` class represents a parking session and acts as a record of a vehicle's entry and 
+exit within the parking lot. It captures essential details such as associated `Vehicle`, assigned 
+`ParkingSpot`, `entryTime`, and `exitTime`, along with the total parking `amount`.
+
+It primarily acts as a data holder with minimal behavior, such as updating the `exitTime` and 
+`amount`.
 
 ```java
 class Ticket {
@@ -352,7 +396,19 @@ class Ticket {
 }
 ```
 
-#### PriceCalculator 
+#### PriceCalculator
+
+The `PriceCalculator` class is responsible for computing the parking fee based on the duration of 
+a parking session. It uses the details stored in the `Ticket`, such as `entryTime` and `exitTime`, 
+to determine the total amount to be charged.
+
+<span className='text-purple-800'><strong>NOTE:</strong> Pricing in a parking lot system is not 
+fixed and can vary based on business rules such as hourly rates, flat fees, weekend pricing, or 
+peak-hour charges.</span>
+
+To handle price variability, we can use the **Strategy Pattern** to encapsulate different pricing 
+algorithms into separate classes. This allows us to switch pricing logic dynamically and add new 
+strategies without modifying existing code, ensuring flexibility and maintainability.
 
 ```java
 interface PricingStrategy {
@@ -375,32 +431,6 @@ class PriceCalculator {
 
     public double calculateFee(Ticket ticket) {
         return strategy.calculate(ticket);
-    }
-}
-```
-
-#### PaymentProcessor 
-
-```java
-interface PaymentStrategy {
-    boolean pay(double amount);
-}
-
-class CashPayment implements PaymentStrategy {
-    public boolean pay(double amount) {
-        return true;
-    }
-}
-
-class PaymentProcessor {
-    private PaymentStrategy strategy;
-
-    public PaymentProcessor(PaymentStrategy strategy) {
-        this.strategy = strategy;
-    }
-
-    public boolean processPayment(double amount) {
-        return strategy.pay(amount);
     }
 }
 ```
@@ -434,156 +464,7 @@ public class Main {
 
 ---
 
-### Object Model Design
-
-Let's identify the core classes involved in the parking lot system and outline their responsibilities,
-focusing on how each class encapsulates specific data and behavior to support the overall 
-system functionality.
-
-#### ParkingLot
-
-
-
-![parking-lot-class-diagram](/parking-lot-system/simple-parking-lot-class-diagram.png)
-
-#### SpotManager
-
-![spot-manager-class-diagram](/parking-lot-system/simple-spot-manager-class-diagram.png)
-
-#### TicketManager
-
-The `TicketManager` class encapsulates the logic for generating and managing parking tickets.
-
-During the parking process, it generates a new `Ticket` by associating the `Vehicle` with a  
-`ParkingSpot` and returns a unique `ticketId`. During the unparking process, it uses the `ticketId` to 
-retrieve the corresponding `Ticket`, which contains all relevant parking details.
-
-To enable efficient retrieval, the `TicketManager` maintains a `Map<String, Ticket>`, 
-allowing direct, constant-time access to tickets without scanning through all records.
-
-![ticker-manager-class-diagram](/parking-lot-system/ticket-manager-class-diagram.png)
-
-#### PriceCalculator
-
-The `PriceCalculator` class is responsible for computing the parking fee based on the duration of 
-a parking session. It uses the details stored in the `Ticket`, such as `entryTime` and `exitTime`, 
-to determine the total amount to be charged.
-
-![simple-price-calculator-class-diagram](/parking-lot-system/simple-price-calculator-class-diagram.png)
-
-#### PaymentProcessor
-
-The `PaymentProcessor` class is responsible for handling payment operations during the unparking 
-process. After the parking fee is calculated, it processes the payment and determines whether the 
-transaction is successful before allowing the vehicle to exit.
-
-![simple-payment-processor-class-diagram](/parking-lot-system/simple-payment-processor-class-diagram.png)
-
-#### Vehicle
-
-![simple-vehicle-class-diagram](/parking-lot-system/vehicle-simple-class-diagram.png)
-
-#### Ticket
-
-The `Ticket` class represents a parking session and acts as a record of a vehicle's entry and 
-exit within the parking lot. It captures essential details such as associated `Vehicle`, assigned 
-`ParkingSpot`, `entryTime`, and `exitTime`, along with the total parking `amount`.
-
-It primarily acts as a data holder with minimal behavior, such as updating the `exitTime` and 
-`amount`. Core business logic such as fee calculation and releasing the associated parking spot 
-can be delegated to separate components, ensuring proper separation of concerns.
-
-![ticket-class-diagram](/parking-lot-system/ticket-class-diagram.png)
-
----
-
-### Design Improvements
-
-In the current design, `SpotManager` contains conditional logic to determine allowed spot types, 
-which makes it rigid and hard to extend.
-
-```java
-public List<SpotType> getAllowedSpotTypes(VehicleType type) {
-    switch (type) {
-        case MOTORCYCLE:
-            return List.of(SpotType.COMPACT);
-        case CAR:
-            return List.of(SpotType.COMPACT, SpotType.REGULAR);
-        case TRUCK:
-            return List.of(SpotType.OVERSIZED);
-    }
-    return new ArrayList<>();
-}
-```
-
-By introducing inheritance in Vehicle and moving this logic into subclasses, 
-we leverage polymorphism, eliminate switch-case statements, and adhere to the Open/Closed Principle. 
-This makes the system more maintainable and scalable.
-
-```java
-abstract class Vehicle {
-    abstract boolean canFitInSpot(ParkingSpot spot);
-}
-
-class Car extends Vehicle {
-    List<SpotType> getAllowedSpotTypes() {
-        return List.of(SpotType.COMPACT, SpotType.REGULAR);
-    }
-}
-
-class Truck extends Vehicle {
-    List<SpotType> getAllowedSpotTypes() {
-        return List.of(SpotType.OVERSIZED);
-    }
-}
-```
-
-To model parking constraints like "Which vehicle can park in which type of spot?", we can define 
-specific subclasses:
-
-- **Motorcycle:** The smallest vehicle type, which can be accomodated in compact spots.
-- **Car:** A medium-sized vehicle that can fit in either compact or regular spots.
-- **Truck:** The largest vehicle type, which requires oversized spots.
-
-This design leverages inheritance to represent the "is-a" relationship between vehicle types.
-It avoids large conditional logic and makes the system more extensible when introducing new vehicle types. 
-
-![vehicle-class-diagram](/parking-lot-system/vehicle-class-diagram.png)
-
-For a basic implementation, we can store tickets inside `ParkingLot` using a map. However, to follow the Single Responsibility 
-Principle and make the system more scalable and extensible, we can introduce a separate `TicketManager` to handle all 
-ticket-related operations.
-
-
-<span className='text-purple-800'><strong>NOTE:</strong> Pricing in a parking lot system is not 
-fixed and can vary based on business rules such as hourly rates, flat fees, weekend pricing, or 
-peak-hour charges.</span>
-
-To handle price variability, we can use the **Strategy Pattern** to encapsulate different pricing 
-algorithms into separate classes. This allows us to switch pricing logic dynamically and add new 
-strategies without modifying existing code, ensuring flexibility and maintainability.
-
-![price-calculator-class-diagram](/parking-lot-system/price-calculator-class-diagram.png)
-
-To support multiple payment methods, we can use the **Strategy Pattern**, allowing different 
-payment implementations to be plugged in without modifying the core system.
-
-![payment-processor-class-diagram](/parking-lot-system/payment-processor-class-diagram.png)
-
-
-We can use inheritance to model different types of parking spots as specialized variants of a 
-base `ParkingSpot` class.
-
-- **CompactSpot:** Suitable for smaller vehicles such as motorcycles and cars.
-- **RegularSpot:** Designed for standard vehicles like cars.
-- **OversizedSpot:** Intended for larger vehicles like trucks.
-
-![parking-spot-class-diagram](/parking-lot-system/parking-spot-class-diagram.png)
-
-
-### Final UML Diagram
-
-
+### Final Object Model Design
 
 
 ---
