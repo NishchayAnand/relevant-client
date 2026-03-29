@@ -30,34 +30,34 @@ Here's how each process works:
 
 #### Vehicle Entry
 
-1. A `Vehicle` (e.g., `Motorcycle`, `Car`, `Truck`) arrives at the entry point. 
+1. A vehicle (e.g., motorcycle, car, truck) arrives at the entry point. 
 
-2. The `ParkingLot` system captures essential details such as `licenseNumber`, `vehicleType`
- and `arrivalTime`,  and finds an appropriate available `ParkingSpot` (e.g., `Compact`, `Regular`, 
- or `Oversized`) based on the `vehicleType`.
+2. The parking lot system captures essential details such as the license number, vehicle type,
+ and the arrival time,  and finds an appropriate available parking spot (e.g., compact, regular, 
+ or oversized) based on the vehicle type.
 
-3. If a suitable spot is available, the `ParkingLot` system assigns the `ParkingSpot` to the `Vehicle`, 
-generates a `Ticket`, and returns the corresponding `ticketId` to the user.
+3. If a suitable spot is available, the system assigns the parking spot to the vehicle, 
+generates a ticket, and returns the corresponding ticket Id to the user.
 
 #### Vehicle Exit
 
-1. The `Vehicle` arrives at the exit gate and provides the `ticketId` to the `ParkingLot` system.
+1. The vehicle arrives at the exit gate and provides the ticket Id to the parking lot system.
 
-2. The `ParkingLot` system retrieves the corresponding `Ticket` and calculates the parking fee based
+2. The system retrieves the corresponding ticket and calculates the parking fee based
 on the duration of the stay. 
 
-3. After the `Payment` is completed, the `ParkingLot` system marks the associated `ParkingSpot` as available,
-updates the `Ticket`, and allows the `Vehicle` to exit.
+3. After the payment is completed, the system marks the associated parking spot as available,
+updates the ticket, and allows the vehicle to exit.
 
 ---
 
 ### Design Rationale
 
-The `ParkingLot` acts as the central orchestrator of the system, coordinating all core operations such as
+The parking lot acts as the central orchestrator of the system, coordinating all core operations such as
 finding available spots, generating tickets, calculating fees, and processing payments.
 
 However, handling all these operations within a single class leads to a violation of the **Single Responsibility
-Principle (SRP)**. To address this, the `ParkingLot` class can act as a facade, delegating 
+Principle (SRP)**. To address this, the `ParkingLot` class can be designed as a facade, delegating 
 responsibilities to specialized components.
 
 ```
@@ -76,8 +76,23 @@ responsible for a specific piece of functionality.
 
 ### Sequence Flow
 
+Let's discuss the step-by-step interactions between different system components for the primary use cases,
+highlighting how responsibilities are coordinated to achieve the desired functionality.
+
+#### Vehicle Entry (Park Vehicle)
+
+1. The `Vehicle` arrives and sends a parking request with its details (`licenseNumber`, `vehicleType`).
+
+2. The `ParkingLot` delegates the request to the `SpotManager` to `findAvailableParkingSpot(Vehicle)` based 
+on vehicle's allowed spot types.
+
+3. 
+
 ![park-vehicle-sequence-flow-diagram](/parking-lot-system/simple-park-vehicle-sequence-flow-diagram.png)
 <br/>
+
+#### Vehicle Exit
+
 ![unpark-vehicle-mermaid-diagram](/parking-lot-system/simple-unpark-vehicle-sequence-flow-diagram.png)
 <br/>
 
