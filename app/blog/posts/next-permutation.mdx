@@ -64,11 +64,67 @@ Find the rightmost dip, swap with the next greater element, and reverse the suff
 
 #### Visualization
 
+<NextPermutationGreedyVisualizer />
+
 #### Algorithms
+
+```java
+
+public static void swap(int[] nums, int i, int j) {
+    int temp = nums[i];
+    nums[i] = nums[j];
+    nums[j] = temp;
+}
+
+public static void reverse(int[] nums, int start, int end) {
+    while(start < end) {
+        swap(nums, start, end);
+        start++;
+        end--;
+    }
+}
+
+public void nextPermutation(int[] nums) {
+
+    // Step 1: Find the pivot index
+    int pivotIndex = -1;
+    for(int i = nums.length - 2; i >= 0; i--) {
+       if(nums[i] < nums[i+1]) {
+            pivotIndex = i;
+            break;
+       }
+    }
+
+    // If no pivot, reverse whole array (last permutation → first)
+    if(pivotIndex == -1) {
+        reverse(nums, 0, nums.length);
+        return;
+    }
+
+    // Step 2: Swap the pivot element with the next greater element
+    for(int j = nums.length - 1; j > pivotIndex; j--) {
+        if(nums[j] > nums[pivotIndex]) {
+            swap(nums, pivotIndex, j);
+            break;
+        }
+    }
+
+    // Step 3: Reverse the suffix to the right of pivot
+    reverse(nums, pivotIndex + 1, nums.length - 1);
+    
+}
+```
 
 #### Time Complexity
 
+In the worst case, when the array is in descending order, we scan the array once to check for a pivot 
+(and find none), and then perform another full pass to reverse the entire array. 
+Hence, overall time complexity = `O(2*n)` ~ `O(n)`.
+
 #### Space Complexity
+
+We are not using any extra dynamic data structures. Since, all operations are performed in-place, the overall 
+space complexity = `O(1)`.
 
 ---
 
