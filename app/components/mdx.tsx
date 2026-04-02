@@ -27,6 +27,7 @@ import MinimumSizeSubarraySlidingWindowVisualizer from './minimum-size-subarray-
 import { MaximumSubarrayNestedVisualizer } from './maximum-subarray-nested-visualizer';
 import MaximumSubarrayKadaneVisualizer from './maximum-subarray-kadane-visualizer';
 import NextPermutationGreedyVisualizer from './next-permutation-greedy-visualizer';
+import LongestConsecutiveSortingVisualizer from './longest-consecutive-sorting-visualizer';
 
 hljs.registerLanguage('javascript', javascript);
 
@@ -195,6 +196,7 @@ let components = {
   MaximumSubarrayNestedVisualizer: MaximumSubarrayNestedVisualizer,
   MaximumSubarrayKadaneVisualizer: MaximumSubarrayKadaneVisualizer,
   NextPermutationGreedyVisualizer: NextPermutationGreedyVisualizer,
+  LongestConsecutiveSortingVisualizer: LongestConsecutiveSortingVisualizer,
   Image: RoundedImage,
   a: CustomLink,
   code: Code,

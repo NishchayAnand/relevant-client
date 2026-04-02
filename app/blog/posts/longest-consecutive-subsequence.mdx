@@ -1,0 +1,86 @@
+---
+title: 'Data Structures & Algorithms (HashMap): Longest Consecutive Subsequence'
+publishedAt: '2025-08-16'
+---
+
+Given an unsorted array of integers `nums`, return the length of the longest consecutive elements sequence.
+ 
+```
+Example 1:
+
+Input: nums = [100,4,200,1,3,2]
+Output: 4
+Explanation: The longest consecutive elements sequence is [1, 2, 3, 4]. Therefore its length is 4.
+```
+
+> **Playground:** [Leetcode 128](https://leetcode.com/problems/longest-consecutive-sequence/description/)
+
+---
+
+### General Observations
+
+Q. What will be the output if `nums` contain duplicate numbers (e.g., `nums = [1, 0, 1, 2]`)?\
+A. Only count **unique consecutive progression**.
+
+---
+
+### Sorting Approach (Brute Force)
+
+Sort `nums` in ascending order, iterate through it to find all consecutive subarrays and keep
+track of the length of the longest subarray found.
+
+#### Algorithm
+
+```java
+public int longestConsecutive(int[] nums) {
+
+    // Edge Case: If nums is empty
+    if (nums.length == 0) {
+        return 0;
+    }
+
+    // Step 1: Sort the array
+    Arrays.sort(nums);
+
+    // Step 2: Explore all consecutive subarrays
+    int maxLength = 1;
+    int currLength = 1;
+    
+    for(int i = 1; i < nums.length; i++) {
+        // Case 1: Duplicate → skip
+        if (nums[i] == nums[i-1]) {
+            continue;
+        }
+
+        // Case 2: Consecutive
+        if (nums[i] == nums[i-1] + 1) {
+            currLength++;
+            maxLength = Math.max(maxLength, currLength);
+        } 
+        // Case 3: Break in sequence
+        else {
+            currLength = 1;
+        }
+    }
+
+    return maxLength;
+
+}
+```
+
+#### Visualization
+
+<LongestConsecutiveSortingVisualizer />
+
+#### Time Complexity
+
+Sorting takes `O(n * log n)` and the scan pass takes `O(n)`, so overall complexity is dominated by sorting: `O(n * log n)`.
+
+#### Space Complexity
+
+If sorting in place, extra space is `O(1)` (ignoring sort implementation details). If the language runtime uses extra stack/temporary memory for sorting, practical space can be higher.
+
+---
+
+### 
+
