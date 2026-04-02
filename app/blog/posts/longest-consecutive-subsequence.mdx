@@ -78,9 +78,62 @@ Sorting takes `O(n * log n)` and the scan pass takes `O(n)`, so overall complexi
 
 #### Space Complexity
 
-If sorting in place, extra space is `O(1)` (ignoring sort implementation details). If the language runtime uses extra stack/temporary memory for sorting, practical space can be higher.
+If sorting in place, extra space is `O(1)` (ignoring sort implementation details). If the language runtime uses 
+extra stack/temporary memory for sorting, practical space can be higher.
 
 ---
 
-### 
+### Set-Based Approach 
+
+We can store all the unique elements in the set and, for each element, try to build a consecutive sequence 
+starting from it by checking the next elements.
+
+#### Algorithm
+
+```java
+public int longestConsecutive(int[] nums) { 
+
+    // Edge Case: If nums is empty
+    if (nums.length == 0) {
+        return 0;
+    }
+
+    // Step 1: Populate set with all unique elements
+    Set<Integer> set = new HashSet<>();
+    for(int num: nums) {
+        set.add(num);
+    }
+
+    // Step 2: Explore consecutive subsequences starting from each element
+    int maxLength = 1;
+    for(int num: nums) {
+        int currLength = 1;
+        int start = num;
+        while
+
+    }
+
+}
+```
+
+#### Visualization
+
+#### Time Complexity
+
+#### Space Complexity
+
+
+
+---
+
+### Key Observations
+
+Every element in `nums` can either be start of a new consecutive subsequence or part of an existing one.
+
+---
+
+
+
+
+
 
