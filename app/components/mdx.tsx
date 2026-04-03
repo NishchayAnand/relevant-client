@@ -29,6 +29,7 @@ import MaximumSubarrayKadaneVisualizer from './maximum-subarray-kadane-visualize
 import NextPermutationGreedyVisualizer from './next-permutation-greedy-visualizer';
 import LongestConsecutiveSortingVisualizer from './longest-consecutive-sorting-visualizer';
 import LongestConsecutiveSetVisualizer from './longest-consecutive-set-visualizer';
+import LongestConsecutiveOptimizedVisualizer from './longest-consecutive-optimized-visualizer';
 
 hljs.registerLanguage('javascript', javascript);
 
@@ -199,6 +200,7 @@ let components = {
   NextPermutationGreedyVisualizer: NextPermutationGreedyVisualizer,
   LongestConsecutiveSortingVisualizer: LongestConsecutiveSortingVisualizer,
   LongestConsecutiveSetVisualizer: LongestConsecutiveSetVisualizer,
+  LongestConsecutiveOptimizedVisualizer: LongestConsecutiveOptimizedVisualizer,
   Image: RoundedImage,
   a: CustomLink,
   code: Code,

@@ -108,13 +108,16 @@ public int longestConsecutive(int[] nums) {
 
     // Step 2: Explore consecutive subsequences starting from each element
     int maxLength = 1;
-    for(int num: nums) {
+
+    for(int num: set) {
         int currLength = 1;
-        int start = num;
-        while (set.contains(start+1)) {
+        int current = num;
+
+        while (set.contains(current + 1)) {
             currLength++;
-            start++;
+            current++;
         }
+
         maxLength = Math.max(maxLength, currLength);
     }
 
@@ -142,8 +145,8 @@ larger consecutive elements exist after it.
 | n       | 0         |
 
 
-Total operations performed = (n-1) + (n-2) + (n-3) + ... + 0 = n(n-1)/2 = (n² - n)/2. 
-Ignoring the constants and lower-order terms, the overall time complexity simplifies to O(n²).
+Total operations performed = `(n-1) + (n-2) + (n-3) + ... + 0 = n(n-1)/2 = (n² - n)/2`. 
+Ignoring the constants and lower-order terms, the overall time complexity simplifies to `O(n²)`.
 
 #### Space Complexity
 
@@ -152,11 +155,83 @@ unique. Hence, overall space complexity = `O(n)`.
 
 ---
 
-### Key Observations
+### Key Observation
 
-Every element in `nums` can either be start of a new consecutive subsequence or part of an existing one.
+Every element in `nums` can either be start of a new consecutive subsequence or part of an 
+existing one.
+
+Exploring a subsequence starting from an element that is already part of an existing 
+subsequence is redundant, since it will always produce a shorter sequence.
+
+![start-of-subsequence](/longest-consecutive-subsequence/start-of-subsequence.png)
 
 ---
+
+### Optimized Set-Based Approach
+
+Instead of exploring subsequences starting from every number in `nums`, we only start 
+building a sequence if the current element marks the beginning of a sequence, i.e., 
+if `(nums-1)` does not exist.
+
+> **NOTE:** Iterate over the set instead of nums to avoid processing duplicate elements 
+multiple times.
+
+#### Algorithm
+
+```java
+public int longestConsecutive(int[] nums) {
+
+    // Edge Case: If nums is empty
+    if (nums.length == 0) {
+        return 0;
+    }
+
+    // Step 1: Populate set with all unique elements
+    Set<Integer> set = new HashSet<>();
+    for(int num: nums) {
+        set.add(num);
+    }
+
+    // Step 2: Explore non-overlapping consecutive subsequences
+    int maxLength = 0;
+    for(int num: set) {
+        // Start only if it's the beginning of a sequence
+        if (!set.contains(num-1)) {
+
+            int currLength = 1;
+            int current = num;
+
+            while (set.contains(current+1)) {
+                currLength++;
+                current++;
+            }
+            maxLength = Math.max(maxLength, currLength);
+        }     
+    }
+
+    return maxLength;
+
+}
+```
+
+#### Visualization
+
+<LongestConsecutiveOptimizedVisualizer />
+
+#### Time Complexity
+
+Each element would be visited twice.
+
+Each element is processed at most twice: once when inserting it into the set, and once during sequence expansion.
+Hence, the overall time complexity = `O(n)`.
+
+#### Space Complexity
+
+In the worst case, we store all `n` elements in the set. Hence, overall space complexity = `O(n)`.
+
+---
+
+
 
 
 
