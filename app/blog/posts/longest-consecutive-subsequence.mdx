@@ -88,6 +88,8 @@ extra stack/temporary memory for sorting, practical space can be higher.
 We can store all the unique elements in the set and, for each element, try to build a consecutive sequence 
 starting from it by checking the next elements.
 
+![set-approach](/longest-consecutive-subsequence/set-approach.png)
+
 #### Algorithm
 
 ```java
@@ -109,14 +111,21 @@ public int longestConsecutive(int[] nums) {
     for(int num: nums) {
         int currLength = 1;
         int start = num;
-        while
-
+        while (set.contains(start+1)) {
+            currLength++;
+            start++;
+        }
+        maxLength = Math.max(maxLength, currLength);
     }
+
+    return maxLength;
 
 }
 ```
 
 #### Visualization
+
+<LongestConsecutiveSetVisualizer />
 
 #### Time Complexity
 
