@@ -129,9 +129,26 @@ public int longestConsecutive(int[] nums) {
 
 #### Time Complexity
 
+In the worst-case scenario, i.e., when `nums` of size `n` contains `n` consecutive unique elements,
+for every element `num`, the inner subsequence exploration loop runs proportional to how many 
+larger consecutive elements exist after it.
+
+| Element | Loop Runs |
+| ------- | --------- |
+| 1       | n - 1     |
+| 2       | n - 2     |
+| 3       | n - 3     |
+| ...     | ...       |
+| n       | 0         |
+
+
+Total operations performed = (n-1) + (n-2) + (n-3) + ... + 0 = n(n-1)/2 = (n² - n)/2. 
+Ignoring the constants and lower-order terms, the overall time complexity simplifies to O(n²).
+
 #### Space Complexity
 
-
+In the worst case, we store all `n` elements in the set, since all elements in `nums` would be 
+unique. Hence, overall space complexity = `O(n)`.
 
 ---
 
