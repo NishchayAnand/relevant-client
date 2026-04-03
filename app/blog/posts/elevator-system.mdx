@@ -12,5 +12,55 @@ handles user requests.
 
 ### Functional Requirements
 
+1. Support multiple elevators, all serving the same set of floors.
+
+2. Allow users to request an elevator from any floor lobby using the Up / Down buttons, or select 
+a destination floor from inside the elevator.
+
+3. Assign the most optimal elevator to each incoming request based on factors like distance from the request
+floor and current direction of travel.
 
 ---
+
+### Design Rationale
+
+how elevator assignment works.
+
+---
+
+### Primary Use Cases
+
+The elevator system supports two primary workflows: allowing users to request an elevator from any floor lobby using 
+the Up / Down buttons, and selecting a destination floor from inside the elevator. Here’s how each works:
+
+#### Use Case 1: Request Elevator From Lobby
+
+1. A user presses the Up or Down button on a floor.
+
+2. The system creates an external request with the floor number and desired direction.
+
+3. The scheduler evaluates all elevators based on proximity, direction, and current state.
+
+4. The most optimal elevator is assigned to handle the request.
+
+5. The selected elevator updates its queue and moves toward the requested floor.
+
+6. Upon arrival, the elevator stops and opens its doors for passengers.
+
+#### Use Case 2: Select Floor Inside Elevator
+
+1. A user inside the elevator selects a destination floor using the control panel.
+
+2. The system creates an internal request.
+
+3. The elevator adds the floor to its request queue (organized by direction).
+
+4. The elevator continues moving and stops at floors in an optimized order.
+
+5. At each stop, doors open to allow passengers to exit or enter.
+
+6. Once all requests are completed, the elevator becomes idle or awaits new requests.
+
+---
+
+### Sequence Flow
