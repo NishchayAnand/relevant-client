@@ -24,7 +24,7 @@ A. Yes, `nums` can contain negative integers. For example, `nums = [-1, 0, 1, 2]
 
 ---
 
-### Approach 1: Explore All Subarrays (Brute Force)
+### Approach 1: Nested Loops (Brute Force)
 
 Use nested loops to iterate over all possible subarrays, maintain a running sum for each, and increment 
 the count whenever the sum = `k`.
@@ -74,10 +74,19 @@ Hence, the overall space complexity = `O(1)`.
 
 ---
 
-### Key Observation
+### Key observations
 
+The sum of any subarray can be expressed as the difference of two prefix sums.
+
+![key-observation-1](/subarray-sum-equals-k/key-observation-1.png)
+
+For any index `i`, there can be multiple subarrays ending at `i` whose sum equals `k`.
+
+![key-observation-2](/subarray-sum-equals-k/key-observation-2.png)
 
 ---
+
+### Approach 2: Prefix Sum 
 
 
 
