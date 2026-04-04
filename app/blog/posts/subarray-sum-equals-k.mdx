@@ -77,8 +77,8 @@ Hence, the overall space complexity = `O(1)`.
 ### Key observations
 
 The sum of any subarray can be expressed as the difference of two prefix sums. For example,
-in `nums = [1, -1, 2, 3, 3, 4, 1, 5, 2]`, the subarray sum of `[3, 4, 1]` can be obtained by 
-subtracting the **prefix sum up to index = `3`** from the **prefix sum up to index = `6`**.
+in `nums = [1, -1, 2, 3, 3, 4, 1, 5, 2]`, the sum of the subarray `[3, 4, 1]` can be obtained by 
+`(prefixSum[6] - prefixSum[3])`.
 
 ![key-observation-1](/subarray-sum-equals-k/key-observation-1.png)
 
