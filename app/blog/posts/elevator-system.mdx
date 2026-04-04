@@ -22,45 +22,38 @@ floor and current direction of travel.
 
 ---
 
-### Design Rationale
+### Understanding Primary Use Cases
 
-how elevator assignment works.
+The two primary responsibilies of an elevator system is to allow users to request an elevator from any floor lobby, and 
+selecting a destination floor from inside the elevator. 
 
----
+Here’s how each works:
 
-### Primary Use Cases
-
-The elevator system supports two primary workflows: allowing users to request an elevator from any floor lobby using 
-the Up / Down buttons, and selecting a destination floor from inside the elevator. Here’s how each works:
-
-#### Use Case 1: Request Elevator From Lobby
+#### Use Case 1: Request Elevator From Floor Lobby
 
 1. A user presses the Up or Down button on a floor.
 
-2. The system creates an external request with the floor number and desired direction.
+2. The system evaluates the incoming request by considering key factors like the requested floor, direction of travel, 
+and the current state of all elevators (e.g., idle, moving up, moving down). Based on this, it determines the most suitable 
+elevator to handle the request, ensuring minimal wait time.
 
-3. The scheduler evaluates all elevators based on proximity, direction, and current state.
-
-4. The most optimal elevator is assigned to handle the request.
-
-5. The selected elevator updates its queue and moves toward the requested floor.
-
-6. Upon arrival, the elevator stops and opens its doors for passengers.
+3. Once the correct elevator is selected, the requested floor is added to the elevator's list of upcoming stops. 
+The elevator adjusts its path to accomodate the request, ensuring it serves the user efficiently.
 
 #### Use Case 2: Select Floor Inside Elevator
 
-1. A user inside the elevator selects a destination floor using the control panel.
+1. A user selects a destination floor by pressing the floor button on the control panel inside an elevator.
 
-2. The system creates an internal request.
+2. The elevator adds the floor to its list of upcoming stops, and continues visiting floors in an optimized order.
 
-3. The elevator adds the floor to its request queue (organized by direction).
-
-4. The elevator continues moving and stops at floors in an optimized order.
-
-5. At each stop, doors open to allow passengers to exit or enter.
-
-6. Once all requests are completed, the elevator becomes idle or awaits new requests.
+3. Once all requests are completed, the elevator becomes idle and waits for a new requests.
 
 ---
 
-### Sequence Flow
+### Object Model Design
+
+
+
+---
+
+### Final UML Diagram
