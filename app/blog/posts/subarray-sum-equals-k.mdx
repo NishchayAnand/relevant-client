@@ -1,0 +1,84 @@
+---
+title: 'Data Structures & Algorithms (Prefix Sum): Subarray Sum Equals K'
+publishedAt: '2025-08-17'
+---
+
+Given an array of integers `nums` and an integer `k`, return the total number of subarrays whose sum equals to `k`.
+
+```
+Example 1:
+
+Input: nums = [1,2,3], k = 3
+Output: 2
+Explanation: [1,2] and [3] are the 2 possible subarrays whose sum = 3.
+```
+
+> **Playground:** [Leetcode 560](https://leetcode.com/problems/subarray-sum-equals-k/description/)
+
+---
+
+### General Observations
+
+Q. Can `nums` contain negative integers?\
+A. Yes, `nums` can contain negative integers. For example, `nums = [-1, 0, 1, 2]` is a valid input.
+
+---
+
+### Approach 1: Explore All Subarrays (Brute Force)
+
+Use nested loops to iterate over all possible subarrays, maintain a running sum for each, and increment 
+the count whenever the sum = `k`.
+
+#### Algorithm
+
+```java
+public int subarraySum(int[] nums, int k) {
+    
+    int count = 0;
+
+    for(int i = 0; i < nums.length; i++) {
+        int currentSum = 0;
+        for(int j = i; j < nums.length; j++) {
+            currentSum += nums[j];
+            if(currentSum == k) {
+                count++;
+            }
+        }
+    }
+
+    return count;
+
+}
+```
+
+#### Visualization
+
+<SubarraySumNestedVisualizer />
+
+#### Time Complexity
+
+The operations inside the inner loop take constant time. Therefore, the overall time complexity depends 
+on **how many times the inner loop executes**.
+
+For every `i`, the inner loop runs `(n-i)` times. Since, `i` ranges from `[0, n-1]`,
+total executions = `n + (n-1) + (n-2) + ... + 1` = `n(n+1)/2`.
+
+Since, the total execution's count grow by the order of `n²`, the overall time complexity = `O(n²)`.
+
+#### Space Complexity
+
+Since we are not using any additional data structures and only a few variables (`count`, `currentSum`), the
+extra space used does not grow with input size. 
+
+Hence, the overall space complexity = `O(1)`.
+
+---
+
+### Key Observation
+
+
+---
+
+
+
+
