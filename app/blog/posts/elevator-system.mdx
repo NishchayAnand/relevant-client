@@ -50,10 +50,36 @@ The elevator adjusts its path to accomodate the request, ensuring it serves the 
 
 ---
 
+### Identifying Core Entities
+
+#### User
+
+Represents a person interacting with the elevator system. It does not hold system logic, but acts 
+as the trigger for all operations.
+
+#### ElevatorSystem 
+
+Serves as the central controller, managing all elevators in the system. It is responsible 
+for processing incoming requests, assigning the most suitable elevator, and coordinating elevator movements to 
+ensure minimal wait time.
+
+#### Elevator
+
+Represents an individual elevator unit. 
+
+---
+
 ### Object Model Design
+
+Let's discuss the low-level design and complexities for each functionality.
+This will help us build a system that is efficient, scalable, and optimized for real-world usage.
+
+#### ElevatorSystem
 
 
 
 ---
 
 ### Final UML Diagram
+
+---
