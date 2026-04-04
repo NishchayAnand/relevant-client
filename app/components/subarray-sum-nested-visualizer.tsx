@@ -13,8 +13,12 @@ type Stage = "idle" | "running" | "done";
 type FoundEntry = { start: number; end: number; subarray: number[]; sum: number };
 
 export default function SubarraySumNestedVisualizer() {
-  const [nums] = useState(DEFAULT_NUMS);
-  const [k] = useState(DEFAULT_K);
+  const [numsInput, setNumsInput] = useState(DEFAULT_NUMS.join(", "));
+  const [kInput, setKInput] = useState(String(DEFAULT_K));
+  const [inputError, setInputError] = useState<string | null>(null);
+
+  const [nums, setNums] = useState(DEFAULT_NUMS);
+  const [k, setK] = useState(DEFAULT_K);
 
   const [stage, setStage] = useState<Stage>("idle");
   const [i, setI] = useState(0);
@@ -123,7 +127,7 @@ export default function SubarraySumNestedVisualizer() {
     }
   };
 
-  const reset = () => {
+  const reset = (nextNums = nums, nextK = k) => {
     setStage("idle");
     setI(0);
     setJ(-1);
@@ -131,7 +135,29 @@ export default function SubarraySumNestedVisualizer() {
     setCount(0);
     setFound([]);
     setIsPlaying(false);
+    setNums(nextNums);
+    setK(nextK);
     setMessage("Press Play or Step to begin");
+  };
+
+  const applyInputs = () => {
+    const parsed = numsInput
+      .split(",")
+      .map((s) => s.trim())
+      .filter((s) => s !== "")
+      .map(Number);
+
+    if (parsed.length === 0 || parsed.some(isNaN)) {
+      setInputError("nums must be a comma-separated list of integers, e.g. 1, 2, 3");
+      return;
+    }
+    const parsedK = Number(kInput.trim());
+    if (kInput.trim() === "" || isNaN(parsedK) || !Number.isInteger(parsedK)) {
+      setInputError("k must be an integer");
+      return;
+    }
+    setInputError(null);
+    reset(parsed, parsedK);
   };
 
   const togglePlay = () => {
@@ -142,6 +168,42 @@ export default function SubarraySumNestedVisualizer() {
   return (
     <div className="mt-8 mb-10 border rounded-2xl">
       <div className="p-6 space-y-5">
+
+        {/* Input section */}
+        <div className="flex flex-wrap items-end gap-3 pb-4 border-b border-gray-100">
+          <div className="flex flex-col gap-1">
+            <label className="text-xs uppercase tracking-widest text-gray-400">nums</label>
+            <input
+              type="text"
+              value={numsInput}
+              onChange={(e) => setNumsInput(e.target.value)}
+              disabled={isPlaying}
+              placeholder="e.g. 1, 2, 3"
+              className="font-mono text-sm border border-gray-200 rounded-lg px-3 py-2 w-56 focus:outline-none focus:ring-2 focus:ring-gray-300 disabled:bg-gray-50 disabled:text-gray-400"
+            />
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-xs uppercase tracking-widest text-gray-400">k</label>
+            <input
+              type="text"
+              value={kInput}
+              onChange={(e) => setKInput(e.target.value)}
+              disabled={isPlaying}
+              placeholder="e.g. 3"
+              className="font-mono text-sm border border-gray-200 rounded-lg px-3 py-2 w-24 focus:outline-none focus:ring-2 focus:ring-gray-300 disabled:bg-gray-50 disabled:text-gray-400"
+            />
+          </div>
+          <button
+            onClick={applyInputs}
+            disabled={isPlaying}
+            className="px-4 py-2 text-sm bg-gray-800 text-white rounded-lg hover:bg-gray-700 disabled:bg-gray-400 disabled:cursor-not-allowed self-end"
+          >
+            Apply
+          </button>
+          {inputError && (
+            <p className="w-full text-xs text-red-500">{inputError}</p>
+          )}
+        </div>
 
         {/* Controls + live vars */}
         <div className="flex items-center justify-between">
@@ -180,7 +242,7 @@ export default function SubarraySumNestedVisualizer() {
             >
               <SkipForward size={18} />
             </button>
-            <button onClick={reset} className="p-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300">
+            <button onClick={() => reset()} className="p-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300">
               <RotateCcw size={18} />
             </button>
           </div>
