@@ -92,6 +92,52 @@ in `nums = [1, -1, 1, -1, 2, 3, 3, 4, 1, 5, 2]`, the subarrays `[1, -1, 1, -1, 2
 
 ### Approach 2: Prefix Sum 
 
+Iterate through `nums` while maintaining a running `currentPrefixSum` and a map to store the **frequency of 
+prefix sums** encountered so far.
+
+At any index = `i`, if a prefix sum equal to `(currentPrefixSum - k)` has been seen before, it means there are 
+`frequency[currentPrefixSum - k]` subarrays ending at index `i` whose sum equals `k`.
+
+#### Algorithm
+
+```java
+public int subarraySum(int[] nums, int k) {
+
+    Map<Integer, Integer> frequencyPrefixSumMap = new HashMap<>();
+    frequencyPrefixSumMap.put(0, 1); // handles subarrays starting at index 0 whose sum equals k.
+
+    int count = 0;
+    int currentPrefixSum = 0;
+    for(int num: nums) {
+        currentPrefixSum += num;
+
+        if(frequencyPrefixSumMap.containsKey(currentPrefixSum - k)) {
+            count += frequencyPrefixSumMap.get(currentPrefixSum - k);
+        }
+
+        frequencyPrefixSumMap.put(currentPrefixSum, frequencyPrefixSumMap.getOrDefault(currentPrefixSum, 0) + 1);
+    }
+
+    return count;
+}
+```
+
+#### Visualization
+
+<SubarraySumPrefixSumVisualizer />
+
+#### Time Complexity
+
+We traverse the array exactly once. Since for each element, we perform constant-time operations (update
+`currentPrefixSum`, insert / update map), the overall time complexity = `O(n)`. 
+
+#### Space Complexity
+
+In the worst-case scenario, all prefix sums are unique. Since, we store each prefix sum in the map, 
+the map can grow upto size `n`. Hence, the overall space complexity = `O(n)`.
+
+---
+
 
 
 

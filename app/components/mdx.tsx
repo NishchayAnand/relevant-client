@@ -31,6 +31,7 @@ import LongestConsecutiveSortingVisualizer from './longest-consecutive-sorting-v
 import LongestConsecutiveSetVisualizer from './longest-consecutive-set-visualizer';
 import LongestConsecutiveOptimizedVisualizer from './longest-consecutive-optimized-visualizer';
 import SubarraySumNestedVisualizer from './subarray-sum-nested-visualizer';
+import SubarraySumPrefixSumVisualizer from './subarray-sum-prefix-sum-visualizer';
 
 hljs.registerLanguage('javascript', javascript);
 
@@ -203,6 +204,7 @@ let components = {
   LongestConsecutiveSetVisualizer: LongestConsecutiveSetVisualizer,
   LongestConsecutiveOptimizedVisualizer: LongestConsecutiveOptimizedVisualizer,
   SubarraySumNestedVisualizer: SubarraySumNestedVisualizer,
+  SubarraySumPrefixSumVisualizer: SubarraySumPrefixSumVisualizer,
   Image: RoundedImage,
   a: CustomLink,
   code: Code,
