@@ -8,9 +8,9 @@ Given an array of integers `nums` and an integer `k`, return the total number of
 ```
 Example 1:
 
-Input: nums = [1, -1, 2, 3, 3, 4, 1, 5, 2], k = 8
-Output: 4
-Explanation: [1,-1, 2, 3, 3], [2, 3, 3], [3, 4, 1] and [1, 5, 2] are all possible subarrays whose sum = 8.
+Input: nums = [1, -1, 1, -1, 2, 3, 3, 4, 1, 5, 2], k = 8
+Output: 5
+Explanation: [1, -1, 1, -1, 2, 3, 3], [1,-1, 2, 3, 3], [2, 3, 3], [3, 4, 1] and [1, 5, 2] are all possible subarrays whose sum = 8.
 ```
 
 > **Playground:** [Leetcode 560](https://leetcode.com/problems/subarray-sum-equals-k/description/)
@@ -77,12 +77,14 @@ Hence, the overall space complexity = `O(1)`.
 ### Key observations
 
 The sum of any subarray can be expressed as the difference of two prefix sums. For example,
-in `nums = [1, -1, 2, 3, 3, 4, 1, 5, 2]`, the sum of the subarray `[3, 4, 1]` can be obtained by 
-`(prefixSum[6] - prefixSum[3])`.
+in `nums = [1, -1, 1, -1, 2, 3, 3, 4, 1, 5, 2]`, the sum of the subarray `[3, 4, 1]` can be obtained by 
+`(prefixSum[8] - prefixSum[5])`.
 
 ![key-observation-1](/subarray-sum-equals-k/key-observation-1.png)
 
-For any index `i`, there can be multiple subarrays ending at `i` whose sum equals `k`.
+Also, for any index `i`, there can be multiple subarrays ending at `i` whose sum equals `k`. For example,
+in `nums = [1, -1, 1, -1, 2, 3, 3, 4, 1, 5, 2]`, the subarrays `[1, -1, 1, -1, 2, 3, 3]`, 
+`[1,-1, 2, 3, 3]`, and `[2, 3, 3]` all end at index `6` and have a sum of `8`.
 
 ![key-observation-2](/subarray-sum-equals-k/key-observation-2.png)
 
