@@ -82,7 +82,7 @@ and `selectFloor(Elevator elevator, int desinationFloor)`.
 ```java
 class ElevatorSystem {
 
-    List<Elevator> elevators;
+    private final List<Elevator> elevators;
 
     public ElevatorSystem(int numElevators) {
         elevator = new ArrayList<>();
@@ -115,18 +115,97 @@ class ElevatorSystem {
 
 breaks single responsibility principle. Can mopdify the strategy of how 
 
+The dipatch logic relies on the **Strategy Pattern**, which enables the system to dynamically select and 
+swap between different algorithms for optimizing elevator allocation.
+
+```java
+class ElevatorSystem {
+
+    .
+    .
+    .
+
+    private final ElevatorDispatcher elevatorDispatcher;
+
+    public ElevatorSystem(...,  DispatchingStrategy strategy) {
+
+        .
+        .
+        . 
+
+        this.elevatorDispatcher = new ElevatorDispatcher(strategy);
+    }
+
+    // Handles a request for an elevator from a specific floor and direction
+    public void requestElevator(int currentFloor, Direction direction) {
+        elevatorDispatcher.dispatchElevator(currentFloor, direction, elevators);
+    }
+
+    .
+    .
+    .
+
+}
+```
+
 #### ElevatorDispatcher
 
 The `ElevatorDispatcher` class is responsible for assigning and directing `Elevator`s to handle lobby requests
 using a specified `DispatchingStrategy`.
 
-```
+```java
+public class ElevatorDispatcher {
 
+    private final DispatchingStrategy strategy;
+
+    public ElevatorDispatcher(DispatchingStrategy strategy) {
+        this.strategy = strategy;
+    }
+
+    // 
+    public void dispatchElevator(int floor, Direction direction, List<Elevator> elevators) {
+        Elevator selectedElevator = selectElevator(currentFloor, direction, elevators);
+        if (selectedElevator != null) {
+            selectedElevator.addFloorRequest(currentFloor);
+        } 
+    }
+}
 ```
 
 #### DispatchingStrategy
 
-The dipatch logic relies on the **Strategy Pattern**
+The `DispatchingStrategy` defines the specific rules for selecting an elevator when a loggy button is pressed.
+
+```java
+interface DispatchingStrategy {
+    Elevator selectElevator(int floor, Direction direction, List<Elevator> elevators)
+}
+```
+
+By abstracting the selection logic, the system is adaptable to various strategies, allowing flexibility 
+in optimizing the dispatch process. Common dispatching strategies include:
+
+##### First Come, First Serve (FCFS)
+
+Select the first elevator that is either idle (not moving) or 
+moving in the direction of the request. If no idle or direction-compatible elevators are found, the strategy randomly 
+selects an elevator from the list. This ensures every request is fulfilled, even if no perfect match is available.
+
+
+
+```java
+
+```
+
+##### Shortest Seek Tine First (SSTF)
+
+Prioritizes the elevator that is closest to the requested floor. It calculates the 
+absolute distance between the current floor of each elevator and the requested floor and selects the elevator that can reach
+the requested floor the quickest.
+
+```java
+
+```
 
 
 #### Elevator
