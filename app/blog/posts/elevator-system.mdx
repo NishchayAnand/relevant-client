@@ -76,7 +76,67 @@ This will help us build a system that is efficient, scalable, and optimized for 
 
 #### ElevatorSystem
 
+The `ElevatorSystem` class offers two primary methods for handling requests from users: `requestElevator(int currentFloor, Direction direction)`
+and `selectFloor(Elevator elevator, int desinationFloor)`.
 
+```java
+class ElevatorSystem {
+
+    List<Elevator> elevators;
+
+    public ElevatorSystem(int numElevators) {
+        elevator = new ArrayList<>();
+        for(int i = 0; i < numElevators; i++) {
+            elevators.add(new elevator());
+        }
+    }
+
+    // Handles a request for an elevator from a specific floor and direction
+    public void requestElevator(int currentFloor, Direction direction) {
+        Elevator selectedElevator = selectElevator(currentFloor, direction);
+        if (selectedElevator != null) {
+            selectedElevator.addFloorRequest(currentFloor);
+        }  
+    }
+
+    // Handles a floor selection request from inside an elevator
+    public void selectFloor(Elevator elevator, int desinationFloor) {
+        elevator.addFloorRequest(destinationFloor);
+    }
+
+    // Helper Method: 
+    private Elevator selectElevator(int floor, Direction direction) {
+        // 1. First-Come-First-Serve Strategy
+        // 2. Shortest-Seek-Time-First Strategy
+    }
+
+}
+```
+
+breaks single responsibility principle. Can mopdify the strategy of how 
+
+#### ElevatorDispatcher
+
+The `ElevatorDispatcher` class is responsible for assigning and directing `Elevator`s to handle lobby requests
+using a specified `DispatchingStrategy`.
+
+```
+
+```
+
+#### DispatchingStrategy
+
+The dipatch logic relies on the **Strategy Pattern**
+
+
+#### Elevator
+
+```java
+class Elevator {
+    private int id;
+
+}
+```
 
 
 
