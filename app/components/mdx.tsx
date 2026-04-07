@@ -32,6 +32,7 @@ import LongestConsecutiveSetVisualizer from './longest-consecutive-set-visualize
 import LongestConsecutiveOptimizedVisualizer from './longest-consecutive-optimized-visualizer';
 import SubarraySumNestedVisualizer from './subarray-sum-nested-visualizer';
 import SubarraySumPrefixSumVisualizer from './subarray-sum-prefix-sum-visualizer';
+import ElevatorFCFSVisualizer from './elevator-fcfs-visualizer';
 
 hljs.registerLanguage('javascript', javascript);
 
@@ -205,6 +206,7 @@ let components = {
   LongestConsecutiveOptimizedVisualizer: LongestConsecutiveOptimizedVisualizer,
   SubarraySumNestedVisualizer: SubarraySumNestedVisualizer,
   SubarraySumPrefixSumVisualizer: SubarraySumPrefixSumVisualizer,
+  ElevatorFCFSVisualizer: ElevatorFCFSVisualizer,
   Image: RoundedImage,
   a: CustomLink,
   code: Code,

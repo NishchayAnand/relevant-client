@@ -187,15 +187,29 @@ in optimizing the dispatch process. Common dispatching strategies include:
 
 ##### First Come, First Serve (FCFS)
 
-Select the first elevator that is either idle (not moving) or 
-moving in the direction of the request. If no idle or direction-compatible elevators are found, the strategy randomly 
-selects an elevator from the list. This ensures every request is fulfilled, even if no perfect match is available.
+Select the first elevator that is either idle (not moving) or moving in the direction of the request. 
+If no idle or direction-compatible elevators are found, the strategy randomly selects an elevator from the list. 
+This ensures every request is fulfilled, even if no perfect match is available.
 
-
+<ElevatorFCFSVisualizer />
 
 ```java
-
+public class FirstComeFirstServeStrategy implements DispatchingStrategy {
+    // selects the first available elevator that is either idle or moving in the same direction
+    @Override
+    public Elevator selectElevator(int floor, Direction direction, List<Elevator> elevators) {
+        for(Elevator elevator: elevators) {
+            // return the first elevator that is idle and moving int the same direction
+            if(elevator.isIdle() || elevator.getCurrentDirection() == direction) {
+                return elevator;
+            }
+        }
+        // If no suitable elevator is found, randonly select one
+        return elevators.get((int) ( Math.random() * elevators.size() ));
+    }
+}
 ```
+<br/>
 
 ##### Shortest Seek Tine First (SSTF)
 
