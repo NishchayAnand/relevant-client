@@ -187,7 +187,7 @@ in optimizing the dispatch process. Common dispatching strategies include:
 
 ##### First Come, First Serve (FCFS)
 
-Select the first elevator that is either idle (not moving) or moving in the direction of the request. 
+The `FirstComeFirstServeStrategy` selects the first elevator that is either idle (not moving) or moving in the direction of the request. 
 If no idle or direction-compatible elevators are found, the strategy randomly selects an elevator from the list. 
 This ensures every request is fulfilled, even if no perfect match is available.
 
@@ -213,14 +213,32 @@ public class FirstComeFirstServeStrategy implements DispatchingStrategy {
 
 ##### Shortest Seek Tine First (SSTF)
 
-Prioritizes the elevator that is closest to the requested floor. It calculates the 
-absolute distance between the current floor of each elevator and the requested floor and selects the elevator that can reach
-the requested floor the quickest.
+Prioritizes the elevator that is closest to the requested floor. 
+It calculates the absolute distance between the current floor of each elevator and the requested floor,
+and selects the elevator that can reach the requested floor the quickest.
 
 ```java
+public class ShortestSeekTimeFirstStrategy implements DispatchingStrategy {
+    // Selects the elevator that is closest to the requested floor and moving in the same direction
+    @Override
+    public Elevator selectElevator(int floor, Direction direction, List<Elevator> elevators) {
+        Elevator bestElevator = null;
+        int shortestDistance = Integer.MAX_VALUE;
 
+        for(Elevator elevator: elevators) {
+            // Calculate distance between elevator and the requested floor
+            int distance = Math.abs(elevator.getCurrentFloor() - floor);
+            // Select elevator if it's idle or moving in the same direction and closer than the current best
+            if((elevator.isIdle() || elevator.getCurrentDirection() == direction) && distance < shortestDistance) {
+                bestElevator = elevator;
+                shortestDistance = distance;
+            }
+        }
+
+        return bestElevator;
+    }
+}
 ```
-
 
 #### Elevator
 
