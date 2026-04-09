@@ -255,12 +255,13 @@ forcing the passenger to travel in the wrong direction first before the elevator
 In contrast, **Elevator A**, although farther away, is already moving upward and would naturally pick up the passenger on its way, 
 resulting in a faster and more efficient journey.
 
-##### Direction-Aware Strategy
+##### Direction-Aware Dispatch Strategy
 
+(continue from here)
 
 
 ```java
-public class ShortestSeekTimeFirstStrategy implements DispatchingStrategy {
+public class DirectionAwareDispatchStrategy implements DispatchingStrategy {
     // Selects the elevator that is closest to the requested floor and moving in the same direction
     @Override
     public Elevator selectElevator(int floor, Direction direction, List<Elevator> elevators) {
