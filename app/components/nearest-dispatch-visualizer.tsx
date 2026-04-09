@@ -188,21 +188,7 @@ export default function NearestDispatchVisualizer() {
           Reset
         </button>
       </div>
-
-      {/* Legend */}
-      <div style={{ display: "flex", gap: 14, fontSize: 12, color: "#888", marginBottom: 12, flexWrap: "wrap" }}>
-        {[
-          { bg: "#FAEEDA", border: "#EF9F27", label: "Waiting" },
-          { bg: "#EEEDFE", border: "#534AB7", label: "Being served" },
-          { bg: "#EAF3DE", border: "#639922", label: "Served" },
-        ].map(({ bg, border, label }) => (
-          <span key={label} style={{ display: "flex", alignItems: "center", gap: 4 }}>
-            <span style={{ width: 12, height: 12, borderRadius: "50%", background: bg, border: `1px solid ${border}`, display: "inline-block" }} />
-            {label}
-          </span>
-        ))}
-      </div>
-
+      
       {/* Status */}
       <div style={{ fontSize: 13, color: "#888", marginBottom: 12, minHeight: 18 }}>{status}</div>
 
@@ -327,10 +313,6 @@ export default function NearestDispatchVisualizer() {
                 );
               })
             )}
-            <div style={{ marginTop: 12, fontSize: 12, color: "#aaa", lineHeight: 1.6 }}>
-              The <b style={{ color: "#666" }}>nearest</b> idle elevator is selected for each request.<br />
-              Travel time is <b style={{ color: "#666" }}>~1 second per floor</b>.
-            </div>
           </div>
         </div>
       </div>
