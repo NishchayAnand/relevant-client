@@ -208,27 +208,32 @@ interface DispatchingStrategy {
 By abstracting the selection logic, the system is adaptable to various strategies, allowing flexibility 
 in optimizing the dispatch process. Common dispatching strategies include:
 
-##### First Come, First Serve (FCFS)
+##### NearestDispatchStrategy
 
-The `FirstComeFirstServeStrategy` selects the first elevator that is either idle (not moving) or moving in the direction of the request. 
-If no idle or direction-compatible elevators are found, the strategy randomly selects an elevator from the list. 
-This ensures every request is fulfilled, even if no perfect match is available.
+The `NearestDispatchStrategy` selects the elevator closest to the requested floor, 
+regardless of its state or the direction it's heading.
 
-<ElevatorFCFSVisualizer />
+<NearestDispatchVisualizer />
 
 ```java
-public class FirstComeFirstServeStrategy implements DispatchingStrategy {
-    // selects the first available elevator that is either idle or moving in the same direction
+public class NearestDispatchStrategy implements DispatchingStrategy {
+    // selects the elevator that is closest to the requested floor
     @Override
     public Elevator selectElevator(int floor, Direction direction, List<Elevator> elevators) {
+        Elevator bestElevator = null;
+        int shortestDistance = Integer.MAX_VALUE;
+
         for(Elevator elevator: elevators) {
-            // return the first elevator that is idle and moving in the same direction
-            if(elevator.isIdle() || elevator.getCurrentDirection() == direction) {
-                return elevator;
-            }
+            // Calculate distance between elevator and the requested floor
+            int distance = Math.abs(elevator.getCurrentFloor() - floor);
+
+            // Select elevator if it's closer than the current best
+            if(distance < shortestDistance) {
+                bestElevator = elevator;
+                shortestDistance = distance;
         }
-        // If no suitable elevator is found, randonly select one
-        return elevators.get((int) ( Math.random() * elevators.size() ));
+
+        return best;
     }
 }
 ```
@@ -263,6 +268,9 @@ public class ShortestSeekTimeFirstStrategy implements DispatchingStrategy {
 }
 ```
 
+// If no suitable elevator is found, randonly select one
+        return elevators.get((int) ( Math.random() * elevators.size() ));
+
 #### Elevator
 
 Why does direction need an IDLE state? When an elevator has no requests, it's not moving up or down. It's idle. 
@@ -277,7 +285,8 @@ The `move()` is iterating over requests and removing entries while `addRequest` 
 ```java
 class Elevator implements Runnable {
     private int currentFloor;
-    private Direction direction;
+    private Direction currentDirection;
+    private ElevatorState currentState;
     private final Queue<Integer> targetFloors;
 
     @Override

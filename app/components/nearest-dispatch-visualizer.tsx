@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import type { ChangeEvent, CSSProperties, ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 
 const FLOORS = [6, 5, 4, 3, 2, 1];
 const FLOOR_H = 52;
@@ -11,7 +11,7 @@ const ELV_COLORS = [
   { bg: "#FAEEDA", border: "#854F0B", text: "#633806", label: "C" },
   { bg: "#FAECE7", border: "#993C1D", text: "#712B13", label: "D" },
 ];
-const ICONS = ["★", "◆", "▲", "●", "■", "♥"];
+const PERSON_ICON = "🧍";
 
 type ElevatorColor = (typeof ELV_COLORS)[number];
 type BadgeType = "waiting" | "serving" | "done";
@@ -23,6 +23,7 @@ type Elevator = {
   target: number | null;
   label: string;
   color: ElevatorColor;
+  transitionMs: number;
 };
 
 type QueueRequest = {
@@ -31,11 +32,10 @@ type QueueRequest = {
 };
 
 type Person = {
-  icon: string;
   served: boolean;
 };
 
-type PeopleByFloor = Partial<Record<number, Person[]>>;
+type PeopleByFloor = Partial<Record<number, Person>>;
 
 type LogEntry = {
   text: string;
@@ -61,6 +61,7 @@ function initElevators(count: number): Elevator[] {
     target: null,
     label: ELV_COLORS[i].label,
     color: ELV_COLORS[i],
+    transitionMs: 0,
   }));
 }
 
@@ -80,14 +81,12 @@ function Badge({ type, children }: BadgeProps) {
   );
 }
 
-export default function FCFSElevator() {
-  const [numElvs, setNumElvs] = useState(3);
+export default function NearestDispatchVisualizer() {
   const [elevators, setElevators] = useState<Elevator[]>(() => initElevators(3));
   const [queue, setQueue] = useState<QueueRequest[]>([]);
   const [people, setPeople] = useState<PeopleByFloor>({});
   const [logs, setLogs] = useState<LogEntry[]>([]);
-  const [status, setStatus] = useState<ReactNode>(<>Press <b>Add request</b> or click a floor button to begin.</>);
-  const [moving, setMoving] = useState(false);
+  const [status, setStatus] = useState<ReactNode>(<>Click a floor button to make a request.</>);
   const logRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -98,94 +97,75 @@ export default function FCFSElevator() {
     setLogs(prev => [...prev, msg]);
   }, []);
 
-  const reset = useCallback((count = numElvs) => {
-    setElevators(initElevators(count));
+  const reset = useCallback(() => {
+    setElevators(initElevators(3));
     setQueue([]);
     setPeople({});
     setLogs([]);
-    setMoving(false);
-    setStatus(<>Reset. Press <b>Add request</b> or click a floor button to begin.</>);
-  }, [numElvs]);
+    setStatus(<>Reset. Click a floor button to make a request.</>);
+  }, []);
 
-  const handleElvCountChange = (e: ChangeEvent<HTMLSelectElement>) => {
-    const n = parseInt(e.target.value, 10);
-    setNumElvs(n);
-    reset(n);
-  };
+  // Auto-dispatch: whenever there is an unassigned request and an idle elevator, dispatch immediately
+  useEffect(() => {
+    const pendingIdx = queue.findIndex(r => r.assignedTo === null);
+    if (pendingIdx === -1) return;
+    const idleElvs = elevators.filter(e => !e.busy);
+    if (idleElvs.length === 0) return;
+
+    const req = queue[pendingIdx];
+    let nearestElv = idleElvs[0];
+    let minDist = Math.abs(nearestElv.floor - req.floor);
+    for (const elv of idleElvs) {
+      const dist = Math.abs(elv.floor - req.floor);
+      if (dist < minDist) { nearestElv = elv; minDist = dist; }
+    }
+
+    const travelMs = minDist === 0 ? 400 : minDist * 1000;
+
+    setElevators(prev => prev.map(e =>
+      e.id === nearestElv.id ? { ...e, busy: true, target: req.floor, transitionMs: travelMs } : e
+    ));
+    setQueue(prev => prev.map((r, i) => i === pendingIdx ? { ...r, assignedTo: nearestElv.id } : r));
+    addLog({ text: `Elevator ${nearestElv.label} dispatched: F${nearestElv.floor} → F${req.floor} (${minDist} floor${minDist !== 1 ? 's' : ''} away)`, elvId: nearestElv.id });
+    setStatus(<>Elevator <b>{nearestElv.label}</b> heading to F<b>{req.floor}</b> &mdash; <b>{minDist}</b> floor{minDist !== 1 ? 's' : ''} away.</>);
+
+    const elvId = nearestElv.id;
+    const targetFloor = req.floor;
+    const elvLabel = nearestElv.label;
+    setTimeout(() => {
+      setElevators(prev => prev.map(e =>
+        e.id === elvId ? { ...e, floor: targetFloor, busy: false, target: null, transitionMs: 0 } : e
+      ));
+      setPeople(prev => {
+        const next = { ...prev };
+        if (next[targetFloor]) next[targetFloor] = { served: true };
+        return next;
+      });
+      setQueue(prev => {
+        const remaining = prev.filter(r => !(r.floor === targetFloor && r.assignedTo === elvId));
+        setStatus(remaining.length > 0
+          ? <><b>{remaining.length}</b> request(s) remaining.</>
+          : <>All requests served.</>);
+        return remaining;
+      });
+      addLog({ text: `Elevator ${elvLabel} arrived at F${targetFloor} — passengers picked up`, elvId: elvId });
+    }, travelMs);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [queue, elevators]);
 
   const addFloor = useCallback((f: number) => {
-    if (moving) return;
-    const icon = ICONS[Math.floor(Math.random() * ICONS.length)];
-    setPeople(prev => ({
-      ...prev,
-      [f]: [...(prev[f] || []), { icon, served: false }],
-    }));
+    setPeople(prev => ({ ...prev, [f]: { served: false } }));
     setQueue(prev => {
       const next = [...prev, { floor: f, assignedTo: null }];
-      addLog({ text: `Request added: Floor ${f} — position ${next.length} in queue`, floor: f });
-      setStatus(<>Floor <b>{f}</b> added. Queue: <b>{next.length}</b> request(s).</>);
+      addLog({ text: `Request added: Floor ${f}`, floor: f });
       return next;
     });
-  }, [moving, addLog]);
+  }, [addLog]);
 
   const addRandom = useCallback(() => {
     const f = FLOORS[Math.floor(Math.random() * FLOORS.length)];
     addFloor(f);
   }, [addFloor]);
-
-  const step = useCallback(() => {
-    if (queue.length === 0 || moving) return;
-
-    const idleElvs = elevators.filter(e => !e.busy);
-    const toDispatch = Math.min(idleElvs.length, queue.length);
-    if (toDispatch === 0) return;
-
-    const newQueue = [...queue];
-    const newElevators = [...elevators];
-
-    for (let d = 0; d < toDispatch; d++) {
-      const req = newQueue[d];
-      const elv = idleElvs[d];
-      req.assignedTo = elv.id;
-      const elvIdx = newElevators.findIndex(e => e.id === elv.id);
-      newElevators[elvIdx] = { ...newElevators[elvIdx], busy: true, target: req.floor };
-      addLog({ text: `Elevator ${elv.label} dispatched: F${elv.floor} → F${req.floor}`, elvId: elv.id });
-    }
-
-    setElevators(newElevators);
-    setQueue(newQueue);
-    setMoving(true);
-
-    setTimeout(() => {
-      setElevators(prev => {
-        const updated = [...prev];
-        for (let d = 0; d < toDispatch; d++) {
-          const req = newQueue[d];
-          const idx = updated.findIndex(e => e.id === req.assignedTo);
-          updated[idx] = { ...updated[idx], floor: req.floor, busy: false, target: null };
-          addLog({ text: `Elevator ${updated[idx].label} arrived at F${req.floor} — passengers picked up`, elvId: req.assignedTo });
-        }
-        return updated;
-      });
-      setPeople(prev => {
-        const next = { ...prev };
-        for (let d = 0; d < toDispatch; d++) {
-          const f = newQueue[d].floor;
-          if (next[f]) next[f] = next[f].map(p => ({ ...p, served: true }));
-        }
-        return next;
-      });
-      setQueue(prev => {
-        const remaining = prev.slice(toDispatch);
-        setStatus(remaining.length > 0
-          ? <><b>{remaining.length}</b> request(s) remaining.</>
-          : <>All dispatched elevators arrived. Queue is empty.</>
-        );
-        return remaining;
-      });
-      setMoving(false);
-    }, 700);
-  }, [queue, elevators, moving, addLog]);
 
     const getFloorBtnClass = (f: number): CSSProperties => {
     const inQ = queue.filter(x => x.floor === f).length;
@@ -202,36 +182,11 @@ export default function FCFSElevator() {
       {/* Controls */}
       <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginBottom: 12 }}>
         <button
-          onClick={addRandom}
-          style={{ fontSize: 13, padding: "6px 14px", borderRadius: 8, cursor: "pointer", border: "none", background: "#534AB7", color: "#EEEDFE", fontWeight: 500 }}
-        >
-          + Add request
-        </button>
-        <button
-          onClick={step}
-          disabled={queue.length === 0 || moving}
-          style={{ fontSize: 13, padding: "6px 14px", borderRadius: 8, cursor: queue.length === 0 || moving ? "default" : "pointer", border: "0.5px solid #ccc", background: "transparent", opacity: queue.length === 0 || moving ? 0.4 : 1 }}
-        >
-          Serve next ▶
-        </button>
-        <button
           onClick={() => reset()}
           style={{ fontSize: 13, padding: "6px 14px", borderRadius: 8, cursor: "pointer", border: "0.5px solid #ccc", background: "transparent" }}
         >
           Reset
         </button>
-        <label style={{ fontSize: 13, color: "#666" }}>
-          Elevators:&nbsp;
-          <select
-            value={numElvs}
-            onChange={handleElvCountChange}
-            style={{ fontSize: 13, padding: "3px 6px", borderRadius: 8, border: "0.5px solid #ccc", marginLeft: 4 }}
-          >
-            <option value={2}>2</option>
-            <option value={3}>3</option>
-            <option value={4}>4</option>
-          </select>
-        </label>
       </div>
 
       {/* Legend */}
@@ -273,16 +228,17 @@ export default function FCFSElevator() {
               >
                 {f}
               </button>
-              <div style={{ display: "flex", gap: 3, alignItems: "center", marginLeft: 8 }}>
-                {(people[f] || []).map((p: Person, i: number) => (
-                  <div key={i} style={{
-                    width: 14, height: 14, borderRadius: "50%", fontSize: 9,
+              <div style={{ marginLeft: 8, flexShrink: 0 }}>
+                {people[f] && (
+                  <div style={{
+                    width: 22, height: 22, borderRadius: "50%", fontSize: 13,
                     display: "flex", alignItems: "center", justifyContent: "center",
-                    background: p.served ? "#EAF3DE" : "#FAEEDA", flexShrink: 0,
+                    background: people[f].served ? "#EAF3DE" : "#FAEEDA",
+                    border: `1px solid ${people[f].served ? "#639922" : "#EF9F27"}`,
                   }}>
-                    {p.icon}
+                    {PERSON_ICON}
                   </div>
-                ))}
+                )}
               </div>
             </div>
           ))}
@@ -304,8 +260,8 @@ export default function FCFSElevator() {
                   justifyContent: "center",
                   background: elv.color.bg,
                   border: `1.5px solid ${elv.color.border}`,
-                  transition: "top 0.65s cubic-bezier(.4,0,.2,1)",
-                  top: floorTop(elv.floor),
+                  transition: `top ${elv.transitionMs > 0 ? elv.transitionMs : 400}ms cubic-bezier(.4,0,.2,1)`,
+                  top: floorTop(elv.busy && elv.target !== null ? elv.target : elv.floor),
                   zIndex: 10,
                 }}>
                   <div style={{ fontSize: 11, color: elv.color.text, fontWeight: 500 }}>{elv.label}</div>
@@ -339,7 +295,7 @@ export default function FCFSElevator() {
           {/* Queue */}
           <div>
             <h3 style={{ fontSize: 12, fontWeight: 500, color: "#999", textTransform: "uppercase", letterSpacing: ".04em", margin: "0 0 8px" }}>
-              Request queue (FCFS)
+              Nearest Dispatch Queue
             </h3>
             {queue.length === 0 ? (
               <div style={{ fontSize: 13, color: "#aaa", padding: "6px 0" }}>No requests yet</div>
@@ -372,8 +328,8 @@ export default function FCFSElevator() {
               })
             )}
             <div style={{ marginTop: 12, fontSize: 12, color: "#aaa", lineHeight: 1.6 }}>
-              New requests go to the <b style={{ color: "#666" }}>back</b>.<br />
-              Elevator serves from the <b style={{ color: "#666" }}>front</b>.
+              The <b style={{ color: "#666" }}>nearest</b> idle elevator is selected for each request.<br />
+              Travel time is <b style={{ color: "#666" }}>~1 second per floor</b>.
             </div>
           </div>
         </div>
