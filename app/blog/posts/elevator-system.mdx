@@ -27,6 +27,8 @@ floor and current direction of travel.
 The two primary responsibilies of an elevator system is to allow users to request an elevator from any floor lobby, and 
 selecting a destination floor from inside the elevator. 
 
+extra : two distinct types of stops: hall calls with a direction (UP or DOWN), and destination requests without a direction. This will influence our design later.
+
 Here’s how each works:
 
 #### Use Case 1: Request Elevator From Floor Lobby
@@ -50,7 +52,9 @@ The elevator adjusts its path to accomodate the request, ensuring it serves the 
 
 ---
 
-### Identifying Core Entities
+### Object Model Design
+
+Identifying Core Entities
 
 #### User
 
@@ -65,11 +69,27 @@ ensure minimal wait time.
 
 #### Elevator
 
-Represents an individual elevator unit.
+Represents an individual elevator in the system. It keeps track of the elevator's current floor, its movement direction,
+and the list of floors it needs to visit. Each elevator behaves like an independent system. Therefore, each elevator runs its 
+own thread.
 
 ---
 
-### Object Model Design
+### Architecture Overview
+
+#### Main Thread
+- Handles incoming requests (requestElevator)
+- Uses Scheduler to assign elevators
+
+#### Elevator Threads (1 per elevator)
+- Continuously run
+- Pull from their own request queues
+- Execute move() logic
+
+<br/>
+---
+
+### Low-Level Design
 
 Let's discuss the low-level design and complexities for each functionality.
 This will help us build a system that is efficient, scalable, and optimized for real-world usage.
@@ -88,6 +108,9 @@ class ElevatorSystem {
         elevator = new ArrayList<>();
         for(int i = 0; i < numElevators; i++) {
             elevators.add(new elevator());
+
+            Thread t = new Thread(e);
+            t.start(); // starts continuous movement loop 
         }
     }
 
@@ -164,7 +187,7 @@ public class ElevatorDispatcher {
 
     // 
     public void dispatchElevator(int floor, Direction direction, List<Elevator> elevators) {
-        Elevator selectedElevator = selectElevator(currentFloor, direction, elevators);
+        Elevator selectedElevator = strategy.selectElevator(currentFloor, direction, elevators);
         if (selectedElevator != null) {
             selectedElevator.addFloorRequest(currentFloor);
         } 
@@ -199,7 +222,7 @@ public class FirstComeFirstServeStrategy implements DispatchingStrategy {
     @Override
     public Elevator selectElevator(int floor, Direction direction, List<Elevator> elevators) {
         for(Elevator elevator: elevators) {
-            // return the first elevator that is idle and moving int the same direction
+            // return the first elevator that is idle and moving in the same direction
             if(elevator.isIdle() || elevator.getCurrentDirection() == direction) {
                 return elevator;
             }
@@ -242,17 +265,73 @@ public class ShortestSeekTimeFirstStrategy implements DispatchingStrategy {
 
 #### Elevator
 
+Why does direction need an IDLE state? When an elevator has no requests, it's not moving up or down. It's idle. 
+We need an explicit state to represent "not moving" so the elevator doesn't keep drifting up or down forever. 
+Some candidates try to get away with just UP and DOWN, then realize they can't handle the "no requests" case cleanly.
+
+addRequest is a unified interface used both by the controller (for hall calls) and by passengers (for destinations). The elevator doesn't care why it's 
+stopping at floor 5. It just adds the request to the queue.
+
+The `move()` is iterating over requests and removing entries while `addRequest` is adding to the same set.
+
 ```java
-class Elevator {
-    private int id;
+class Elevator implements Runnable {
+    private int currentFloor;
+    private Direction direction;
+    private final Queue<Integer> targetFloors;
+
+    @Override
+    public void run() {
+        while(true) {
+            try {
+                move();
+                Thread.sleep(1000); // simulate time between floors
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }
+    }
+
+    public void move() {
+        // Strategy 1: First In, First Out
+        // Strategy 2: Always Go to the nearest stop
+        // Strategy 3: SCAN (Continue until clear, then reverse)
+    }
 
 }
 ```
 
+#### MovementStrategy
 
+By abstracting the movement logic, the system is adaptable to various strategies, allowing flexibility 
+in optimizing the movement process. Common moving strategies include:
 
----
+#####  First In, First Out
+
+```java
+// code here
+```
+
+##### Always Go to the nearest stop
+
+```java
+// code here
+```
+
+##### SCAN (Continue until clear, then reverse)
+
+```java
+// code here
+```
+<br/>
 
 ### Final UML Diagram
 
 ---
+
+### Extra 
+
+In our design, we'll choose to immediately dispatch hall calls to an elevator when they arrive so the controller only needs the list of elevators and doesn't maintain a queue of unassigned requests. It picks an elevator right away and tells that elevator to add the request to its queue. This keeps the controller stateless beyond just holding the elevators.
+We could design this differently. Maintain a queue of pending requests on the controller and have elevators pull from it. Both approaches work. The immediate dispatch model is simpler for an interview, but if the interviewer asks "what if all elevators are busy?", you'd want the queue model. Always be ready to explain your tradeoffs.
+
+If multiple people want floor 7 for different reasons (going up, going down, or as a destination), we just stop there once.
