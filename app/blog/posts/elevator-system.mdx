@@ -100,6 +100,11 @@ The `ElevatorSystem` class offers two primary methods for handling requests from
 and `selectFloor(Elevator elevator, int desinationFloor)`.
 
 ```java
+enum Direction {
+    UP,
+    DOWN
+}
+
 class ElevatorSystem {
 
     private final List<Elevator> elevators;
@@ -208,10 +213,9 @@ interface DispatchingStrategy {
 By abstracting the selection logic, the system is adaptable to various strategies, allowing flexibility 
 in optimizing the dispatch process. Common dispatching strategies include:
 
-##### NearestDispatchStrategy
+##### Nearest Dispatch Strategy
 
-The `NearestDispatchStrategy` selects the elevator closest to the requested floor, 
-regardless of its state or the direction it's heading.
+Select the elevator closest to the requested floor, regardless of its state or the direction it's heading.
 
 <NearestDispatchVisualizer />
 
@@ -238,13 +242,22 @@ public class NearestDispatchStrategy implements DispatchingStrategy {
     }
 }
 ```
-<br/>
 
-##### Shortest Seek Tine First (SSTF)
+The **Nearest Dispatch** strategy works well when the system is simple, traffic is low, and most elevators are idle, 
+since choosing the closest elevator minimizes immediate pickup time. 
 
-Prioritizes the elevator that is closest to the requested floor. 
-It calculates the absolute distance between the current floor of each elevator and the requested floor,
-and selects the elevator that can reach the requested floor the quickest.
+However, it breaks down in more realistic scenarios where elevator direction and movement patterns matter. 
+For example, a request is made from floor 5 to go up, while **Elevator A** is at floor 2 moving upward and **Elevator B** is at floor 6 moving downward toward floor 1. 
+The nearest dispatch algorithm selects **Elevator B** because it is closest in terms of distance. 
+
+This leads to inefficient behavior: **Elevator B** moves down to floor 5, picks up the passenger, and then continues downward due to its current direction, 
+forcing the passenger to travel in the wrong direction first before the elevator eventually reverses and goes up. 
+In contrast, **Elevator A**, although farther away, is already moving upward and would naturally pick up the passenger on its way, 
+resulting in a faster and more efficient journey.
+
+##### Direction-Aware Strategy
+
+
 
 ```java
 public class ShortestSeekTimeFirstStrategy implements DispatchingStrategy {
