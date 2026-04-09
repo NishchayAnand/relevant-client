@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import type { CSSProperties, ReactNode } from "react";
 
 const FLOORS = [6, 5, 4, 3, 2, 1];
@@ -36,12 +36,6 @@ type Person = {
 };
 
 type PeopleByFloor = Partial<Record<number, Person>>;
-
-type LogEntry = {
-  text: string;
-  elvId?: number | null;
-  floor?: number;
-};
 
 type BadgeProps = {
   type: BadgeType;
@@ -85,23 +79,12 @@ export default function NearestDispatchVisualizer() {
   const [elevators, setElevators] = useState<Elevator[]>(() => initElevators(3));
   const [queue, setQueue] = useState<QueueRequest[]>([]);
   const [people, setPeople] = useState<PeopleByFloor>({});
-  const [logs, setLogs] = useState<LogEntry[]>([]);
   const [status, setStatus] = useState<ReactNode>(<>Click a floor button to make a request.</>);
-  const logRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight;
-  }, [logs]);
-
-  const addLog = useCallback((msg: LogEntry) => {
-    setLogs(prev => [...prev, msg]);
-  }, []);
 
   const reset = useCallback(() => {
     setElevators(initElevators(3));
     setQueue([]);
     setPeople({});
-    setLogs([]);
     setStatus(<>Reset. Click a floor button to make a request.</>);
   }, []);
 
@@ -126,7 +109,6 @@ export default function NearestDispatchVisualizer() {
       e.id === nearestElv.id ? { ...e, busy: true, target: req.floor, transitionMs: travelMs } : e
     ));
     setQueue(prev => prev.map((r, i) => i === pendingIdx ? { ...r, assignedTo: nearestElv.id } : r));
-    addLog({ text: `Elevator ${nearestElv.label} dispatched: F${nearestElv.floor} → F${req.floor} (${minDist} floor${minDist !== 1 ? 's' : ''} away)`, elvId: nearestElv.id });
     setStatus(<>Elevator <b>{nearestElv.label}</b> heading to F<b>{req.floor}</b> &mdash; <b>{minDist}</b> floor{minDist !== 1 ? 's' : ''} away.</>);
 
     const elvId = nearestElv.id;
@@ -148,7 +130,6 @@ export default function NearestDispatchVisualizer() {
           : <>All requests served.</>);
         return remaining;
       });
-      addLog({ text: `Elevator ${elvLabel} arrived at F${targetFloor} — passengers picked up`, elvId: elvId });
     }, travelMs);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [queue, elevators]);
@@ -157,10 +138,9 @@ export default function NearestDispatchVisualizer() {
     setPeople(prev => ({ ...prev, [f]: { served: false } }));
     setQueue(prev => {
       const next = [...prev, { floor: f, assignedTo: null }];
-      addLog({ text: `Request added: Floor ${f}`, floor: f });
       return next;
     });
-  }, [addLog]);
+  }, []);
 
   const addRandom = useCallback(() => {
     const f = FLOORS[Math.floor(Math.random() * FLOORS.length)];
@@ -179,22 +159,9 @@ export default function NearestDispatchVisualizer() {
 
   return (
     <div style={{ fontFamily: "sans-serif", padding: "1rem 0" }}>
-      {/* Controls */}
-      <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginBottom: 12 }}>
-        <button
-          onClick={() => reset()}
-          style={{ fontSize: 13, padding: "6px 14px", borderRadius: 8, cursor: "pointer", border: "0.5px solid #ccc", background: "transparent" }}
-        >
-          Reset
-        </button>
-      </div>
-      
-      {/* Status */}
-      <div style={{ fontSize: 13, color: "#888", marginBottom: 12, minHeight: 18 }}>{status}</div>
+      <div style={{ display: "flex", gap: 28, alignItems: "flex-start" }}>
 
-      {/* Main layout */}
-      <div style={{ display: "flex", gap: 20, alignItems: "flex-start" }}>
-        {/* Building */}
+        {/* Left: Building simulator */}
         <div style={{ flexShrink: 0, position: "relative" }}>
           {FLOORS.map((f) => (
             <div key={f} style={{ display: "flex", alignItems: "center", height: FLOOR_H, borderTop: "0.5px solid #e0e0e0" }}>
@@ -258,19 +225,33 @@ export default function NearestDispatchVisualizer() {
           </div>
         </div>
 
-        {/* Right panel */}
-        <div style={{ flex: 1, minWidth: 0 }}>
+        {/* Right: Details panel */}
+        <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 16 }}>
+
+          {/* Status + Reset */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+            <div style={{ fontSize: 13, color: "#888", minHeight: 18 }}>{status}</div>
+            <button
+              onClick={() => reset()}
+              style={{ fontSize: 12, padding: "5px 12px", borderRadius: 8, cursor: "pointer", border: "0.5px solid #ddd", background: "transparent", color: "#888", flexShrink: 0 }}
+            >
+              Reset
+            </button>
+          </div>
+
           {/* Elevator status cards */}
-          <div style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             {elevators.map((elv) => (
               <div key={elv.id} style={{
-                flex: 1, minWidth: 100, border: `0.5px solid ${elv.color.border}`,
+                flex: 1, minWidth: 90, border: `0.5px solid ${elv.color.border}`,
                 borderRadius: 8, padding: "10px 12px", background: "#fff",
               }}>
                 <div style={{ fontSize: 11, fontWeight: 500, color: elv.color.text, marginBottom: 4 }}>
                   Elevator {elv.label}
                 </div>
-                <div style={{ fontSize: 20, fontWeight: 500, color: elv.color.text }}>F{elv.floor}</div>
+                <div style={{ fontSize: 20, fontWeight: 500, color: elv.color.text }}>
+                  F{elv.busy && elv.target !== null ? elv.target : elv.floor}
+                </div>
                 <div style={{ fontSize: 11, color: "#999", marginTop: 2 }}>
                   {elv.busy ? `Going to F${elv.target}` : "Idle"}
                 </div>
@@ -280,25 +261,21 @@ export default function NearestDispatchVisualizer() {
 
           {/* Queue */}
           <div>
-            <h3 style={{ fontSize: 12, fontWeight: 500, color: "#999", textTransform: "uppercase", letterSpacing: ".04em", margin: "0 0 8px" }}>
-              Nearest Dispatch Queue
-            </h3>
+            <div style={{ fontSize: 11, fontWeight: 500, color: "#999", textTransform: "uppercase", letterSpacing: ".06em", marginBottom: 8 }}>
+              Dispatch Queue
+            </div>
             {queue.length === 0 ? (
-              <div style={{ fontSize: 13, color: "#aaa", padding: "6px 0" }}>No requests yet</div>
+              <div style={{ fontSize: 13, color: "#bbb" }}>No pending requests</div>
             ) : (
               queue.map((req, i) => {
-                const isActive = req.assignedTo != null || (i === 0 && elevators.some(e => !e.busy));
-                const statusEl = req.assignedTo != null
-                  ? <Badge type="serving">Elv {ELV_COLORS[req.assignedTo].label}</Badge>
-                  : i === 0 && elevators.some(e => !e.busy)
-                    ? <Badge type="serving">Next</Badge>
-                    : <Badge type="waiting">Waiting</Badge>;
+                const assigned = req.assignedTo != null;
+                const elv = assigned ? elevators.find(e => e.id === req.assignedTo) : null;
                 return (
                   <div key={i} style={{
                     display: "flex", alignItems: "center", gap: 8, fontSize: 13,
                     padding: "6px 10px", borderRadius: 8, marginBottom: 4,
-                    border: "0.5px solid #ddd",
-                    background: isActive ? "#f5f5f5" : "#fff",
+                    border: `0.5px solid ${assigned && elv ? elv.color.border : "#ddd"}`,
+                    background: assigned && elv ? elv.color.bg : "#fff",
                   }}>
                     <div style={{
                       width: 18, height: 18, borderRadius: "50%", fontSize: 11,
@@ -307,32 +284,18 @@ export default function NearestDispatchVisualizer() {
                     }}>
                       {i + 1}
                     </div>
-                    <span>Floor {req.floor}</span>
-                    {statusEl}
+                    <span style={{ flex: 1 }}>Floor {req.floor}</span>
+                    {assigned && elv
+                      ? <Badge type="serving">Elv {elv.label}</Badge>
+                      : <Badge type="waiting">Waiting</Badge>
+                    }
                   </div>
                 );
               })
             )}
           </div>
-        </div>
-      </div>
 
-      {/* Log */}
-      <div ref={logRef} style={{
-        marginTop: 16, borderTop: "0.5px solid #eee", paddingTop: 10,
-        maxHeight: 100, overflowY: "auto",
-      }}>
-        {logs.map((entry, i) => {
-          const elv = entry.elvId != null ? elevators.find(e => e.id === entry.elvId) : null;
-          return (
-            <div key={i} style={{ fontSize: 12, color: "#aaa", padding: "1px 0" }}>
-              {elv
-                ? <><span style={{ color: elv.color.border, fontWeight: 500 }}>Elevator {elv.label}</span>{" "}{entry.text.replace(`Elevator ${elv.label} `, "")}</>
-                : entry.text
-              }
-            </div>
-          );
-        })}
+        </div>
       </div>
     </div>
   );
