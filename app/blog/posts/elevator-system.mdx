@@ -184,9 +184,9 @@ using a specified `DispatchingStrategy`.
 ```java
 public class ElevatorDispatcher {
 
-    private final DispatchingStrategy strategy;
+    private final ElevatorDispatchStrategy strategy;
 
-    public ElevatorDispatcher(DispatchingStrategy strategy) {
+    public ElevatorDispatcher(ElevatorDispatchStrategy strategy) {
         this.strategy = strategy;
     }
 
@@ -202,10 +202,10 @@ public class ElevatorDispatcher {
 
 #### DispatchingStrategy
 
-The `DispatchingStrategy` defines the specific rules for selecting an elevator when a loggy button is pressed.
+The `ElevatorDispatchStrategy` defines the specific rules for selecting an elevator when a loggy button is pressed.
 
 ```java
-interface DispatchingStrategy {
+interface ElevatorDispatchStrategy {
     Elevator selectElevator(int floor, Direction direction, List<Elevator> elevators)
 }
 ```
@@ -213,7 +213,7 @@ interface DispatchingStrategy {
 By abstracting the selection logic, the system is adaptable to various strategies, allowing flexibility 
 in optimizing the dispatch process. Common dispatching strategies include:
 
-##### Nearest Dispatch Strategy
+##### Nearest Elevator Dispatch Strategy
 
 Select the elevator closest to the requested floor, regardless of its state or the direction it's heading.
 
@@ -221,7 +221,7 @@ Select the elevator closest to the requested floor, regardless of its state or t
 
 <br/>
 ```java
-public class NearestDispatchStrategy implements DispatchingStrategy {
+public class NearestElevatorDispatchStrategy implements DispatchingStrategy {
     // selects the elevator that is closest to the requested floor
     @Override
     public Elevator selectElevator(int floor, Direction direction, List<Elevator> elevators) {
@@ -243,7 +243,7 @@ public class NearestDispatchStrategy implements DispatchingStrategy {
 }
 ```
 
-The **Nearest Dispatch** strategy works well when the system is simple, traffic is low, and most elevators are idle, 
+The **Nearest Elevator Dispatch** strategy works well when the system is simple, traffic is low, and most elevators are idle, 
 since choosing the closest elevator minimizes immediate pickup time. 
 
 However, it breaks down in more realistic scenarios where elevator direction and movement patterns matter. 
@@ -255,11 +255,68 @@ forcing the passenger to travel in the wrong direction first before the elevator
 In contrast, **Elevator A**, although farther away, is already moving upward and would naturally pick up the passenger on its way, 
 resulting in a faster and more efficient journey.
 
+##### Idle Elevator Dispatch Strategy
+
+Prioritizes elevators that are currently not serving any requests and are free to respond immediately.
+
+It is generally better than the **Nearest Elevator Dispatch** strategy because it avoids assigning requests to elevators 
+that are already busy or moving in the wrong direction, leading to more predictable and often faster service.
+
+<IdleDispatchVisualizer />
+
+<br/>
+```java
+enum State {
+    IDLE,
+    MOVING
+}
+
+class IdleElevatorDispatchStrategy implements ElevatorDispatchStrategy {
+
+    // selects the elevator that is IDLE and closest to the requested floor
+    @Override
+    public Elevator selectElevator(int floor, Direction direction, List<Elevator> elevators) {
+        Elevator bestElevator = null;
+        int shortestDistance = Integer.MAX_VALUE;
+
+        for(Elevator elevator: elevators) {
+            if (elevator.getCurrentState() == State.IDLE) {
+                // Calculate distance between elevator and the requested floor
+                int distance = Math.abs(elevator.getCurrentFloor() - floor);
+
+                // Select elevator if it's closer than the current best
+                if(distance < shortestDistance) {
+                    bestElevator = elevator;
+                    shortestDistance = distance;
+                }
+            }
+        }
+
+        return best; // can be null
+    }
+    
+}
+```
+
+The **Idle Elevator** dispatch strategy is good when there are free elevators available, as they have no pending requests or directional
+commitments and can respond immediately to new calls. 
+
+However, there could be scenarios where:
+
+1. A moving elevator may already be heading toward the requested floor and could pick up the 
+passenger naturally. By prioritizing an idle elevator instead, the system may send a father or less optimal elevator. This behavior 
+can increase overall wait times and degrade the system's efficiency.
+
+2. No elevators are idle.
+
 ##### Direction-Aware Dispatch Strategy
 
-(continue from here)
+Assigns elevator requests only to those elevators that are already moving in the same direction 
+and will naturally pass the requested floor along their current path.
 
+<DirectionAwareVisualizer />
 
+<br/>
 ```java
 public class DirectionAwareDispatchStrategy implements DispatchingStrategy {
     // Selects the elevator that is closest to the requested floor and moving in the same direction
@@ -269,22 +326,38 @@ public class DirectionAwareDispatchStrategy implements DispatchingStrategy {
         int shortestDistance = Integer.MAX_VALUE;
 
         for(Elevator elevator: elevators) {
+            // skip if elevator is moving in the opposite direction     
+            if (elevator.getCurrentDirection() != direction) {
+                continue;
+            }
+            
+            // skip if elevator has already crossed the requested floor
+            if( (direction == Direction.UP && elevator.getCurrentFloor > floor) ||
+                (direction == Direction.DOWN && elevator.getCurrentFloor < floor) ) {
+                    continue;
+            }
+            
             // Calculate distance between elevator and the requested floor
             int distance = Math.abs(elevator.getCurrentFloor() - floor);
-            // Select elevator if it's idle or moving in the same direction and closer than the current best
-            if((elevator.isIdle() || elevator.getCurrentDirection() == direction) && distance < shortestDistance) {
+
+            // Select elevator if it's closer than the current best
+            if(distance < shortestDistance) {
                 bestElevator = elevator;
                 shortestDistance = distance;
             }
         }
 
-        return bestElevator;
+        return bestElevator; // can be null;
     }
 }
 ```
 
-// If no suitable elevator is found, randonly select one
-        return elevators.get((int) ( Math.random() * elevators.size() ));
+While the **Direction-Aware** dispatch strategy improves efficiency, it also introduces a key limitation.
+In some situations, no elevator satisfies both conditions. 
+
+For example, all elevators might be moving in the 
+opposite direction or may have already passed the requested floor. In such cases, the strategy cannot make a 
+valid assignment on its own and must rely on fallback approaches like idle or nearest elevator selection.
 
 #### Elevator
 

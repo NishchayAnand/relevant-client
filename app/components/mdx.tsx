@@ -33,6 +33,8 @@ import LongestConsecutiveOptimizedVisualizer from './longest-consecutive-optimiz
 import SubarraySumNestedVisualizer from './subarray-sum-nested-visualizer';
 import SubarraySumPrefixSumVisualizer from './subarray-sum-prefix-sum-visualizer';
 import NearestDispatchVisualizer from './nearest-dispatch-visualizer';
+import IdleDispatchVisualizer from './idle-dispatch-visualizer';
+import DirectionAwareVisualizer from './direction-aware-visualizer';
 
 hljs.registerLanguage('javascript', javascript);
 
@@ -207,6 +209,8 @@ let components = {
   SubarraySumNestedVisualizer: SubarraySumNestedVisualizer,
   SubarraySumPrefixSumVisualizer: SubarraySumPrefixSumVisualizer,
   NearestDispatchVisualizer: NearestDispatchVisualizer,
+  IdleDispatchVisualizer: IdleDispatchVisualizer,
+  DirectionAwareVisualizer: DirectionAwareVisualizer,
   Image: RoundedImage,
   a: CustomLink,
   code: Code,
