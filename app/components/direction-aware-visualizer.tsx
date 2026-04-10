@@ -249,12 +249,12 @@ export default function DirectionAwareVisualizer() {
                       onClick={() => addRequest(f, "UP")}
                       style={{
                         width: 24, height: 22, borderRadius: 5,
-                        border: "0.5px solid #ccc", background: "transparent",
+                        border: "0.5px solid #ccc",
                         fontSize: 11, cursor: "pointer", display: "flex", alignItems: "center",
                         justifyContent: "center", transition: "background .15s",
                         ...(queue.some(r => r.floor === f && r.direction === "UP") || elevators.some(e => e.target === f)
                           ? { background: "#EEEDFE", borderColor: "#534AB7", color: "#3C3489" }
-                          : { color: "#888" }),
+                          : { background: "transparent", color: "#888" }),
                       }}
                     >↑</button>
                   )}
@@ -263,12 +263,12 @@ export default function DirectionAwareVisualizer() {
                       onClick={() => addRequest(f, "DOWN")}
                       style={{
                         width: 24, height: 22, borderRadius: 5,
-                        border: "0.5px solid #ccc", background: "transparent",
+                        border: "0.5px solid #ccc",
                         fontSize: 11, cursor: "pointer", display: "flex", alignItems: "center",
                         justifyContent: "center", transition: "background .15s",
                         ...(queue.some(r => r.floor === f && r.direction === "DOWN") || elevators.some(e => e.target === f)
                           ? { background: "#EEEDFE", borderColor: "#534AB7", color: "#3C3489" }
-                          : { color: "#888" }),
+                          : { background: "transparent", color: "#888" }),
                       }}
                     >↓</button>
                   )}
