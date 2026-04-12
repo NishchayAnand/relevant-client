@@ -59,11 +59,10 @@ function isEligible(elv: Elevator, req: QueueRequest): boolean {
 }
 
 function initElevators(): Elevator[] {
-  // A: going UP from F2, B: going DOWN from F5, C: idle at F3
   return [
-    { id: 0, floor: 2, direction: "UP", target: 6, label: "A", color: ELV_COLORS[0], transitionMs: 0 },
-    { id: 1, floor: 5, direction: "DOWN", target: 1, label: "B", color: ELV_COLORS[1], transitionMs: 0 },
-    { id: 2, floor: 3, direction: "IDLE", target: null, label: "C", color: ELV_COLORS[2], transitionMs: 0 },
+    { id: 0, floor: 1, direction: "IDLE", target: null, label: "A", color: ELV_COLORS[0], transitionMs: 0 },
+    { id: 1, floor: 1, direction: "IDLE", target: null, label: "B", color: ELV_COLORS[1], transitionMs: 0 },
+    { id: 2, floor: 1, direction: "IDLE", target: null, label: "C", color: ELV_COLORS[2], transitionMs: 0 },
   ];
 }
 
@@ -97,32 +96,6 @@ export default function DirectionAwareVisualizer() {
   }, []);
 
   const hasPendingRequest = queue.some(r => r.assignedTo === null);
-
-  // Kick off the pre-set elevator movements on mount
-  useEffect(() => {
-    // Elevator A: F2 → F6 (UP), 4 floors
-    const travelA = 4 * 1000;
-    setElevators(prev => prev.map(e =>
-      e.id === 0 ? { ...e, transitionMs: travelA } : e
-    ));
-    setTimeout(() => {
-      setElevators(prev => prev.map(e =>
-        e.id === 0 ? { ...e, floor: 6, direction: "IDLE", target: null, transitionMs: 0 } : e
-      ));
-    }, travelA);
-
-    // Elevator B: F5 → F1 (DOWN), 4 floors
-    const travelB = 4 * 1000;
-    setElevators(prev => prev.map(e =>
-      e.id === 1 ? { ...e, transitionMs: travelB } : e
-    ));
-    setTimeout(() => {
-      setElevators(prev => prev.map(e =>
-        e.id === 1 ? { ...e, floor: 1, direction: "IDLE", target: null, transitionMs: 0 } : e
-      ));
-    }, travelB);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   // Auto-dispatch
   useEffect(() => {
@@ -208,7 +181,7 @@ export default function DirectionAwareVisualizer() {
       {/* Hint + Reset */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
         <div style={{ fontSize: 12, color: "#aaa", lineHeight: 1.6 }}>
-          Use <strong style={{ color: "#666" }}>↑</strong> / <strong style={{ color: "#666" }}>↓</strong> to call an elevator in a direction. Only elevators going the <strong style={{ color: "#666" }}>same way</strong> that haven't passed the floor are eligible. Falls back to nearest idle elevator if none qualify.
+          Use <strong style={{ color: "#666" }}>↑</strong> / <strong style={{ color: "#666" }}>↓</strong> to call an elevator in a direction.
         </div>
         <button
           onClick={reset}
@@ -252,7 +225,7 @@ export default function DirectionAwareVisualizer() {
                         border: "0.5px solid #ccc",
                         fontSize: 11, cursor: "pointer", display: "flex", alignItems: "center",
                         justifyContent: "center", transition: "background .15s",
-                        ...(queue.some(r => r.floor === f && r.direction === "UP") || elevators.some(e => e.target === f)
+                        ...(queue.some(r => r.floor === f && r.direction === "UP") || elevators.some(e => e.target === f && e.direction === "UP")
                           ? { background: "#EEEDFE", borderColor: "#534AB7", color: "#3C3489" }
                           : { background: "transparent", color: "#888" }),
                       }}
@@ -266,7 +239,7 @@ export default function DirectionAwareVisualizer() {
                         border: "0.5px solid #ccc",
                         fontSize: 11, cursor: "pointer", display: "flex", alignItems: "center",
                         justifyContent: "center", transition: "background .15s",
-                        ...(queue.some(r => r.floor === f && r.direction === "DOWN") || elevators.some(e => e.target === f)
+                        ...(queue.some(r => r.floor === f && r.direction === "DOWN") || elevators.some(e => e.target === f && e.direction === "DOWN")
                           ? { background: "#EEEDFE", borderColor: "#534AB7", color: "#3C3489" }
                           : { background: "transparent", color: "#888" }),
                       }}
