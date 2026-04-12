@@ -35,6 +35,7 @@ import SubarraySumPrefixSumVisualizer from './subarray-sum-prefix-sum-visualizer
 import NearestDispatchVisualizer from './nearest-dispatch-visualizer';
 import IdleDispatchVisualizer from './idle-dispatch-visualizer';
 import DirectionAwareVisualizer from './direction-aware-visualizer';
+import PriorityDispatchVisualizer from './priority-dispatch-visualizer';
 
 hljs.registerLanguage('javascript', javascript);
 
@@ -211,6 +212,7 @@ let components = {
   NearestDispatchVisualizer: NearestDispatchVisualizer,
   IdleDispatchVisualizer: IdleDispatchVisualizer,
   DirectionAwareVisualizer: DirectionAwareVisualizer,
+  PriorityDispatchVisualizer: PriorityDispatchVisualizer,
   Image: RoundedImage,
   a: CustomLink,
   code: Code,

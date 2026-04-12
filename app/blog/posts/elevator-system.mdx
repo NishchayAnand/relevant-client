@@ -243,7 +243,7 @@ public class NearestElevatorDispatchStrategy implements DispatchingStrategy {
 }
 ```
 
-The **Nearest Elevator Dispatch** strategy works well when the system is simple, traffic is low, and most elevators are idle, 
+This strategy works well when the system is simple, traffic is low, and most elevators are idle, 
 since choosing the closest elevator minimizes immediate pickup time. 
 
 However, it breaks down in more realistic scenarios where elevator direction and movement patterns matter. 
@@ -298,7 +298,7 @@ class IdleElevatorDispatchStrategy implements ElevatorDispatchStrategy {
 }
 ```
 
-The **Idle Elevator** dispatch strategy is good when there are free elevators available, as they have no pending requests or directional
+This strategy is good when there are free elevators available, as they have no pending requests or directional
 commitments and can respond immediately to new calls. 
 
 However, there could be scenarios where:
@@ -318,7 +318,7 @@ and will naturally pass the requested floor along their current path.
 
 <br/>
 ```java
-public class DirectionAwareDispatchStrategy implements DispatchingStrategy {
+public class DirectionAwareDispatchStrategy implements ElevatorDispatchStrategy {
     // Selects the elevator that is closest to the requested floor and moving in the same direction
     @Override
     public Elevator selectElevator(int floor, Direction direction, List<Elevator> elevators) {
@@ -352,12 +352,49 @@ public class DirectionAwareDispatchStrategy implements DispatchingStrategy {
 }
 ```
 
-While the **Direction-Aware** dispatch strategy improves efficiency, it also introduces a key limitation.
+While this strategy improves efficiency, it also introduces a key limitation.
 In some situations, no elevator satisfies both conditions. 
 
 For example, all elevators might be moving in the 
 opposite direction or may have already passed the requested floor. In such cases, the strategy cannot make a 
 valid assignment on its own and must rely on fallback approaches like idle or nearest elevator selection.
+
+#### Composite (Priority-Based) Dispatch Strategy
+
+Evaluates each strategy sequentially (direction-aware, idle-first, and nearest) and selects the first one 
+that can successfully assign an elevator to the request.
+
+<PriorityDispatchVisualizer />
+
+<br/>
+
+```java
+class PriorityDispatchStrategy implements ElevatorDispatchStrategy {
+
+    private List<ElevatorDispatchStrategy> strategies;
+
+    public PriorityDispatchStrategy(List<ElevatorDispatchStrategy> strategies) {
+        this.strategies = strategies;
+    }
+
+    @Override
+    public Elevator selectElevator(int floor, Direction direction, List<Elevator> elevators) {
+
+        for(ElevatorDispatchStrategy strategy: strategies) {
+            Elevator result = strategy.selectElevator(floor, direction, elevators);
+
+            if(result != null) {
+                return result;
+            }
+        }
+
+        throw new RuntimeException("No elevator available");
+    }
+}
+```
+
+This strategy ensures efficient handling of diverse scenarios while gracefully falling back to simpler strategies 
+when stricter ones cannot produce the results.
 
 #### Elevator
 
