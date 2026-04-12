@@ -70,7 +70,8 @@ ensure minimal wait time.
 #### Elevator
 
 Represents an individual elevator in the system, responsible for maintaining its current floor, state (idle or moving), 
-direction of movement (up or down), and the list of floors it needs to service. 
+direction of movement (up or down), and the set of floors it needs to service (no need to add duplicates floors in 
+pending requests). 
 
 It encapsulates its own movement logic, handling how requests are processed and executed through its internal
 behavior.
@@ -117,13 +118,13 @@ class ElevatorSystem {
     public void requestElevator(int currentFloor, Direction direction) {
         Elevator selectedElevator = selectElevator(currentFloor, direction);
         if (selectedElevator != null) {
-            selectedElevator.addFloorRequest(currentFloor);
+            selectedElevator.addRequest(currentFloor);
         }  
     }
 
     // Handles a floor selection request from inside an elevator
     public void selectFloor(Elevator elevator, int desinationFloor) {
-        elevator.addFloorRequest(destinationFloor);
+        elevator.addRequest(destinationFloor);
     }
 
     // Helper Method: 
@@ -403,7 +404,15 @@ class Elevator implements Runnable {
     private int currentFloor;
     private Direction currentDirection;
     private ElevatorState currentState;
-    private final ConcurrentSkipListSet<Integer> requests;
+
+    // Sorted, thread-safe, no duplicates
+    private final ConcurrentSkipListSet<Integer> requests = new ConcurrentSkipListSet<>();
+
+    public Elevator(int startFloor) {
+        this.currentFloor = startFloor;
+        this.currentDirection = Direction.UP;
+        this.currentState = ElevatorState.IDLE;
+    }
 
     @Override
     public void run() {
@@ -418,19 +427,38 @@ class Elevator implements Runnable {
     }
 
     public void serve() {
-        // Strategy 1: First In, First Out
-        // Strategy 2: Always Go to the nearest stop
-        // Strategy 3: SCAN (Continue until clear, then reverse)
+        // Strategy: First In, First Out
+        if (requests.isEmpty()) {
+            currentDirection = Direction.IDLE;
+            return;
+        }
+
+        // Peek at the oldest request (don't remove yet)
+        int targetFloor = requests.peek();
+
+        // Move towards it
+        if (currentFloor < targetFloor) {
+            currentFloor++;
+            currentDirection = Direction.UP;
+        } else if (currentFloor > targetFloor) {
+            currentFloor--;
+            currentDirection = Direction.DOWN;
+        }
+
+        // Remove request when we arrive
+        if (currentFloor == targetFloor) {
+            requests.poll();
+        }
+
     }
 
     public void addRequest(int floor) {
-
+        requests.add(floor);
     }
-
-
 
 }
 ```
+
 
 #### ElevatorMovementStrategy
 
