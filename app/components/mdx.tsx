@@ -36,6 +36,8 @@ import NearestDispatchVisualizer from './nearest-dispatch-visualizer';
 import IdleDispatchVisualizer from './idle-dispatch-visualizer';
 import DirectionAwareVisualizer from './direction-aware-visualizer';
 import PriorityDispatchVisualizer from './priority-dispatch-visualizer';
+import FCFSMovementVisualizer from './fcfs-movement-visualizer';
+import ScanMovementVisualizer from './scan-movement-visualizer';
 
 hljs.registerLanguage('javascript', javascript);
 
@@ -213,6 +215,8 @@ let components = {
   IdleDispatchVisualizer: IdleDispatchVisualizer,
   DirectionAwareVisualizer: DirectionAwareVisualizer,
   PriorityDispatchVisualizer: PriorityDispatchVisualizer,
+  FCFSMovementVisualizer: FCFSMovementVisualizer,
+  ScanMovementVisualizer: ScanMovementVisualizer,
   Image: RoundedImage,
   a: CustomLink,
   code: Code,

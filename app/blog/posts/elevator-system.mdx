@@ -486,6 +486,9 @@ in optimizing the movement process. Common movement strategies include:
 
 ##### First Come, First Serve Strategy
 
+<FCFSMovementVisualizer />
+
+<br/>
 ```java
 class FIFOMovementStrategy implements ElevatorMovementStrategy {
 
@@ -534,6 +537,9 @@ The SCAN (Elevator Algorithm) improves upon FIFO by ensuring that the elevator c
 direction, servicing all requests along the way, before reversing direction. This minimizes unnecessary 
 back-and-forth movement and improves overall efficiency.
 
+<ScanMovementVisualizer />
+
+<br/>
 ```java
 class ScanMovementStrategy implements ElevatorMovementStrategy {
 
