@@ -427,29 +427,8 @@ class Elevator implements Runnable {
     }
 
     public void serve() {
-        // Strategy: First In, First Out
-        if (requests.isEmpty()) {
-            currentDirection = Direction.IDLE;
-            return;
-        }
-
-        // Peek at the oldest request (don't remove yet)
-        int targetFloor = requests.peek();
-
-        // Move towards it
-        if (currentFloor < targetFloor) {
-            currentFloor++;
-            currentDirection = Direction.UP;
-        } else if (currentFloor > targetFloor) {
-            currentFloor--;
-            currentDirection = Direction.DOWN;
-        }
-
-        // Remove request when we arrive
-        if (currentFloor == targetFloor) {
-            requests.poll();
-        }
-
+        // Strategy 1: 
+        // Strategy 2: 
     }
 
     public void addRequest(int floor) {
@@ -459,30 +438,49 @@ class Elevator implements Runnable {
 }
 ```
 
+#### ElevatorMovement Strategy
 
-#### ElevatorMovementStrategy
 
-By abstracting the movement logic, the system is adaptable to various strategies, allowing flexibility 
-in optimizing the movement process. Common moving strategies include:
 
-#####  First In, First Out
+##### First Come, First Serve Strategy
 
 ```java
-// code here
+    if (requests.isEmpty()) {
+        currentDirection = Direction.IDLE;
+        return;
+    }
+
+    // Peek at the oldest request (don't remove yet)
+    int targetFloor = requests.peek();
+
+    // Move towards it
+    if (currentFloor < targetFloor) {
+        currentFloor++;
+        currentDirection = Direction.UP;
+    } else if (currentFloor > targetFloor) {
+        currentFloor--;
+        currentDirection = Direction.DOWN;
+    }
+
+    // Remove request when we arrive
+    if (currentFloor == targetFloor) {
+        requests.poll();
+    }
 ```
 
-##### Always Go to the nearest stop
+While the dispatching strategy considers the direction of elevators when assigning external requests, the 
+**First Come First Serve** movement strategy inside the elevator does not take direction into account when 
+serving its own queue. 
 
-```java
-// code here
-```
+As a result, even if an optimal elevator is selected initially, the elevator may still 
+behave inefficiently by processing requests in arrival order rather than following a directional flow. 
+This can lead to unnecessary direction changes and increased travel time.
 
-##### SCAN (Continue until clear, then reverse)
+##### SCAN
 
-```java
-// code here
-```
-<br/>
+
+
+---
 
 ### Final UML Diagram
 
