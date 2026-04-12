@@ -3,8 +3,7 @@ title: 'Object Oriented Design: Elevator System'
 publishedAt: '2025-12-05'
 ---
 
-Design an elevator system for a multi-story that building that manages multiple elevators and efficiently
-handles user requests.
+Design an elevator system for a multi-story building that coordinates multiple elevators and efficiently processes user requests.
 
 ![elevator-system](/elevator-system/elevator-system.png)
 
@@ -14,7 +13,7 @@ handles user requests.
 
 1. Support multiple elevators, all serving the same set of floors.
 
-2. Allow users to request an elevator from any floor lobby using the Up / Down buttons, or select 
+2. Allow users to request an elevator from any floor lobby using the up / down buttons, or select 
 a destination floor from inside the elevator.
 
 3. Assign the most optimal elevator to each incoming request based on factors like distance from the request
@@ -22,25 +21,22 @@ floor and current direction of travel.
 
 ---
 
-### Understanding Primary Use Cases
+### Primary Use Cases
 
-The two primary responsibilies of an elevator system is to allow users to request an elevator from any floor lobby, and 
-selecting a destination floor from inside the elevator. 
+An elevator system primarily serves two key functions: enabling users to call an elevator from any floor lobby and 
+allowing passengers inside the elevator to select their destination floor.
 
-extra : two distinct types of stops: hall calls with a direction (UP or DOWN), and destination requests without a direction. This will influence our design later.
-
-Here’s how each works:
+Let’s walk through the workflow of each use case to better understand how the system processes requests.
 
 #### Use Case 1: Request Elevator From Floor Lobby
 
-1. A user presses the Up or Down button on a floor.
+1. A user presses the Up or Down button from a floor lobby.
 
-2. The system evaluates the incoming request by considering key factors like the requested floor, direction of travel, 
-and the current state of all elevators (e.g., idle, moving up, moving down). Based on this, it determines the most suitable 
-elevator to handle the request, ensuring minimal wait time.
+2. The system evaluates each incoming request by analyzing factors such as the requested floor and desired direction of travel, 
+and then selects the most suitable elevator to handle the request.
 
-3. Once the correct elevator is selected, the requested floor is added to the elevator's list of upcoming stops. 
-The elevator adjusts its path to accomodate the request, ensuring it serves the user efficiently.
+3. Once an appropriate elevator is selected, the requested floor is added to its list of pending stops. 
+The elevator then adjusts its route accordingly to accommodate the request and serve the user as efficiently as possible.
 
 #### Use Case 2: Select Floor Inside Elevator
 
