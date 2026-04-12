@@ -414,6 +414,11 @@ class Elevator implements Runnable {
         this.currentState = ElevatorState.IDLE;
     }
 
+
+    public void addRequest(int floor) {
+        requests.add(floor);
+    }
+
     @Override
     public void run() {
         while(true) {
@@ -427,45 +432,92 @@ class Elevator implements Runnable {
     }
 
     public void serve() {
-        // Strategy 1: 
-        // Strategy 2: 
-    }
-
-    public void addRequest(int floor) {
-        requests.add(floor);
+        // Strategy 1: First Come, First Serve (FCFS)
+        // Strategy 2: Continue Until Clear, Then Reverse (SCAN)
     }
 
 }
 ```
 
-#### ElevatorMovement Strategy
+breaks single responsibility principle. Can mopdify the strategy of how 
 
+The movement logic relies on the **Strategy Pattern**, which enables the system to dynamically select and 
+swap between different algorithms for optimizing elevator movement.
 
+```java
+class Elevator implements Runnable {
+    
+    .
+    .
+    .
+
+    private ElevatorMovementStrategy movementStrategy;
+
+    public Elevator(int startFloor, ElevatorMovementStrategy strategy) {
+        .
+        .
+        .
+        this.movementStrategy = strategy;
+    }
+
+    .
+    .
+    .
+
+    public void serve() {
+        movementStrategy.move(this);
+    }
+
+}
+```
+
+#### ElevatorMovementStrategy
+
+The `ElevatorMovementStrategy` defines the rules for how an elevator processes and serves its pending requests.
+
+```java
+interface ElevatorMovementStrategy {
+    void move(Elevator elevator);
+}
+```
+
+By abstracting the movement logic, the system is adaptable to various strategies, allowing flexibility 
+in optimizing the movement process. Common movement strategies include:
 
 ##### First Come, First Serve Strategy
 
 ```java
-    if (requests.isEmpty()) {
-        currentDirection = Direction.IDLE;
-        return;
+class FIFOMovementStrategy implements ElevatorMovementStrategy {
+
+    @Override
+    public void move(Elevator elevator) {
+
+        if (elevator.requests.isEmpty()) {
+            elevator.currentState = Direction.IDLE;
+            return;
+        }
+
+        // Peek at the oldest request (don't remove yet)
+        int targetFloor = elevator.requests.peek();
+
+        // Move towards it
+        if (elevator.currentFloor < targetFloor) {
+            elevator.currentFloor++;
+            elevator.currentDirection = Direction.UP;
+        } else if (elevator.currentFloor > targetFloor) {
+            elevator.currentFloor--;
+            elevator.currentDirection = Direction.DOWN;
+        }
+
+        // Remove request when we arrive
+        if (elevator.currentFloor == targetFloor) {
+            elevator.requests.poll();
+        }
+
     }
 
-    // Peek at the oldest request (don't remove yet)
-    int targetFloor = requests.peek();
-
-    // Move towards it
-    if (currentFloor < targetFloor) {
-        currentFloor++;
-        currentDirection = Direction.UP;
-    } else if (currentFloor > targetFloor) {
-        currentFloor--;
-        currentDirection = Direction.DOWN;
-    }
-
-    // Remove request when we arrive
-    if (currentFloor == targetFloor) {
-        requests.poll();
-    }
+}
+    
 ```
 
 While the dispatching strategy considers the direction of elevators when assigning external requests, the 
@@ -476,9 +528,59 @@ As a result, even if an optimal elevator is selected initially, the elevator may
 behave inefficiently by processing requests in arrival order rather than following a directional flow. 
 This can lead to unnecessary direction changes and increased travel time.
 
-##### SCAN
+##### Continue Until Clear, Then Reverse (SCAN)
 
+The SCAN (Elevator Algorithm) improves upon FIFO by ensuring that the elevator continues moving in its current 
+direction, servicing all requests along the way, before reversing direction. This minimizes unnecessary 
+back-and-forth movement and improves overall efficiency.
 
+```java
+class ScanMovementStrategy implements ElevatorMovementStrategy {
+
+    @Override
+    public void move(Elevator elevator) {
+
+        if (elevator.requests.isEmpty()) {
+            elevator.currentState = ElevatorState.IDLE;
+            return;
+        }
+
+        elevator.currentState = ElevatorState.MOVING;
+
+        Integer nextFloor;
+
+        if (elevator.currentDirection == Direction.UP) {
+            nextFloor = elevator.requests.ceiling(elevator.currentFloor);
+        } else {
+            nextFloor = elevator.requests.floor(elevator.currentFloor);
+        }
+
+        // If no request in current direction → reverse
+        if (nextFloor == null) {
+            elevator.currentDirection = (elevator.currentDirection == Direction.UP)
+                    ? Direction.DOWN
+                    : Direction.UP;
+            return;
+        }
+
+        // Move one step toward next floor
+        if (elevator.currentFloor < nextFloor) {
+            elevator.currentFloor++;
+        } else if (elevator.currentFloor > nextFloor) {
+            elevator.currentFloor--;
+        }
+
+        // Remove request when reached
+        if (elevator.currentFloor == nextFloor) {
+            elevator.requests.remove(nextFloor);
+        }
+    }
+}
+```
+
+The SCAN strategy ensures that requests are grouped based on direction, reducing zig-zag movement and improving 
+throughput. By continuing in one direction until all requests are served and then reversing, it provides a more 
+predictable and efficient servicing pattern compared to FIFO.
 
 ---
 
