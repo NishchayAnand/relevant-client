@@ -69,24 +69,12 @@ ensure minimal wait time.
 
 #### Elevator
 
-Represents an individual elevator in the system. It keeps track of the elevator's current floor, its movement direction,
-and the list of floors it needs to visit. Each elevator behaves like an independent system. Therefore, each elevator runs its 
-own thread.
+Represents an individual elevator in the system, responsible for maintaining its current floor, state (idle or moving), 
+direction of movement (up or down), and the list of floors it needs to service. 
 
----
+It encapsulates its own movement logic, handling how requests are processed and executed through its internal
+behavior.
 
-### Architecture Overview
-
-#### Main Thread
-- Handles incoming requests (requestElevator)
-- Uses Scheduler to assign elevators
-
-#### Elevator Threads (1 per elevator)
-- Continuously run
-- Pull from their own request queues
-- Execute move() logic
-
-<br/>
 ---
 
 ### Low-Level Design
@@ -98,6 +86,12 @@ This will help us build a system that is efficient, scalable, and optimized for 
 
 The `ElevatorSystem` class offers two primary methods for handling requests from users: `requestElevator(int currentFloor, Direction direction)`
 and `selectFloor(Elevator elevator, int desinationFloor)`.
+
+We could design this differently. Maintain a queue of pending requests on the controller and have elevators pull from it.
+In our design, we'll choose to immediately dispatch lobby calls to an elevator when they arrive so the controller 
+only needs the list of elevators and doesn't maintain a queue of unassigned requests. It picks an elevator right away
+and tells that elevator to add the request to its queue. This keeps the controller stateless beyond just holding the 
+elevators.
 
 ```java
 enum Direction {
@@ -398,27 +392,24 @@ when stricter ones cannot produce the results.
 
 #### Elevator
 
-Why does direction need an IDLE state? When an elevator has no requests, it's not moving up or down. It's idle. 
-We need an explicit state to represent "not moving" so the elevator doesn't keep drifting up or down forever. 
-Some candidates try to get away with just UP and DOWN, then realize they can't handle the "no requests" case cleanly.
+Each elevator operates independently without awareness of other elevators in the system, and therefore runs on its
+own thread, continously serving incoming requests.
 
-addRequest is a unified interface used both by the controller (for hall calls) and by passengers (for destinations). The elevator doesn't care why it's 
-stopping at floor 5. It just adds the request to the queue.
-
-The `move()` is iterating over requests and removing entries while `addRequest` is adding to the same set.
+In a multithreaded environment, a thread-safe structure like `ConcurrentSkipListSet` should be used to prevent 
+concurrency issues when the dispatcher adds requests and the elevator processes them simultaneously.
 
 ```java
 class Elevator implements Runnable {
     private int currentFloor;
     private Direction currentDirection;
     private ElevatorState currentState;
-    private final Queue<Integer> targetFloors;
+    private final ConcurrentSkipListSet<Integer> requests;
 
     @Override
     public void run() {
         while(true) {
             try {
-                move();
+                serve();
                 Thread.sleep(1000); // simulate time between floors
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
@@ -426,16 +417,22 @@ class Elevator implements Runnable {
         }
     }
 
-    public void move() {
+    public void serve() {
         // Strategy 1: First In, First Out
         // Strategy 2: Always Go to the nearest stop
         // Strategy 3: SCAN (Continue until clear, then reverse)
     }
 
+    public void addRequest(int floor) {
+
+    }
+
+
+
 }
 ```
 
-#### MovementStrategy
+#### ElevatorMovementStrategy
 
 By abstracting the movement logic, the system is adaptable to various strategies, allowing flexibility 
 in optimizing the movement process. Common moving strategies include:
@@ -463,9 +460,3 @@ in optimizing the movement process. Common moving strategies include:
 
 ---
 
-### Extra 
-
-In our design, we'll choose to immediately dispatch hall calls to an elevator when they arrive so the controller only needs the list of elevators and doesn't maintain a queue of unassigned requests. It picks an elevator right away and tells that elevator to add the request to its queue. This keeps the controller stateless beyond just holding the elevators.
-We could design this differently. Maintain a queue of pending requests on the controller and have elevators pull from it. Both approaches work. The immediate dispatch model is simpler for an interview, but if the interviewer asks "what if all elevators are busy?", you'd want the queue model. Always be ready to explain your tradeoffs.
-
-If multiple people want floor 7 for different reasons (going up, going down, or as a destination), we just stop there once.
