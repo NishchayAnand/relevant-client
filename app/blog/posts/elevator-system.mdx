@@ -44,24 +44,20 @@ The elevator then adjusts its route accordingly to accommodate the request and s
 
 2. The elevator adds the floor to its list of upcoming stops, and continues visiting floors in an optimized order.
 
-3. Once all requests are completed, the elevator becomes idle and waits for a new requests.
+3. Once all requests have been completed, the elevator transitions to an idle state and waits for new requests.
 
 ---
 
 ### Object Model Design
 
-Identifying Core Entities
-
-#### User
-
-Represents a person interacting with the elevator system. It does not hold system logic, but acts 
-as the trigger for all operations.
+The primary entities in the system include:
 
 #### ElevatorSystem 
 
 Serves as the central controller, managing all elevators in the system. It is responsible 
-for processing incoming requests, assigning the most suitable elevator, and coordinating elevator movements to 
-ensure minimal wait time.
+for processing incoming requests and assigning the most suitable elevator to ensure minimal wait time.
+
+![elevator-system-class-diagram](/elevator-system/elevator-system-class-diagram.png)
 
 #### Elevator
 
