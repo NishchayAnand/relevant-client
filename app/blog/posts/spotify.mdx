@@ -1,4 +1,33 @@
 ---
 title: 'System Design: Music Streaming Platform (Spotify)'
-publishedAt: '2026-01-07'
+publishedAt: '2026-01-09'
 ---
+
+Design a music streaming service like Spotify that can handle millions of users and 
+billions of music streams every day ensuring low latency and high availability.
+
+![spotify](/spotify/spotify.svg)
+
+---
+
+### Functional Requirements
+
+1. **Search:** Users can search for songs, artists, albums, and playlists.
+
+2. **Music Streaming:** Users can stream songs in real time.
+
+3. **Playlists:** Users can create, share, and modify playlists.
+
+---
+
+### Non-Functional Requirements
+
+
+1. **Scalability:** The system should handle 600 million monthly active users (MAU) globally and stream millions of 
+songs concurrently.
+
+2. **Low Latency:** Real-time streaming must have low latency for a seamless user experience.
+
+3. **High Availability:** The system must be available at all times with minimal downtime.
+
+4. **Global Reach:** Support users from different geographic regions, potentially leveraging CDNs to serve audio files faster.
