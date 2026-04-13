@@ -1,6 +1,6 @@
 ---
 title: 'System Design: Music Streaming Platform (Spotify)'
-publishedAt: '2026-01-09'
+publishedAt: '2026-01-11'
 ---
 
 Design a music streaming service like Spotify that can handle millions of users and 
@@ -22,12 +22,102 @@ billions of music streams every day ensuring low latency and high availability.
 
 ### Non-Functional Requirements
 
-
-1. **Scalability:** The system should handle 600 million monthly active users (MAU) globally and stream millions of 
+1. **Scalability:** The system should handle 500 million monthly active users (MAU) globally and stream millions of 
 songs concurrently.
 
 2. **Low Latency:** Real-time streaming must have low latency for a seamless user experience.
 
 3. **High Availability:** The system must be available at all times with minimal downtime.
 
-4. **Global Reach:** Support users from different geographic regions, potentially leveraging CDNs to serve audio files faster.
+4. **Global Reach:** Support users from different geographic regions, potentially leveraging CDNs to serve audio files 
+faster.
+
+---
+
+### Load Estimation
+
+---
+
+### Design Rationale
+
+1. **Streaming Service:** Handles streaming of music from the storage system to user’s device in real-time.
+
+2. **Search Service:** Handles searching of songs, artists, albums and playlists.
+
+3. **Users Service:** Stores and manages user profiles, including personal information, subscription type, and 
+preferences. Manages user playlist, allowing users to create, modify and share them.
+
+4. **Databases:** Stores user profiles, playlists, songs metadata and search indices.
+
+5. **Blob Storage:** A distributed storage system (e.g., AWS S3) for handling large-scale storage of audio and ad files.
+
+6. **Content Delivery Network (CDN):** Used to deliver large audio files efficiently to users across the globe with 
+minimal latency.
+
+7. **Caches:** Caches frequently accessed data such as popular songs and recommendations to improve performance and 
+reduce the load on the storage and database systems.
+
+---
+
+### Primary Use Cases
+
+
+#### Use Case 1: Streaming
+
+1. Client sends a streaming request (e.g., /stream/{song_id}).
+
+2. The App server authenticates the user and routes the request to the Streaming Service.
+
+3. If the song is not in the CDN, the Streaming Service retrieves the audio file’s location (from the blob storage) and pushes the file to the nearest CDN edge server. The CDN returns a URL to the streaming service to stream the audio.
+
+4. The CDN URL is returned to the client, allowing the client to stream the audio.
+
+---
+
+### API Design
+
+---
+
+### Data Model Design
+
+---
+
+#### Architecture Design
+
+Search Indices
+Search indices are stored in NoSQL databases like Elasticsearch to allow quick, fuzzy search queries across songs, artists, and albums.
+
+These indices are continuously updated as new content is added.
+
+To store large volumes of audio and ad files, we can use a distributed storage system like AWS S3.
+
+S3 ensures high durability and availability, making it an ideal storage solution for serving large static files.
+
+We use a Content Delivery Network (CDN) for distributing large audio files (songs) to users globally with minimal latency.
+
+By serving music from CDN edge servers, Spotify ensures low-latency music streaming experiences for users across the world, minimizing buffering times and reducing load on the central storage system.
+
+Original music files are stored in a distributed storage system (e.g., AWS S3). The CDN pulls from this origin storage when a song is requested for the first time and caches it for future requests.
+
+Caching frequently accessed data like user preferences, popular songs, or recommendations can improve performance.
+
+A caching layer like Redis can be used to store this data temporarily.
+
+Examples of Cached Data:
+Search Queries: Cache popular search queries to avoid hitting the search index repeatedly.
+
+Popular Songs: Frequently streamed songs can be cached to reduce database queries.
+
+User Preferences: Store the user's liked songs and playlists in the cache for faster retrieval.
+
+
+
+
+
+
+
+
+
+
+
+
