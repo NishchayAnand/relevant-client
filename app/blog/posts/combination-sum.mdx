@@ -35,21 +35,45 @@ Output: []
 
 ### Key Observations
 
-For every candidate, we can either include it in the combination (if including it keeps the combination sum less than
-or equal to target), or exclude it and move to the next candidate.
-
-
+For every candidate, we can either **include it** in the combination or **exclude it** and move to the next candidate.
 
 > **NOTE:** Ordering is not important in combinations. For example, `[2,2,3]` is same as `[3,2,2]` and `[2,3,2]`.
 
+![combination-sum](/combination-sum/combination-sum.png) 
 
-
-
- 
-
-
+The problem is naturally recursive in nature. At every step, we are trying to solve the same problem for a reduced target.
 
 ---
 
 ### Approach 1: Using Recursion
+
+Let `F(combination, currentIndex, candidates, target)` be the function that returns all valid combinations. 
+
+
+This function is guaranteed to generate all unique combinations that sum to the `target` by exploring every 
+feasible choice through recursion.
+
+#### Recursive Steps
+
+```java
+// Step 1: Include the integer at index = currentIndex
+
+// Step 2: Exclude the integer at index = currentIndex
+```
+
+#### Base conditions
+
+```java
+```
+
+#### Visualization
+
+
+
+#### Time Complexity
+
+#### Space Complexity
+
+---
+
 
