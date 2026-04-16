@@ -212,7 +212,7 @@ export default function CombinationSumRecursionVisualizer() {
         </div>
 
         {/* Current call info */}
-        <div className="rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm min-h-[48px] flex items-center">
+          <div className="rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm min-h-12 flex items-center">
           {activeNode ? (
             <div>
               <span className="font-mono font-semibold text-indigo-700">

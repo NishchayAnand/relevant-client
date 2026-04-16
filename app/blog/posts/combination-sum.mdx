@@ -92,6 +92,31 @@ if (target < 0) {
 
 #### Time Complexity
 
+At each recursive call we make **two choices**: 
+1. include `candidates[currentIndex]` (stay at same index, reduce target) or 
+2. exclude it (advance index, keep target). 
+
+The recursion tree is binary. The **maximum depth** of the tree is determined by how many times we 
+can include the smallest candidate before the target hits zero or goes negative:
+
+max depth = $\lfloor T / M \rfloor$
+
+where `T` = target value and `M` = minimum value in candidates.
+
+A binary tree of height $T/M$ has at most $2^{T/M}$ nodes, so:
+
+$O(2^{T/M})$
+
+This is an **upper bound** — in practice the tree is far smaller because:
+- The **exclude** branch advances the index, so it can fire at most `N` times before hitting the index-out-of-bounds base case.
+- Many **include** branches get pruned early when `target < 0`.
+
+For the example `candidates = [2,3,6,7]`, `target = 7`, `M = 2`:
+
+$2^{7/2} = 2^{3.5} \approx 11$ nodes
+
+The actual recursion tree produced by the visualizer has significantly fewer live nodes due to pruning.
+
 #### Space Complexity
 
 ---
