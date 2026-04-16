@@ -38,6 +38,7 @@ import DirectionAwareVisualizer from './direction-aware-visualizer';
 import PriorityDispatchVisualizer from './priority-dispatch-visualizer';
 import FCFSMovementVisualizer from './fcfs-movement-visualizer';
 import ScanMovementVisualizer from './scan-movement-visualizer';
+import CombinationSumRecursionVisualizer from './combination-sum-recursion-visualizer';
 
 hljs.registerLanguage('javascript', javascript);
 
@@ -215,6 +216,7 @@ let components = {
   IdleDispatchVisualizer: IdleDispatchVisualizer,
   DirectionAwareVisualizer: DirectionAwareVisualizer,
   PriorityDispatchVisualizer: PriorityDispatchVisualizer,
+  CombinationSumRecursionVisualizer: CombinationSumRecursionVisualizer,
   FCFSMovementVisualizer: FCFSMovementVisualizer,
   ScanMovementVisualizer: ScanMovementVisualizer,
   Image: RoundedImage,

@@ -47,28 +47,48 @@ The problem is naturally recursive in nature. At every step, we are trying to so
 
 ### Approach 1: Using Recursion
 
-Let `F(combination, currentIndex, candidates, target)` be the function that returns all valid combinations. 
+Let `F(currentIndex, candidates, target)` be a function that generates all unique combinations whose sum equal to
+`target` by exploring every feasible choice from the range: `[index, candidates.length - 1]`.
 
-
-This function is guaranteed to generate all unique combinations that sum to the `target` by exploring every 
-feasible choice through recursion.
+> **NOTE:** Maintain a `(List<Integer> currentCombination)` to track the current combination being built during recursion, 
+and a `(List<List<Integer>> allCombinations)` to store all valid combinations that meet the target sum.
 
 #### Recursive Steps
 
 ```java
 // Step 1: Include the integer at index = currentIndex
+currentCombination.add(candidates[currentIndex]);
+F(currentIndex, candidates, target - candidates[currentIndex]);
 
 // Step 2: Exclude the integer at index = currentIndex
+currentCombination.remove(currentCombination.size() - 1);
+F(currentIndex + 1, candidates, target);
 ```
 
 #### Base conditions
 
+Since we reduce the `target` at each recursive call, reaching `target == 0` indicates that the sum of the 
+`currentCombination` exactly matches the original target, and hence we have found a valid combination.
+
 ```java
+if (target == 0) {
+    allCombinations.add(currentCombination.clone());
+    return;
+}
+```
+
+If we reach `target < 0`, it means the `currentCombination` has exceeded the required sum, and any further exploration will only 
+increase the sum, so this path cannot lead to a valid solution.
+
+```java
+if (target < 0) {
+    return;
+}
 ```
 
 #### Visualization
 
-
+<CombinationSumRecursionVisualizer />
 
 #### Time Complexity
 
