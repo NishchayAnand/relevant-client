@@ -3,23 +3,236 @@ title: 'System Design Fundamentals'
 publishedAt: '2026-01-01'
 ---
 
-### Availability
+---
+
+### What is Latency?
+
 
 ---
 
-### Scalability
+### What is Availability?
 
 ---
 
-### Consistency
-
-
-
-#### Eventual Consistency
+### What is Scalability?
 
 ---
 
-### Caching
+### What is Consistency?
+
+
+
+#### What is Eventual Consistency?
 
 ---
+
+### What is Caching?
+
+Handle high read traffic. Database becomes bottleneck. latency starts creeping up.
+
+Reading a user profile from postgres may take 50 milliseconds, but reading from an in-memory 
+cache like Redis takes just 1 millisecond. That's a 50x improvement in latency.
+
+Caches reduce load on databases and cut latency drammatically. But they also create new challenges 
+around invalidation and failure handling.
+
+Caching shows up in multiple layers of a system - Browser Cache, CDNs cache, Applications cache, database built-in Cache
+
+#### External Caching
+
+A standalone cache service that your application talks to over the network. This is what most people think of 
+when they hear caching.
+
+You store frequently accessed data in something like Redis or Memcached so you do not have to hit the database everytime.
+
+External caches scale well because every application server can share the same cache.
+
+#### CDN (Content Delivery Network)
+
+A CDN is a geographically distributed network of servers that caches content close to users. 
+
+> NOTE: Modern CDNs like cloudflare can cache much more than static files. But the most common and impactful
+use of a CDN is still media delivery.
+
+How it works:
+
+1. A user requests an image from your application.
+2. The request goes to the nearest edge server.
+3. If the image is cached there, it is returned immediately.
+4. If not, the CDN fetches it from the origin server, stores it, and returns it.
+5. Future users in that region get the image instantly from the CDN.
+
+> **Prompt for Visualization:** Without a CDN, every image request travels to your origin. If your server is in Virginia and the user is in India, 
+that adds 250–300 ms of latency per request. With a CDN, the same image is served from a nearby edge server in 20–40 ms. 
+That is a massive performance difference.
+
+#### Client-Side Caching
+
+Client-side caching stores data close to the requester to avoid unnecessary network calls. This usually means the user's 
+device, like a browser (HTTP cache, localStorage) or mobile app using local memory or on-device storage.
+
+#### In-Process Caching
+
+Most candidates, and engineers, overlook the fact that servers run on machines with a lot of memory. You can use that 
+memory to cache data directly inside the application process instead of always calling out to Redis or the database.
+
+Reads from local memory are even faster than reads from Redis because they avoid any network call.
+
+In-process caching is blazing fast, but it comes with obvious limitations. Each instance of your application has its own 
+cache, so cached data is not shared across servers. If one instance updates or invalidates a cached value, the others 
+will not know.
+
+These are the four core cache patterns you should know for system design interviews.
+
+#### Cache-Aside (Lazy Loading)
+
+Application checks the cache.
+If the data is there, return it.
+If not, fetch from the database, store it in the cache, and return it.
+
+#### Write-Through Caching
+
+With write-through caching, the application writes only to the cache. The cache then synchronously writes to the 
+database before returning to the application. The write operation does not complete until both the cache and 
+database are updated.
+
+Write-through still suffers from the dual-write problem. If the cache update succeeds but the database write fails, 
+the systems can end up inconsistent. You need retry logic, error handling, or eventually accept that perfect consistency 
+is difficult without distributed transactions.
+
+In system design interviews, write-through is less common than cache-aside because it requires specialized caching 
+infrastructure and still has consistency edge cases.
+Use this when reads must always return fresh data and your system can tolerate slightly slower writes.
+
+#### Write-Behind (Write-Back) Caching
+
+With write-behind caching, the application writes only to the cache. 
+The cache batches and writes the data to the database asynchronously in the background.
+
+This makes writes very fast, but introduces risk. If the cache crashes before flushing, you can lose data. 
+This is best for workloads where occasional data loss is acceptable.
+
+Use this when you need high write throughput and eventual consistency is acceptable.
+
+#### Read-Through Caching
+
+With read-through caching, the cache acts as a smart proxy. Your application never talks to the database directly. 
+On a cache miss, the cache itself fetches from the database, stores the data, and returns it. ???
+
+CDNs are a form of read-through cache. When a CDN gets a cache miss, it fetches from your origin server, caches the 
+result, and returns it. But for application-level caching with Redis, cache-aside is far more common.
+
+Caches have limited memory, so they need a strategy for deciding which entries to remove when full. 
+These strategies are called eviction policies.
+
+#### LRU (Least Recently Used)
+
+LRU evicts the item that has not been accessed for the longest time. It tracks access order using a linked list or ring 
+buffer so the least recently used item can be removed in constant time.
+
+#### LFU (Least Frequently Used)
+
+LFU evicts the item that has been accessed the least. It maintains a counter for each key and removes the one with the 
+lowest frequency. Some implementations use approximate LFU to avoid the cost of precise frequency tracking.
+
+This works well when certain keys are consistently popular over time, like trending videos or top playlists.
+
+#### FIFO (First In First Out)
+
+FIFO evicts the oldest item in the cache based only on insertion time. It can be implemented with a simple queue, but it 
+ignores usage patterns.
+
+Because it may evict items that are still hot, it is rarely used in real systems beyond simple caching layers.
+
+TTL (Time To Live)
+TTL is not an eviction policy by itself. Instead, it sets an expiration time for each key and removes entries that are too old. It is often combined with LRU or LFU to balance freshness and memory usage.
+TTL is a must have when data must eventually refresh, like API responses or session tokens.
+
+Caching makes systems faster, but it also introduces new failure modes. 
+
+#### Cache Stampede (Thundering Herd)
+
+A cache stampede happens when a popular cache entry expires and many requests try to rebuild it at the same time. 
+There is a brief window, even if only a second, where every request misses the cache and goes straight to the database. 
+Instead of one query, you suddenly have hundreds or thousands, which can overload the database.
+
+How to handle it:
+1. **Request coalescing (single flight):** Allow only one request to rebuild the cache while others wait for the result. This is the most effective solution.
+2. **Cache warming:** Refresh popular keys proactively before they expire. This only helps when using TTL-based expiration. If you invalidate cache on writes instead, warming does not prevent stampedes.
+
+#### Cache Consistency
+
+Cache consistency problems are some of the most commonly discussed in system design interviews. They happen when the cache and database return different values for the same data. This is common because most systems read from the cache but write to the database first. That creates a window where the cache still holds stale data.
+
+For example, if a user updates their profile picture, the new value is written to the database but the old value might still be in the cache. Other users may see the outdated profile picture until the cache eventually refreshes.
+There is no perfect solution. You choose a strategy based on how fresh the data must be.
+
+How to handle it:
+Cache invalidation on writes: Delete the cache entry after updating the database so it gets repopulated with fresh data.
+Short TTLs for stale tolerance: Let slightly stale data live temporarily if eventual consistency is acceptable.
+Accept eventual consistency: For feeds, metrics, and analytics, a short delay is usually fine.
+
+#### Hot Keys
+A hot key is a cache entry that receives a huge amount of traffic compared to everything else. Even if the cache hit rate is high, a single hot key can overload one cache node or one Redis shard and become a bottleneck.
+For example, if you are building Twitter and everyone is viewing Taylor Swift’s profile, the cache key for her user data (user:taylorswift) may receive millions of requests per second. That one key can overload a single Redis node even though everything is working “correctly.”
+
+How to handle it:
+Replicate hot keys: Store the same value on multiple cache nodes and load balance reads across them.
+Add a local fallback cache: Keep extremely hot values in-process to avoid pounding Redis.
+Apply rate limiting: Slow down abusive traffic patterns on specific keys.
+
+---
+
+### When to Bring Up Caching?
+
+Don't jump straight to caching. You need to establish why it's necessary first.
+Bring up caching when you identify one of these problems:
+
+1. **Read-heavy workload:** "We're serving 10M daily active users, each making 20 requests per day. That's 200M reads 
+hitting the database. Even with indexes, we're looking at 20-50ms per query. A cache drops that to under 2ms and takes 
+most of the load off the database."
+
+2. **Expensive queries:** "Computing a user's personalized feed requires joining posts, followers, and likes across multiple 
+tables. That query takes 200ms. We can cache the computed feed for 60 seconds and serve it in 1ms from Redis."
+
+3. **High database CPU:** "Our database CPU is hitting 80% during peak hours just serving reads. The same queries run 
+over and over. Caching the hot queries will cut database load by 70-80%."
+
+4. **Latency requirements:** "We need sub-10ms response times for the API. Database queries are taking 30-50ms. We have 
+to cache."
+
+The pattern is simple. Identify the performance problem, quantify it with rough numbers, and explain how caching 
+solves it.
+
+---
+
+### How to Introduce Caching?
+
+Once you've established the need for caching, walk through your caching strategy systematically:
+
+1. Identify the bottleneck: Start by pointing to the specific problem caching will solve. Is it database load? Query latency? Expensive computations? Be specific about what's slow and why.
+"User profile queries are hitting the database 500 times per second during peak hours. Each query takes 30ms. That's our bottleneck."
+
+2. Decide what to cache: Not everything should be cached. Focus on data that is read frequently, doesn't change often, and is expensive to fetch or compute.
+"We'll cache user profiles since they're read on every page load but only updated when users edit their settings. We'll also cache the trending posts feed since it's computed from expensive aggregations but only needs to refresh every minute."
+Think about cache keys. How will you look up cached data? For user profiles, the key might be user:123:profile. For trending posts, it could be trending:posts:global.
+
+3. Choose your cache architecture: Pick a caching pattern that matches your consistency requirements. Write-through makes sense when you need strong consistency. Write-behind works for high-volume writes where you can tolerate some risk.
+"I'll use cache-aside. On a read, we check Redis first. If it's there, return it. If not, query the database, store the result in Redis, and return it."
+If you're dealing with static content like images or videos, mention CDN caching. If you have extremely hot keys that get hammered, mention in-process caching as an optimization layer.
+
+4. Set an eviction policy: Explain how you'll manage cache size. LRU is the safe default answer. TTL is essential for preventing stale data.
+"We'll use LRU eviction with Redis and set a TTL of 10 minutes on user profiles. That keeps the cache from growing unbounded while ensuring profiles don't get too stale. If a user updates their profile, we'll invalidate the cache entry immediately."
+
+5. Address the downsides: Caching introduces complexity. Show you've thought about the trade-offs.
+
+    - Cache invalidation: How do you keep cached data fresh? Do you invalidate on writes, rely on TTL, or accept eventual consistency?
+    "When a user updates their profile, we'll delete the cache entry so the next read fetches fresh data from the database."
+
+    - Cache failures: What happens if Redis goes down? Will your database get crushed by the sudden traffic spike? "If Redis is unavailable, requests will fall back to the database. We'll add circuit breakers so we don't overwhelm the database with a stampede. We might also consider keeping a small in-process cache as a last-resort layer."
+
+    - Thundering herd: What happens when a popular cache entry expires and 1000 requests try to refetch it simultaneously? "For extremely popular keys, we can use probabilistic early expiration or request coalescing so only one request fetches from the database while others wait for that result."
+
+---
+
 
