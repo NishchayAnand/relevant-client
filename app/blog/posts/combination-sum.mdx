@@ -33,7 +33,7 @@ Output: []
 
 ---
 
-### Key Observations
+### Key Observation
 
 For every candidate, we can either **include it** in the combination or **exclude it** and move to the next candidate.
 
@@ -45,7 +45,7 @@ The problem is naturally recursive in nature. At every step, we are trying to so
 
 ---
 
-### Approach 1: Using Recursion
+### Recursive Include-Exclude Pattern
 
 Let `F(currentIndex, candidates, target)` be a function that generates all unique combinations whose sum equal to
 `target` by exploring every feasible choice from the range: `[index, candidates.length - 1]`.
@@ -99,25 +99,19 @@ At each recursive call we make **two choices**:
 The recursion tree is binary. The **maximum depth** of the tree is determined by how many times we 
 can include the smallest candidate before the target hits zero or goes negative:
 
-max depth = $\lfloor T / M \rfloor$
+```
+max depth ≈ T / M, where T = target value and M = minimum value in candidates.
+```
 
-where `T` = target value and `M` = minimum value in candidates.
-
-A binary tree of height $T/M$ has at most $2^{T/M}$ nodes, so:
-
-$O(2^{T/M})$
-
-This is an **upper bound** — in practice the tree is far smaller because:
-- The **exclude** branch advances the index, so it can fire at most `N` times before hitting the index-out-of-bounds base case.
-- Many **include** branches get pruned early when `target < 0`.
-
-For the example `candidates = [2,3,6,7]`, `target = 7`, `M = 2`:
-
-$2^{7/2} = 2^{3.5} \approx 11$ nodes
-
-The actual recursion tree produced by the visualizer has significantly fewer live nodes due to pruning.
+A binary tree of height `T/M` has at most `2^{T/M}` nodes, hence, overall time complexity = `O(2^{T/M})`.
 
 #### Space Complexity
+
+Each recursive call reduces the target by at least the smallest candidate value, so the maximum depth of the recursion tree is approximately 
+`T/M`, where `T` is the target and `M` is the minimum candidate. As a result, both the recursion stack and the current combination list require `O(T / M)` space. 
+
+Apart from this auxiliary space, additional memory is used to store the final results, which can grow exponentially depending on the number of valid combinations, 
+but the core working space of the algorithm remains linear in terms of recursion depth.
 
 ---
 
