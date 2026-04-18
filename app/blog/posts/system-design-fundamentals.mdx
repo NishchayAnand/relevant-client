@@ -26,63 +26,34 @@ publishedAt: '2026-01-01'
 
 ---
 
-### What is Caching?
+### What is Cache?
 
-Handle high read traffic. Database becomes bottleneck. latency starts creeping up.
+A cache is a small, fast storage layer that keeps copies of frequently accessed data 
+so future requests can be served quickly instead of fetching from a slower source.
 
-Reading a user profile from postgres may take 50 milliseconds, but reading from an in-memory 
-cache like Redis takes just 1 millisecond. That's a 50x improvement in latency.
+#### Caching is not a Single Component, it’s a Layered Strategy
 
-Caches reduce load on databases and cut latency drammatically. But they also create new challenges 
-around invalidation and failure handling.
+Caching can exist across multiple layers of a system, with each layer designed to solve a specific performance or scalability problem.
 
-Caching shows up in multiple layers of a system - Browser Cache, CDNs cache, Applications cache, database built-in Cache
+1. **Repeated network calls & poor user experience:** When users repeatedly request the same static assets (like images, CSS, or JS), 
+making a network call every time adds unnecessary latency. **Client-side caching** stores this data directly in the browser (HTTP cache, localStorage), 
+allowing instant access without hitting the network. This results in faster page loads and a smoother user experience.
 
-#### External Caching
+2. **High latency due to geographic distance:** If your servers are far from users, every request has to travel long distances, increasing latency. 
+CDNs like Cloudflare solve this by caching content at edge servers close to users. Requests are served from nearby locations, 
+drastically reducing response times and improving global performance.
 
-A standalone cache service that your application talks to over the network. This is what most people think of 
-when they hear caching.
+3. **Database overload & high read latency:** Databases like PostgreSQL can become bottlenecks under heavy read traffic. 
+External caches such as Redis or Memcached store frequently accessed or computed data, preventing repeated database hits. 
+This reduces load, lowers latency, and allows the system to scale efficiently.
 
-You store frequently accessed data in something like Redis or Memcached so you do not have to hit the database everytime.
+4. **Network overhead to external systems:** Even calling an external cache like Redis involves network latency. 
+In-process caching stores data directly in the application’s memory, eliminating network calls entirely. 
+This makes it the fastest backend caching layer, ideal for ultra-low-latency access, though it comes with trade-offs like lack of shared state across instances.
 
-External caches scale well because every application server can share the same cache.
+5. **Expensive disk I/O operations:** Reading from disk is slow compared to memory. Databases use internal caches (like buffer pools in PostgreSQL) 
+to keep frequently accessed data in memory, reducing disk reads and improving query performance.
 
-#### CDN (Content Delivery Network)
-
-A CDN is a geographically distributed network of servers that caches content close to users. 
-
-> NOTE: Modern CDNs like cloudflare can cache much more than static files. But the most common and impactful
-use of a CDN is still media delivery.
-
-How it works:
-
-1. A user requests an image from your application.
-2. The request goes to the nearest edge server.
-3. If the image is cached there, it is returned immediately.
-4. If not, the CDN fetches it from the origin server, stores it, and returns it.
-5. Future users in that region get the image instantly from the CDN.
-
-> **Prompt for Visualization:** Without a CDN, every image request travels to your origin. If your server is in Virginia and the user is in India, 
-that adds 250–300 ms of latency per request. With a CDN, the same image is served from a nearby edge server in 20–40 ms. 
-That is a massive performance difference.
-
-#### Client-Side Caching
-
-Client-side caching stores data close to the requester to avoid unnecessary network calls. This usually means the user's 
-device, like a browser (HTTP cache, localStorage) or mobile app using local memory or on-device storage.
-
-#### In-Process Caching
-
-Most candidates, and engineers, overlook the fact that servers run on machines with a lot of memory. You can use that 
-memory to cache data directly inside the application process instead of always calling out to Redis or the database.
-
-Reads from local memory are even faster than reads from Redis because they avoid any network call.
-
-In-process caching is blazing fast, but it comes with obvious limitations. Each instance of your application has its own 
-cache, so cached data is not shared across servers. If one instance updates or invalidates a cached value, the others 
-will not know.
-
-These are the four core cache patterns you should know for system design interviews.
 
 #### Cache-Aside (Lazy Loading)
 
@@ -200,9 +171,6 @@ over and over. Caching the hot queries will cut database load by 70-80%."
 
 4. **Latency requirements:** "We need sub-10ms response times for the API. Database queries are taking 30-50ms. We have 
 to cache."
-
-The pattern is simple. Identify the performance problem, quantify it with rough numbers, and explain how caching 
-solves it.
 
 ---
 
