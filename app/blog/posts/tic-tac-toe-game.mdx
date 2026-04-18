@@ -12,17 +12,16 @@ take alternate turns, validate moves, and determine the winner or a draw based o
 
 ### Functional Requirements
 
-1. Each player is assigned a unique symbol (e.g., X and O).
+1. Assign each player a unique symbol (e.g., X and O) at the start of the game.
 
-2. Players should be able to make a move by selecting a cell (row, column). The system must ensure the selected cell 
-is not already occupied. Moves should be recorded and reflected on the board.
+2. Enforce alternating turns between players and always indicate the current player's turn.
 
-3. The system should enforce alternate turns between players. It should always indicate whose turn it is.
+3. The system should allow players to make a move by selecting a cell (row, column), 
+ensuring the cell is not already occupied, and update the board accordingly.
 
-4. The system should check after every move whether a player has won. A player wins if they complete a full row, a full 
-column, or a diagonal.
+4. Check after every move whether the current player has won by completing a row, column, or diagonal.
 
-5. The system should detect a draw when all cells are filled and no player has won.
+5. Detect a draw when all cells are filled and no player has won.
 
 <TicTacToeVisualizer />
 
