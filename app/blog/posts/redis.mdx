@@ -20,6 +20,27 @@ low-latency access for read-heavy applications.
 
 ---
 
+Different caching strategies exist because systems have different priorities—some optimize for read performance, others for write throughput, and some for data freshness or simplicity. There is no universally “best” approach; the right choice depends on the specific problem you are solving, such as reducing database load, ensuring consistency, or handling high write traffic. Below are the common caching strategies, reframed as solutions tailored to specific use cases.
+
+Cache-Aside (Lazy Loading) → Best for Read-Heavy Systems with Simplicity Needs
+This is the most commonly used strategy, where the application first checks the cache (e.g., Redis), and on a miss, fetches data from the database (e.g., PostgreSQL), stores it in the cache, and returns it.
+Use this when: your system is read-heavy, you want control over what gets cached, and you can tolerate slightly stale data. It’s simple, flexible, and widely used in real-world systems.
+
+Write-Through Caching → Best for Strong Consistency on Reads
+Here, the application writes to the cache, and the cache synchronously updates the database before confirming success.
+Use this when: your reads must always return up-to-date data, such as in financial or critical user data systems.
+Trade-off: slower writes and potential consistency issues due to dual writes, even with systems like Redis in place.
+
+Write-Behind (Write-Back) Caching → Best for High Write Throughput Systems
+Writes go only to the cache, and the cache asynchronously persists them to the database in batches.
+Use this when: you need extremely fast writes and can tolerate eventual consistency or minor data loss (e.g., analytics, logging systems).
+Trade-off: risk of data loss if the cache fails before flushing to the database.
+
+Read-Through Caching → Best for Abstracting Data Access Logic
+The cache acts as a smart intermediary. On a cache miss, it fetches data from the database, stores it, and returns it—without the application directly interacting with the database.
+Use this when: you want to simplify application logic and centralize caching behavior.
+Real-world example: CDNs like Cloudflare use a similar pattern—on a cache miss, they fetch from the origin, cache it, and serve future requests.
+
 ### Extra
 
 Redis can run as a single node, with a high availability (HA) replica, or as a cluster. When operating as a cluster, Redis clients cache a set of "hash slots" which map keys to a specific node. This way clients can directly connect to the node which contains the data they are requesting.

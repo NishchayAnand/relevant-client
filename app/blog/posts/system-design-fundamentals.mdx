@@ -54,76 +54,31 @@ This makes it the fastest backend caching layer, ideal for ultra-low-latency acc
 5. **Expensive disk I/O operations:** Reading from disk is slow compared to memory. Databases use internal caches (like buffer pools in PostgreSQL) 
 to keep frequently accessed data in memory, reducing disk reads and improving query performance.
 
+#### Cache Eviction Strategies: Managing Limited Memory Effectively
 
-#### Cache-Aside (Lazy Loading)
+Caches are memory-constrained by design, which means they cannot store everything forever. 
 
-Application checks the cache.
-If the data is there, return it.
-If not, fetch from the database, store it in the cache, and return it.
+As new data comes in, old data must be removed intelligently to make space. 
+This is where eviction strategies come in. They decide which data to keep and which to discard, 
+based on usage patterns and system goals like performance or freshness.
 
-#### Write-Through Caching
+1. **LRU (Least Recently Used):** LRU removes the item that hasn’t been accessed for the longest time, assuming that recently used data is more 
+likely to be used again. Use this when your workload has temporal locality (e.g., user sessions, recently viewed items), where recent data is more relevant.
 
-With write-through caching, the application writes only to the cache. The cache then synchronously writes to the 
-database before returning to the application. The write operation does not complete until both the cache and 
-database are updated.
+2. **LFU (Least Frequently Used):** LFU evicts the least frequently accessed items by maintaining access counts for each key. 
+This ensures that consistently popular data stays in the cache. Use this when certain items remain popular over time (e.g., trending videos, top playlists).
 
-Write-through still suffers from the dual-write problem. If the cache update succeeds but the database write fails, 
-the systems can end up inconsistent. You need retry logic, error handling, or eventually accept that perfect consistency 
-is difficult without distributed transactions.
+3. **FIFO (First In First Out):** FIFO removes the oldest inserted item, regardless of how often or recently it was accessed.
+Use this when simplicity is more important than optimization, though it’s rarely ideal for real-world caching due to poor hit rates.
 
-In system design interviews, write-through is less common than cache-aside because it requires specialized caching 
-infrastructure and still has consistency edge cases.
-Use this when reads must always return fresh data and your system can tolerate slightly slower writes.
+4. **TTL (Time To Live):** TTL assigns an expiration time to each cache entry, automatically removing data after a set duration.
+Use this when data must be refreshed periodically (e.g., API responses, authentication tokens, or time-sensitive data).
 
-#### Write-Behind (Write-Back) Caching
+---
 
-With write-behind caching, the application writes only to the cache. 
-The cache batches and writes the data to the database asynchronously in the background.
+#### Caching makes systems faster, but it also introduces new failure modes. 
 
-This makes writes very fast, but introduces risk. If the cache crashes before flushing, you can lose data. 
-This is best for workloads where occasional data loss is acceptable.
-
-Use this when you need high write throughput and eventual consistency is acceptable.
-
-#### Read-Through Caching
-
-With read-through caching, the cache acts as a smart proxy. Your application never talks to the database directly. 
-On a cache miss, the cache itself fetches from the database, stores the data, and returns it. ???
-
-CDNs are a form of read-through cache. When a CDN gets a cache miss, it fetches from your origin server, caches the 
-result, and returns it. But for application-level caching with Redis, cache-aside is far more common.
-
-Caches have limited memory, so they need a strategy for deciding which entries to remove when full. 
-These strategies are called eviction policies.
-
-#### LRU (Least Recently Used)
-
-LRU evicts the item that has not been accessed for the longest time. It tracks access order using a linked list or ring 
-buffer so the least recently used item can be removed in constant time.
-
-#### LFU (Least Frequently Used)
-
-LFU evicts the item that has been accessed the least. It maintains a counter for each key and removes the one with the 
-lowest frequency. Some implementations use approximate LFU to avoid the cost of precise frequency tracking.
-
-This works well when certain keys are consistently popular over time, like trending videos or top playlists.
-
-#### FIFO (First In First Out)
-
-FIFO evicts the oldest item in the cache based only on insertion time. It can be implemented with a simple queue, but it 
-ignores usage patterns.
-
-Because it may evict items that are still hot, it is rarely used in real systems beyond simple caching layers.
-
-TTL (Time To Live)
-TTL is not an eviction policy by itself. Instead, it sets an expiration time for each key and removes entries that are too old. It is often combined with LRU or LFU to balance freshness and memory usage.
-TTL is a must have when data must eventually refresh, like API responses or session tokens.
-
-Caching makes systems faster, but it also introduces new failure modes. 
-
-#### Cache Stampede (Thundering Herd)
-
-A cache stampede happens when a popular cache entry expires and many requests try to rebuild it at the same time. 
+1. Cache Stampede (Thundering Herd): A cache stampede happens when a popular cache entry expires and many requests try to rebuild it at the same time. 
 There is a brief window, even if only a second, where every request misses the cache and goes straight to the database. 
 Instead of one query, you suddenly have hundreds or thousands, which can overload the database.
 
@@ -131,9 +86,7 @@ How to handle it:
 1. **Request coalescing (single flight):** Allow only one request to rebuild the cache while others wait for the result. This is the most effective solution.
 2. **Cache warming:** Refresh popular keys proactively before they expire. This only helps when using TTL-based expiration. If you invalidate cache on writes instead, warming does not prevent stampedes.
 
-#### Cache Consistency
-
-Cache consistency problems are some of the most commonly discussed in system design interviews. They happen when the cache and database return different values for the same data. This is common because most systems read from the cache but write to the database first. That creates a window where the cache still holds stale data.
+2. Cache Consistency: Cache consistency problems are some of the most commonly discussed in system design interviews. They happen when the cache and database return different values for the same data. This is common because most systems read from the cache but write to the database first. That creates a window where the cache still holds stale data.
 
 For example, if a user updates their profile picture, the new value is written to the database but the old value might still be in the cache. Other users may see the outdated profile picture until the cache eventually refreshes.
 There is no perfect solution. You choose a strategy based on how fresh the data must be.
@@ -142,15 +95,6 @@ How to handle it:
 Cache invalidation on writes: Delete the cache entry after updating the database so it gets repopulated with fresh data.
 Short TTLs for stale tolerance: Let slightly stale data live temporarily if eventual consistency is acceptable.
 Accept eventual consistency: For feeds, metrics, and analytics, a short delay is usually fine.
-
-#### Hot Keys
-A hot key is a cache entry that receives a huge amount of traffic compared to everything else. Even if the cache hit rate is high, a single hot key can overload one cache node or one Redis shard and become a bottleneck.
-For example, if you are building Twitter and everyone is viewing Taylor Swift’s profile, the cache key for her user data (user:taylorswift) may receive millions of requests per second. That one key can overload a single Redis node even though everything is working “correctly.”
-
-How to handle it:
-Replicate hot keys: Store the same value on multiple cache nodes and load balance reads across them.
-Add a local fallback cache: Keep extremely hot values in-process to avoid pounding Redis.
-Apply rate limiting: Slow down abusive traffic patterns on specific keys.
 
 ---
 
