@@ -74,8 +74,6 @@ Use this when simplicity is more important than optimization, though it’s rare
 4. **TTL (Time To Live):** TTL assigns an expiration time to each cache entry, automatically removing data after a set duration.
 Use this when data must be refreshed periodically (e.g., API responses, authentication tokens, or time-sensitive data).
 
----
-
 #### Caching makes systems faster, but it also introduces new failure modes. 
 
 1. Cache Stampede (Thundering Herd): A cache stampede happens when a popular cache entry expires and many requests try to rebuild it at the same time. 

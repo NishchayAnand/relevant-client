@@ -39,6 +39,7 @@ import PriorityDispatchVisualizer from './priority-dispatch-visualizer';
 import FCFSMovementVisualizer from './fcfs-movement-visualizer';
 import ScanMovementVisualizer from './scan-movement-visualizer';
 import CombinationSumRecursionVisualizer from './combination-sum-recursion-visualizer';
+import TicTacToeVisualizer from './tic-tac-toe-visualizer';
 
 hljs.registerLanguage('javascript', javascript);
 
@@ -219,6 +220,7 @@ let components = {
   CombinationSumRecursionVisualizer: CombinationSumRecursionVisualizer,
   FCFSMovementVisualizer: FCFSMovementVisualizer,
   ScanMovementVisualizer: ScanMovementVisualizer,
+  TicTacToeVisualizer: TicTacToeVisualizer,
   Image: RoundedImage,
   a: CustomLink,
   code: Code,
