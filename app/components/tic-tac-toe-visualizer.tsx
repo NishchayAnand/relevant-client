@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState } from 'react';
-import { RotateCcw } from 'lucide-react';
+import { RotateCcw, Undo2 } from 'lucide-react';
 
 type Cell = 'X' | 'O' | null;
 
@@ -27,10 +27,14 @@ function checkWinner(board: Cell[]): { winner: Cell; line: number[] } | null {
 }
 
 export default function TicTacToeVisualizer() {
-  const [board, setBoard] = useState<Cell[]>(Array(9).fill(null));
-  const [isXTurn, setIsXTurn] = useState(true);
+  const [history, setHistory] = useState<{ board: Cell[]; isXTurn: boolean }[]>([
+    { board: Array(9).fill(null), isXTurn: true },
+  ]);
   const [xScore, setXScore] = useState(0);
   const [oScore, setOScore] = useState(0);
+
+  const current = history[history.length - 1];
+  const { board, isXTurn } = current;
 
   const result = checkWinner(board);
   const isDraw = !result && board.every(cell => cell !== null);
@@ -41,7 +45,6 @@ export default function TicTacToeVisualizer() {
 
     const newBoard = [...board];
     newBoard[idx] = isXTurn ? 'X' : 'O';
-    setBoard(newBoard);
 
     const newResult = checkWinner(newBoard);
     if (newResult) {
@@ -49,12 +52,25 @@ export default function TicTacToeVisualizer() {
       else setOScore(s => s + 1);
     }
 
-    setIsXTurn(!isXTurn);
+    setHistory(h => [...h, { board: newBoard, isXTurn: !isXTurn }]);
+  };
+
+  const undo = () => {
+    if (history.length <= 1) return;
+    const prev = history[history.length - 2];
+    const undone = history[history.length - 1];
+    // if the move being undone caused a win, reverse the score
+    const undoneResult = checkWinner(undone.board);
+    if (undoneResult) {
+      if (undoneResult.winner === 'X') setXScore(s => Math.max(0, s - 1));
+      else setOScore(s => Math.max(0, s - 1));
+    }
+    setHistory(h => h.slice(0, -1));
+    void prev;
   };
 
   const reset = () => {
-    setBoard(Array(9).fill(null));
-    setIsXTurn(true);
+    setHistory([{ board: Array(9).fill(null), isXTurn: true }]);
   };
 
   const message = result
@@ -81,13 +97,23 @@ export default function TicTacToeVisualizer() {
             </div>
           </div>
 
-          <button
-            onClick={reset}
-            className="p-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
-            title="Reset game"
-          >
-            <RotateCcw size={18} />
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={undo}
+              disabled={history.length <= 1}
+              className="p-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 disabled:opacity-40 disabled:cursor-not-allowed"
+              title="Undo last move"
+            >
+              <Undo2 size={18} />
+            </button>
+            <button
+              onClick={reset}
+              className="p-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
+              title="Reset game"
+            >
+              <RotateCcw size={18} />
+            </button>
+          </div>
         </div>
 
         {/* Status message */}
