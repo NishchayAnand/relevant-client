@@ -133,14 +133,14 @@ export default function LRUCacheVisualizer() {
             <button
               onClick={handleGet}
               disabled={!keyValid}
-              className="h-9 px-4 text-sm font-medium rounded-lg border border-gray-800 text-gray-800 hover:bg-gray-800 hover:text-white transition-colors disabled:opacity-25 disabled:cursor-not-allowed"
+              className="h-9 px-4 text-sm font-medium rounded-lg bg-green-600 text-white hover:bg-green-700 transition-colors disabled:opacity-25 disabled:cursor-not-allowed"
             >
               get(key)
             </button>
             <button
               onClick={handlePut}
               disabled={!keyValid || !valueValid}
-              className="h-9 px-4 text-sm font-medium rounded-lg bg-gray-800 text-white hover:bg-gray-700 transition-colors disabled:opacity-25 disabled:cursor-not-allowed"
+              className="h-9 px-4 text-sm font-medium rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors disabled:opacity-25 disabled:cursor-not-allowed"
             >
               put(key, val)
             </button>
