@@ -40,6 +40,7 @@ import FCFSMovementVisualizer from './fcfs-movement-visualizer';
 import ScanMovementVisualizer from './scan-movement-visualizer';
 import CombinationSumRecursionVisualizer from './combination-sum-recursion-visualizer';
 import CombinationSumNaryVisualizer from './combination-sum-nary-visualizer';
+import LRUCacheVisualizer from './lru-cache-visualizer';
 import TicTacToeVisualizer from './tic-tac-toe-visualizer';
 
 hljs.registerLanguage('javascript', javascript);
@@ -220,6 +221,7 @@ let components = {
   PriorityDispatchVisualizer: PriorityDispatchVisualizer,
   CombinationSumRecursionVisualizer: CombinationSumRecursionVisualizer,
   CombinationSumNaryVisualizer: CombinationSumNaryVisualizer,
+  LRUCacheVisualizer: LRUCacheVisualizer,
   FCFSMovementVisualizer: FCFSMovementVisualizer,
   ScanMovementVisualizer: ScanMovementVisualizer,
   TicTacToeVisualizer: TicTacToeVisualizer,
