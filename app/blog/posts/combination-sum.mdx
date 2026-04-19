@@ -129,7 +129,7 @@ instead of explicitly making separate recursive calls to exclude each element.
 
 ---
 
-### Approach 2: N-ary Backtracking
+### Approach 2: Explore All Feasible Choices
 
 At each recursive step, rather than making a binary decision of inluding or excluding the current 
 element, run a loop to explore all available candidates.
@@ -162,9 +162,17 @@ same as the include - exclude approach
 
 #### Time Complexity
 
+In the worst case, we'll keep picking the smallest element at each level and we run a loop for almost N times.
 
+An N-ary tree of height `T/M` has at most `N^{T/M}` nodes, where `T` = target value and `M` = minimum value in candidates. 
+Hence, the overall time complexity = `O(N^{T/M})`.
+
+> **NOTE:** Even though `N^(T/M)` looks worse than `2^(T/M)`, the loop approach is faster in practice because it avoids unnecessary branches.
 
 #### Space Complexity
+
+Considering each recursive call reduces the target `T` by at least the smallest candidate value `M`,
+both the recursion stack and the current combination list will consume `O(T / M)` space. 
 
 ---
 
