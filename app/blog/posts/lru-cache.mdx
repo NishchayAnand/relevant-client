@@ -19,12 +19,51 @@ this operation, evict the least recently used key.
 
 ---
 
+### Functional Requirements
+
+- The `LRUCache` should store (key, value) pairs. Every new `(key, value)` pair should be inserted 
+at the front of the cache, marking it as the most recently used. If the provided `key` already 
+exists, its `value` should be updated and the corresponding entry should be moved to the front 
+instead of creating a duplicate. 
+
+- The `LRUCache` should maintain elements ordered by **recency of access**. Whenever a `key` is **accessed** or **updated**, 
+its corresponding `(key, value)` pair should be moved to the front of the cache, marking it as the 
+most recently used.
+
+- When the `LRUCache` reaches its maximum capacity and a new `(key, value)` pair needs to be inserted, the 
+cache should evict the **least recently used** entry. This corresponds to removing the `(key, value)` 
+pair at the end of the cache, which represents the item that has not been accessed for the longest time.
+
+---
+
+### Non-Functional Requirements
+
+- The `get` and `put` operations must execute in `O(1)` average time complexity, ensuring 
+constant-time performance regardless of the number of elements in the cache. 
+This requirement is critical to support high-performance use cases where frequent reads and 
+writes are expected.
+<br/>
+---
+
 ### Key Observations
 
+We can use a HashMap to store `(key, value)` which will ensure the `get` and `put` are executed in
+`O(1)`. However, we may not be able to keep track of the least visited key.
+
+We can use a simple Linked List. In case a new every `(key, value)` pair is added at the head, the 
+time complexity would be `O(1)`. In case the `key` already exist, we need to search the key and then
+update its value, that's gonna take `O(n)`. We can remove the tail node representing the least visited 
+node everytime the `LRUCache` exceeds its capacity limit. However, every time a `key` is accessed, 
+we need to search the `(key, value)` pair and move it to the front of the `LRUCache`.
+
+The primary bottleneck with using linked list is searching the `(key, value)` pair takes `O(n)`.
+We can use HashMap to search a `(key, value)` pair whenever we are trying to add a `(key, value)` pair 
+or access `key`.
+
 ---
 
-### Approach 1: 
+### Low-Level Design
+
 
 ---
 
-### Approach 2: 
