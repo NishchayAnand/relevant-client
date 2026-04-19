@@ -9,7 +9,9 @@ type CacheEntry = { key: number; value: number };
 
 type LastOp = {
   label: string;
-  result: string | null;
+  type: "get" | "put";
+  hit: boolean | null;
+  returned: string | null;
   evicted: number | null;
   changedKey: number | null;
 } | null;
@@ -17,176 +19,174 @@ type LastOp = {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function LRUCacheVisualizer() {
-  const [capacityInput, setCapacityInput] = useState("3");
   const [capacity, setCapacity] = useState(3);
-  const [initialized, setInitialized] = useState(false);
-
   const [cache, setCache] = useState<CacheEntry[]>([]);
   const [keyInput, setKeyInput] = useState("");
   const [valueInput, setValueInput] = useState("");
   const [lastOp, setLastOp] = useState<LastOp>(null);
 
-  const handleInit = () => {
-    const cap = parseInt(capacityInput, 10);
-    if (isNaN(cap) || cap < 1) return;
-    setCapacity(cap);
+  const changeCapacity = (delta: number) => {
+    const next = Math.min(6, Math.max(1, capacity + delta));
+    setCapacity(next);
     setCache([]);
     setLastOp(null);
-    setInitialized(true);
   };
 
   const handleReset = () => {
     setCache([]);
     setLastOp(null);
-    setInitialized(false);
+    setKeyInput("");
+    setValueInput("");
   };
 
   const handleGet = () => {
     const key = parseInt(keyInput, 10);
     if (isNaN(key)) return;
-
     let next = [...cache];
     const idx = next.findIndex(e => e.key === key);
-    let result: string;
-
-    if (idx === -1) {
-      result = "-1";
-    } else {
-      const [hit] = next.splice(idx, 1);
-      next.unshift(hit);
-      result = String(hit.value);
+    const hit = idx !== -1;
+    const returned = hit ? String(cache[idx].value) : "-1";
+    if (hit) {
+      const [entry] = next.splice(idx, 1);
+      next.unshift(entry);
     }
-
     setCache(next);
-    setLastOp({ label: `get(${key})`, result, evicted: null, changedKey: idx !== -1 ? key : null });
+    setLastOp({ label: `get(${key})`, type: "get", hit, returned, evicted: null, changedKey: hit ? key : null });
   };
 
   const handlePut = () => {
     const key = parseInt(keyInput, 10);
     const value = parseInt(valueInput, 10);
     if (isNaN(key) || isNaN(value)) return;
-
     let next = [...cache];
     const idx = next.findIndex(e => e.key === key);
     if (idx !== -1) next.splice(idx, 1);
     next.unshift({ key, value });
-
     let evicted: number | null = null;
     if (next.length > capacity) {
       evicted = next[next.length - 1].key;
       next = next.slice(0, capacity);
     }
-
     setCache(next);
-    setLastOp({ label: `put(${key}, ${value})`, result: null, evicted, changedKey: key });
+    setLastOp({ label: `put(${key}, ${value})`, type: "put", hit: null, returned: null, evicted, changedKey: key });
   };
 
-  const inputClass =
-    "w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-indigo-400";
+  const keyValid = keyInput !== "" && !isNaN(parseInt(keyInput, 10));
+  const valueValid = valueInput !== "" && !isNaN(parseInt(valueInput, 10));
 
   return (
-    <div className="mt-5 mb-10 border border-gray-200 rounded-2xl overflow-hidden">
+    <div className="mt-5 mb-10 border border-gray-200 rounded-2xl overflow-hidden font-sans">
 
-      {/* Controls panel */}
-      <div className="px-5 pt-5 pb-4 border-b border-gray-100 bg-gray-50">
-        {!initialized ? (
-          /* ── Init form ── */
-          <div className="flex items-end gap-3">
-            <div className="flex flex-col gap-1">
-              <label className="text-xs text-gray-500 font-medium">Capacity</label>
-              <input
-                type="number"
-                min={1}
-                max={8}
-                value={capacityInput}
-                onChange={e => setCapacityInput(e.target.value)}
-                className="w-28 border border-gray-300 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-indigo-400"
-              />
+      {/* ── Control panel ── */}
+      <div className="px-5 py-4 bg-gray-50 border-b border-gray-100">
+        <div className="flex items-end gap-3 flex-wrap">
+
+          {/* Capacity stepper */}
+          <div className="flex flex-col gap-1">
+            <label className="text-xs text-gray-400 font-medium">capacity</label>
+            <div className="flex items-center border border-gray-200 rounded-lg bg-white overflow-hidden h-9">
+              <button
+                onClick={() => changeCapacity(-1)}
+                disabled={capacity <= 1}
+                className="px-2.5 h-full text-gray-500 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed text-sm leading-none"
+              >−</button>
+              <span className="px-3 text-sm font-mono font-semibold text-gray-800 select-none">{capacity}</span>
+              <button
+                onClick={() => changeCapacity(1)}
+                disabled={capacity >= 6}
+                className="px-2.5 h-full text-gray-500 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed text-sm leading-none"
+              >+</button>
             </div>
+          </div>
+
+          {/* Divider */}
+          <div className="self-stretch w-px bg-gray-200 my-0.5" />
+
+          {/* Key input */}
+          <div className="flex flex-col gap-1">
+            <label className="text-xs text-gray-400 font-medium">key</label>
+            <input
+              type="number"
+              value={keyInput}
+              onChange={e => setKeyInput(e.target.value)}
+              onKeyDown={e => { if (e.key === "Enter" && keyValid) handleGet(); }}
+              placeholder="1"
+              className="w-20 h-9 border border-gray-200 rounded-lg px-3 text-sm font-mono bg-white focus:outline-none focus:ring-1 focus:ring-gray-400"
+            />
+          </div>
+
+          {/* Value input */}
+          <div className="flex flex-col gap-1">
+            <label className="text-xs text-gray-400 font-medium">value</label>
+            <input
+              type="number"
+              value={valueInput}
+              onChange={e => setValueInput(e.target.value)}
+              onKeyDown={e => { if (e.key === "Enter" && keyValid && valueValid) handlePut(); }}
+              placeholder="10"
+              className="w-20 h-9 border border-gray-200 rounded-lg px-3 text-sm font-mono bg-white focus:outline-none focus:ring-1 focus:ring-gray-400"
+            />
+          </div>
+
+          {/* Action buttons */}
+          <div className="flex gap-2 pb-0.5">
             <button
-              onClick={handleInit}
-              className="px-5 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-sm font-medium"
+              onClick={handleGet}
+              disabled={!keyValid}
+              className="h-9 px-4 text-sm font-medium rounded-lg border border-gray-800 text-gray-800 hover:bg-gray-800 hover:text-white transition-colors disabled:opacity-25 disabled:cursor-not-allowed"
             >
-              Initialize
+              get(key)
+            </button>
+            <button
+              onClick={handlePut}
+              disabled={!keyValid || !valueValid}
+              className="h-9 px-4 text-sm font-medium rounded-lg bg-gray-800 text-white hover:bg-gray-700 transition-colors disabled:opacity-25 disabled:cursor-not-allowed"
+            >
+              put(key, val)
             </button>
           </div>
-        ) : (
-          /* ── Operation form ── */
-          <div className="flex flex-col gap-3">
-            <div className="flex items-end gap-3 flex-wrap">
-              <div className="flex flex-col gap-1">
-                <label className="text-xs text-gray-500 font-medium">Key</label>
-                <input
-                  type="number"
-                  value={keyInput}
-                  onChange={e => setKeyInput(e.target.value)}
-                  placeholder="e.g. 1"
-                  className="w-24 border border-gray-300 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-indigo-400"
-                />
-              </div>
-              <div className="flex flex-col gap-1">
-                <label className="text-xs text-gray-500 font-medium">Value</label>
-                <input
-                  type="number"
-                  value={valueInput}
-                  onChange={e => setValueInput(e.target.value)}
-                  placeholder="e.g. 10"
-                  className="w-24 border border-gray-300 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-indigo-400"
-                />
-              </div>
-              <button
-                onClick={handleGet}
-                disabled={keyInput === ""}
-                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-medium disabled:bg-gray-300 disabled:cursor-not-allowed"
-              >
-                get(key)
-              </button>
-              <button
-                onClick={handlePut}
-                disabled={keyInput === "" || valueInput === ""}
-                className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-sm font-medium disabled:bg-gray-300 disabled:cursor-not-allowed"
-              >
-                put(key, value)
-              </button>
-              <button
-                onClick={handleReset}
-                className="p-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 ml-auto"
-                title="Reset"
-              >
-                <RotateCcw size={18} />
-              </button>
-            </div>
 
-            {/* Last operation result */}
-            <div className="rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm min-h-10 flex items-center gap-2">
-              {lastOp ? (
-                <>
-                  <span className="font-mono font-semibold text-indigo-700">{lastOp.label}</span>
-                  {lastOp.result !== null && (
-                    <span className={`font-medium ${lastOp.result === "-1" ? "text-red-500" : "text-green-600"}`}>
-                      → {lastOp.result === "-1" ? "−1 (key not found)" : `${lastOp.result}`}
-                    </span>
-                  )}
-                  {lastOp.evicted !== null && (
-                    <span className="text-orange-500 font-medium">· evicted key {lastOp.evicted}</span>
-                  )}
-                  {lastOp.result === null && lastOp.evicted === null && (
-                    <span className="text-gray-500">· key updated</span>
-                  )}
-                </>
-              ) : (
-                <span className="text-gray-400">
-                  LRUCache({capacity}) — enter a key and call get or put
-                </span>
-              )}
-            </div>
+          {/* Reset */}
+          <button
+            onClick={handleReset}
+            className="ml-auto mb-0.5 p-2 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+            title="Clear cache"
+          >
+            <RotateCcw size={15} />
+          </button>
+        </div>
+
+        {/* Result banner */}
+        {lastOp && (
+          <div className={`mt-3 flex items-center gap-2 px-3 py-2 rounded-lg text-sm border
+            ${lastOp.type === "get" && lastOp.hit
+              ? "bg-green-50 border-green-200 text-green-800"
+              : lastOp.type === "get" && !lastOp.hit
+              ? "bg-red-50 border-red-200 text-red-700"
+              : lastOp.evicted !== null
+              ? "bg-orange-50 border-orange-200 text-orange-800"
+              : "bg-white border-gray-200 text-gray-600"
+            }`}
+          >
+            <span className="font-mono font-semibold">{lastOp.label}</span>
+            {lastOp.type === "get" && lastOp.hit && (
+              <span>→ <strong>{lastOp.returned}</strong> <span className="opacity-60">(cache hit · moved to front)</span></span>
+            )}
+            {lastOp.type === "get" && !lastOp.hit && (
+              <span>→ <strong>−1</strong> <span className="opacity-60">(key not found)</span></span>
+            )}
+            {lastOp.type === "put" && lastOp.evicted === null && (
+              <span className="opacity-60">inserted at front</span>
+            )}
+            {lastOp.type === "put" && lastOp.evicted !== null && (
+              <span>inserted · <strong>evicted key {lastOp.evicted}</strong> <span className="opacity-60">(was LRU)</span></span>
+            )}
           </div>
         )}
       </div>
 
       {/* Cache visualization */}
-      {initialized && (
-        <div className="bg-white px-5 py-6">
+      <div className="bg-white px-5 py-6">
           <div className="flex justify-between text-xs text-gray-400 mb-3 px-1">
             <span>MRU (most recent)</span>
             <span>LRU (least recent)</span>
@@ -257,7 +257,6 @@ export default function LRUCacheVisualizer() {
             </div>
           </div>
         </div>
-      )}
     </div>
   );
 }
