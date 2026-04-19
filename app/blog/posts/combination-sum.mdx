@@ -35,17 +35,23 @@ Output: []
 
 ### Key Observation
 
-For every candidate, we can either **include it** in the combination or **exclude it** and move to the next candidate.
+The problem is naturally recursive in nature. For every candidate, we can either **include it** in the combination or **exclude it** and 
+move to the next candidate.
+
+<CombinationSumRecursionVisualizer />
+
+At every step, we are trying to solve the same problem for a subset of candidates and a reduced target.
 
 > **NOTE:** Ordering is not important in combinations. For example, `[2,2,3]` is same as `[3,2,2]` and `[2,3,2]`.
 
-![combination-sum](/combination-sum/combination-sum.png) 
-
-The problem is naturally recursive in nature. At every step, we are trying to solve the same problem for a reduced target.
-
 ---
 
-### Recursive Include-Exclude Pattern
+### Approach 1: Include - Exclude 
+
+Use recursion to process one candidate at a time. At each step, make a decision for a specific 
+element, either include it in the current combination or exclude it and move to the next element.
+
+#### Hypothesis
 
 Let `F(currentIndex, candidates, target)` be a function that generates all unique combinations whose sum equal to
 `target` by exploring every feasible choice from the range: `[index, candidates.length - 1]`.
@@ -65,14 +71,14 @@ currentCombination.remove(currentCombination.size() - 1);
 F(currentIndex + 1, candidates, target);
 ```
 
-#### Base conditions
+#### Base Conditions
 
 Since we reduce the `target` at each recursive call, reaching `target == 0` indicates that the sum of the 
 `currentCombination` exactly matches the original target, and hence we have found a valid combination.
 
 ```java
 if (target == 0) {
-    allCombinations.add(currentCombination.clone());
+    allCombinations.add(new ArrayList<>(currentCombination)); // save the clone of the currentCombination
     return;
 }
 ```
@@ -85,10 +91,6 @@ if (target < 0) {
     return;
 }
 ```
-
-#### Visualization
-
-<CombinationSumRecursionVisualizer />
 
 #### Time Complexity
 
@@ -114,5 +116,63 @@ Apart from this auxiliary space, additional memory is used to store the final re
 but the core working space of the algorithm remains linear in terms of recursion depth.
 
 ---
+
+### Optimization
+
+In the include - exclude pattern, each recursion level focuses on making a decision about a single element (whether to pick it or skip it). 
+However, in this problem, instead of restricting ourselves to one element per level, we can directly explore all available candidates at each step.
+
+Using a for-loop could help us eliminate redundant exclusion calls by implicitly handling the **skip** decisions through index progression, 
+instead of explicitly making separate recursive calls to exclude each element.
+
+<CombinationSumNaryVisualizer />
+
+---
+
+### Approach 2: N-ary Backtracking
+
+At each recursive step, rather than making a binary decision of inluding or excluding the current 
+element, run a loop to explore all available candidates.
+
+#### Hypothesis
+
+Let `F(currentIndex, candidates, target)` be a function that generates all unique combinations 
+whose sum equals `target` by exploring all feasible choices from the range `[currentIndex, candidates.length - 1]`.
+
+#### Recursive Steps 
+
+```java
+for(int i = currentIndex; i < candidates.length - 1; i++) {
+    // Step 1: Include the current candidate
+    currentCombination.add(candidates[i]);
+
+    // Step 2: Recurse (reuse allowed - stay at the same index i)
+    F(i, candidates, target - candidates[i]);
+
+    // Step 3: Backtrack (undo choice)
+    currentCombination.remove(currentCombination.size() - 1);
+}
+```
+
+#### Base Conditions
+
+```java
+same as the include - exclude approach
+```
+
+#### Time Complexity
+
+
+
+#### Space Complexity
+
+---
+
+
+
+
+
+
+
 
 
