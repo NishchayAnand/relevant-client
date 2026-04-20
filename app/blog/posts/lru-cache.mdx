@@ -47,18 +47,35 @@ writes are expected.
 
 ### Key Observations
 
+- A `HashMap` can be used to store `(key, value)` mappings, allowing both `put` and `get` 
+operations to run in `O(1)` time. However, a `HashMap` cannot maintain the order of usage, 
+making it difficult to identify the least recently used element.
+
+- A `LinkedList` can help maintain ordering. By inserting every new `(key, value)` pair at the
+`head` and removing the `tail` node when the cache exceeds its capacity, we can evict the least
+recently used element in `O(1)` time. However, when a `key` is accessed or updated, we still need 
+to search for the corresponding node in the list, update its value, and move it to the front. This 
+search operation takes `O(n)` time, which becomes the primary bottleneck.
+
+
+time. However, However, every time a `key` is accessed or updated, 
+we need to search the `(key, value)` pair, update its value, and move it to the front of the `LRUCache`.
+
+- 
+
 We can use a HashMap to store `(key, value)` which will ensure the `get` and `put` are executed in
 `O(1)`. However, we may not be able to keep track of the least visited key.
 
 We can use a simple Linked List. In case a new every `(key, value)` pair is added at the head, the 
-time complexity would be `O(1)`. In case the `key` already exist, we need to search the key and then
-update its value, that's gonna take `O(n)`. We can remove the tail node representing the least visited 
-node everytime the `LRUCache` exceeds its capacity limit. However, every time a `key` is accessed, 
-we need to search the `(key, value)` pair and move it to the front of the `LRUCache`.
+time complexity would be `O(1)`. We can remove the tail node representing the least visited 
+node everytime the `LRUCache`. However, every time a `key` is accessed or updated, 
+we need to search the `(key, value)` pair, update its value, and move it to the front of the `LRUCache`.
 
 The primary bottleneck with using linked list is searching the `(key, value)` pair takes `O(n)`.
 We can use HashMap to search a `(key, value)` pair whenever we are trying to add a `(key, value)` pair 
-or access `key`.
+or access `key`. However, now that we don't need to search the `(key, value)` when a key is accessed or updated,
+we cannot use a simple linked list since we need to remove a `(key, value)` from the middle and join its previous node 
+to its next node. We can use a doubly linked list which allows us to keep track of the next node and the previous node.
 
 ---
 
