@@ -41,6 +41,12 @@ import ScanMovementVisualizer from './scan-movement-visualizer';
 import CombinationSumRecursionVisualizer from './combination-sum-recursion-visualizer';
 import CombinationSumNaryVisualizer from './combination-sum-nary-visualizer';
 import LRUCacheVisualizer from './lru-cache-visualizer';
+import {
+  LRUHashMapVisualizer,
+  LRUSinglyLinkedListVisualizer,
+  LRUHashMapSinglyLinkedListVisualizer,
+  LRUDoublyLinkedListVisualizer,
+} from './lru-key-observations-visualizer';
 import TicTacToeVisualizer from './tic-tac-toe-visualizer';
 import MergeIntervalsVisualizer from './merge-intervals-visualizer';
 
@@ -223,6 +229,10 @@ let components = {
   CombinationSumRecursionVisualizer: CombinationSumRecursionVisualizer,
   CombinationSumNaryVisualizer: CombinationSumNaryVisualizer,
   LRUCacheVisualizer: LRUCacheVisualizer,
+  LRUHashMapVisualizer: LRUHashMapVisualizer,
+  LRUSinglyLinkedListVisualizer: LRUSinglyLinkedListVisualizer,
+  LRUHashMapSinglyLinkedListVisualizer: LRUHashMapSinglyLinkedListVisualizer,
+  LRUDoublyLinkedListVisualizer: LRUDoublyLinkedListVisualizer,
   FCFSMovementVisualizer: FCFSMovementVisualizer,
   ScanMovementVisualizer: ScanMovementVisualizer,
   TicTacToeVisualizer: TicTacToeVisualizer,

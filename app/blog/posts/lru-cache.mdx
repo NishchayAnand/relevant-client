@@ -51,11 +51,15 @@ writes are expected.
 operations to run in `O(1)` time. However, a `HashMap` cannot maintain the order of usage, 
 making it difficult to identify the least recently used element.
 
+<LRUHashMapVisualizer />
+
 - A `SinglyLinkedList` can help maintain ordering. By inserting every new `(key, value)` pair at the
 `head` and removing the `tail` node when the cache exceeds its capacity, we can evict the least
 recently used element in `O(1)` time. However, when a `key` is accessed or updated, we still need 
 to search for the corresponding node in the list, update its value, and move it to the front. This 
 search operation takes `O(n)` time, which becomes the primary bottleneck.
+
+<LRUSinglyLinkedListVisualizer />
 
 - Along with a `SinglyLinkedList`, we can use a `HashMap` to store `(key, node)` mappings, enabling
 `O(1)` lookup when accessing or updating a `(key, value)` pair. This eliminates the need to 
@@ -63,9 +67,13 @@ search through the list. However, once we locate a node, we still need to remove
 position and move it to the front of the cache. A `SinglyLinkedList` cannot efficiently support 
 this operation, as it does not provide access to the previous node, making removal from the middle costly.
 
+<LRUHashMapSinglyLinkedListVisualizer />
+
 - Instead of a `SinglyLinkedList`, we can use a `DoublyLinkedList`, which maintains both `prev` and
 `next` pointers. This allows us to remove and reposition nodes in `O(1)` time by directly reconnecting 
 the previous and the next nodes.
+
+<LRUDoublyLinkedListVisualizer />
 
 ---
 
