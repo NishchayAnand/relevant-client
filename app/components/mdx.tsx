@@ -42,6 +42,7 @@ import CombinationSumRecursionVisualizer from './combination-sum-recursion-visua
 import CombinationSumNaryVisualizer from './combination-sum-nary-visualizer';
 import LRUCacheVisualizer from './lru-cache-visualizer';
 import TicTacToeVisualizer from './tic-tac-toe-visualizer';
+import MergeIntervalsVisualizer from './merge-intervals-visualizer';
 
 hljs.registerLanguage('javascript', javascript);
 
@@ -225,6 +226,7 @@ let components = {
   FCFSMovementVisualizer: FCFSMovementVisualizer,
   ScanMovementVisualizer: ScanMovementVisualizer,
   TicTacToeVisualizer: TicTacToeVisualizer,
+  MergeIntervalsVisualizer: MergeIntervalsVisualizer,
   Image: RoundedImage,
   a: CustomLink,
   code: Code,

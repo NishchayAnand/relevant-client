@@ -135,14 +135,14 @@ export default function LRUCacheVisualizer() {
               disabled={!keyValid}
               className="h-9 px-4 text-sm font-medium rounded-lg bg-green-600 text-white hover:bg-green-700 transition-colors disabled:opacity-25 disabled:cursor-not-allowed"
             >
-              get(key)
+              GET (read)
             </button>
             <button
               onClick={handlePut}
               disabled={!keyValid || !valueValid}
               className="h-9 px-4 text-sm font-medium rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors disabled:opacity-25 disabled:cursor-not-allowed"
             >
-              put(key, val)
+              PUT (write)
             </button>
           </div>
 
