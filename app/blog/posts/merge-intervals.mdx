@@ -43,11 +43,11 @@ A. No, the intervals are not guaranteed to be sorted by the start time.
 If the `intervals` are sorted by start time, we can iterate through each interval and compare it
 with the last non-overlapping interval in the merged list to check for overlap.
 
----
+#### How to Check if Two Intervals are Overlapping?
 
-### How to Merge Two Intervals?
+![merge-intervals](/merge-intervals/overlapping-intervals.png)
 
-
+#### How to Merge Two Intervals?
 
 ---
 
@@ -55,9 +55,22 @@ with the last non-overlapping interval in the merged list to check for overlap.
 
 ```java
 public int[][] merge(int[][] intervals) {
-    // 
+    List<int[]> result = new ArrayList<>();
+
+    for(int[] interval: intervals) {
+        if(!result.isEmpty()) {
+            int[] lastMerged = result.get(result.size() - 1);
+            // Check if last merged interval and current interval overlaps
+        }
+    }
+
+    return result.toArray();
 }
 ```
+
+### Visualization
+
+
 
 #### Time Complexity
 
