@@ -40,26 +40,26 @@ enforcing turn order, and determining game outcomes such as win or draw.
 
 #### Use Case 1: Move a New Move
 
-1. A `player` plays a move by selecting a `cell`, represented using a `[row, column]` coordinate 
-on the 3x3 virtual Tic-Tac-Toe `board`.
+1. A player makes a move by selecting a cell using a `[row, column]` coordinate 
+on the board.
 
-2. The system validates that the selected `cell` is not already occupied. If valid, the 
-system updates the player’s `symbol` on the selected `cell` on the `board`.
+2. The system validates that the selected cell is within bounds and not already occupied. 
+If valid, it updates the cell with the player's symbol.
 
-3. The system checks whether the move results in a win or draw. If the game is still in 
-progress, the turn is switched to the next `player`.
+3. Next, the system evaluates whether the move results in a win or draw. If the game is still 
+in progress, the turn is switched to the next player.
+
+4. If a player wins, the system updates the player's score to reflect the victory.
 
 #### Use Case 2: Undo a Previous Move
 
-1. The `player` requests to undo the last `move`.
+1. A player requests to undo the last move.
 
-2. The system retrieves the most recent `move` from the `moveHistory`.
+2. The system retrieves the most recent move from the move history and reverts the board state 
+by clearing that move.
 
-3. The `board` state is reverted by clearing the last move.
-
-4. The turn is switched back to the `player` who made the undone `move`.
-
-5. The game state is updated accordingly (e.g., revert from WIN/DRAW to IN_PROGRESS if needed). ??? 
+3. Next, the system switches the turn back to the player who made the undone move and reverts 
+the game state from WIN/DRAW to IN_PROGRESS if needed.
 
 ---
 
@@ -106,16 +106,6 @@ class Cell {
 #### Game
 
 The `Game` act as the controller, resposible
-
-
-
----
-
-### Low-Level Design
-
-#### Game
-
-The `Game` is a controller class handling 
 
 ```java
 public class Game {
