@@ -49,9 +49,14 @@ interval and compare it with the last merged interval in the result list to chec
 For two intervals `A = [start1, end1]` and `B = [start2, end2]` where `start1 <= start2`, 
 overlap exists if `start2 <= end1`.
 
-![merge-intervals](/merge-intervals/overlapping-intervals.png)
+![overlapping-intervals](/merge-intervals/overlapping-intervals.png)
 
 #### How to Merge Two Intervals?
+
+For two intervals `A = [start1, end1]` and `B = [start2, end2]` where `start1 <= start2` (sorted) 
+and `start2 <= end1` (overlapping), the merged interval is `[start1, max(end1, end2)]`.
+
+![merged-intervals](/merge-intervals/merged-intervals.png)
 
 ---
 
