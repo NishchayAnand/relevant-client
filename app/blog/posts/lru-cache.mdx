@@ -79,6 +79,126 @@ the previous and the next nodes.
 
 ### Low-Level Design
 
+```java
+class LRUCache {
+
+    class Node {
+        int key, value;
+        Node prev, next;
+
+        Node(int key, int value) {
+            this.key = key;
+            this.value = value;
+        }
+    }
+
+    private Map<Integer, Node> map;
+    private int capacity;
+    private Node head, tail;
+
+    public LRUCache(int capacity) {...}
+    public int get(int key) {...}
+    public void put(int key, int value) {...}
+
+}   
+```
+
+> What is the use of internal class?
+
+#### 1. LRUCache(int capacity) 
+
+```java
+public LRUCache(int capacity) {
+    this.capacity = capacity;
+    this.map = new HashMap<>();
+
+    head = new Node(0, 0);
+    tail = new Node(0, 0);
+
+    head.next = tail;
+    tail.next = head;
+}
+```
+
+#### 2. get(int key)
+
+```java
+public int get(int key) {
+    Node node = map.get(key);
+
+    if(node == null) return -1;
+    
+    moveToHead(node);
+    return node.value;
+}
+```
+
+#### 3. put(int key, int value)
+
+```java
+public void put(int key, int value) {
+    Node node = map.get(key);
+
+    if(node != null) {
+        node.value = value;
+        moveToHead(node);
+    } else {
+        Node newNode = new Node(key, value);
+
+        map.put(key, newNode);
+        addNode(newNode);
+
+        // if adding new node exceeds the capacity, remove the least recently used node
+        if(map.size() > capacity) {
+            Node tailNode = removeTail();
+            map.remove(tailNode.key);
+        }
+    }
+}
+```
+
+#### 4. moveToHead(Node node)
+
+```java
+private void moveToHead(Node node) {
+    removeNode(node);
+    addNode(node);
+}
+```
+
+#### 5. removeNode(Node node)
+
+```java
+private void removeNode(Node node) {
+    Node prev = node.prev;
+    Node next = node.next;
+
+    prev.next = next;
+    next.prev = prev;
+}
+```
+
+#### 6. addNode(Node node)
+
+```java
+private void addNode(Node node) {
+    node.next = head.next;
+    head.next.prev = node;
+
+    node.prev = head;
+    head.next = node;
+}
+```
+
+#### 6. removeTail()
+
+```java
+private Node removeTail() {
+    Node node = tail.prev;
+    removeNode(node);
+    return node;
+}
+```
 
 ---
 
