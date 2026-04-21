@@ -33,17 +33,21 @@ Explanation: Intervals [1,4] and [4,7] are considered overlapping.
 
 ### General Observations
 
-Q. Are the intervals sorted by the start time?
+Q. Are the intervals sorted by the start time?\
 A. No, the intervals are not guaranteed to be sorted by the start time.
 
 ---
 
 ### Intuition
 
-If the `intervals` are sorted by start time, we can iterate through each interval and compare it
-with the last non-overlapping interval in the merged list to check for overlap.
+If `intervals` are in arranged in random order, each interval can overlap with any other 
+interval. However, if the `intervals` are sorted by start time, we can iterate through each 
+interval and compare it with the last merged interval in the result list to check for overlap. 
 
 #### How to Check if Two Intervals are Overlapping?
+
+For two intervals `A = [start1, end1]` and `B = [start2, end2]` where `start1 <= start2`, 
+overlap exists if `start2 <= end1`.
 
 ![merge-intervals](/merge-intervals/overlapping-intervals.png)
 
