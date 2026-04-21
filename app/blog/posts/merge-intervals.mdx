@@ -64,22 +64,33 @@ and `start2 <= end1` (overlapping), the merged interval is `[start1, max(end1, e
 
 ```java
 public int[][] merge(int[][] intervals) {
+
+    // Sort intervals in ascending order of their start time.
+    Arrays.sort(intervals, (a,b) -> Integer.compare(a[0], b[0])); // a[0] - b[0] can overflow when values are large
+
     List<int[]> result = new ArrayList<>();
 
     for(int[] interval: intervals) {
-        if(!result.isEmpty()) {
+        if(result.isEmpty()) {
+            result.add(interval);
+        } else {
             int[] lastMerged = result.get(result.size() - 1);
-            // Check if last merged interval and current interval overlaps
+            // Check if current intervals starts with last merged interval ends (overlapping)
+            if (interval[0] <= lastMerged[1]) {
+                lastMerged[1] = Math.max(lastMerged[1], interval[1]);
+            } else {
+                result.add(interval);
+            }
         }
     }
 
-    return result.toArray();
+    return result.toArray(new int[result.size()][]);
 }
 ```
 
 ### Visualization
 
-
+<MergeIntervalsVisualizer />
 
 #### Time Complexity
 

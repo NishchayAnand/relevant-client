@@ -155,6 +155,10 @@ function resultBarStyle(idx: number, step: Step): string {
 
 // ── Timeline ─────────────────────────────────────────────────────────────────
 
+function intervalsIntersect(iv: Interval, overlap: [number, number]) {
+  return iv[0] <= overlap[1] && overlap[0] <= iv[1];
+}
+
 function IntervalTimeline({
   intervals,
   getBarStyle,
@@ -169,40 +173,46 @@ function IntervalTimeline({
   return (
     <div>
       <p className="text-xs font-medium text-gray-500 mb-2">{label}</p>
-      <div className="relative h-9 rounded-lg bg-gray-50 border border-gray-100 overflow-hidden">
-        {/* Grid lines */}
-        {TICKS.map(t => (
-          <div
-            key={t}
-            className="absolute top-0 bottom-0 w-px bg-gray-200"
-            style={{ left: leftPct(t) }}
-          />
-        ))}
+      
+      {/* Separate timeline row for each interval */}
+      <div className="space-y-2">
+        {intervals.map((iv, idx) => {
+          const hasOverlap = overlap && intervalsIntersect(iv, overlap);
+          return (
+            <div key={idx} className="relative h-8 rounded-lg bg-gray-50 border border-gray-100 overflow-hidden">
+              {/* Grid lines */}
+              {TICKS.map(t => (
+                <div
+                  key={t}
+                  className="absolute top-0 bottom-0 w-px bg-gray-200"
+                  style={{ left: leftPct(t) }}
+                />
+              ))}
 
-        {/* Overlap highlight */}
-        {overlap && (
-          <div
-            className="absolute top-0 bottom-0 bg-orange-300/50"
-            style={{ left: leftPct(overlap[0]), width: widthPct(overlap[0], overlap[1]) }}
-          />
-        )}
+              {/* Overlap highlight */}
+              {overlap && (
+                <div
+                  className="absolute top-0 bottom-0 bg-orange-300/50"
+                  style={{ left: leftPct(overlap[0]), width: widthPct(overlap[0], overlap[1]) }}
+                />
+              )}
 
-        {/* Interval bars */}
-        {intervals.map((iv, idx) => (
-          <div
-            key={idx}
-            className={`absolute top-1 bottom-1 rounded flex items-center justify-center overflow-hidden transition-all ${getBarStyle(idx)}`}
-            style={{ left: leftPct(iv[0]), width: widthPct(iv[0], iv[1]) }}
-          >
-            <span className="text-[10px] font-mono font-semibold whitespace-nowrap px-1 leading-none">
-              [{iv[0]},{iv[1]}]
-            </span>
-          </div>
-        ))}
+              {/* Interval bar */}
+              <div
+                className={`absolute top-0.5 bottom-0.5 rounded flex items-center justify-center overflow-hidden transition-all ${getBarStyle(idx)} ${hasOverlap ? "opacity-60" : ""}`}
+                style={{ left: leftPct(iv[0]), width: widthPct(iv[0], iv[1]) }}
+              >
+                <span className="text-[10px] font-mono font-semibold whitespace-nowrap px-1 leading-none">
+                  [{iv[0]},{iv[1]}]
+                </span>
+              </div>
+            </div>
+          );
+        })}
       </div>
 
-      {/* Tick labels */}
-      <div className="relative h-4 mt-0.5">
+      {/* Tick labels (shared at bottom) */}
+      <div className="relative h-4 mt-1">
         {TICKS.map(t => (
           <div
             key={t}
