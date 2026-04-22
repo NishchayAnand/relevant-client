@@ -75,78 +75,104 @@ turns, updating the board state, and tracking each player's wins.
 It maintains the core state required to run the game, include the list of players, the 
 current player's turn, the board instance, and a history of moves to support undo functionality;
 
-In order to adhere to the **Single Responsibility Principle**, it should not manage low-level 
-details like validate if the move is valid or record move or handle the undo steps.
+In order to adhere to the **Single Responsibility Principle**, it should not handle low-level 
+operations such as validating moves and updating the board state. Instead, it should delegate
+these responsibilities to the `Board` class, ensuring a clean separation of concerns and 
+better maintainability.
 
 ```java
 class Game {
-
     Player[] players;
     Board board;
     int currentPlayerIndex;
     Stack<Move> moveHistory;
-    ScoreTracker scoreTracker;
 
-    Game(Player player1, Player player2) {
-        this.players = new Player[]{player1, player2};
+    Game() {
+        this.players = new Player[]{new Player("Bob", "O"), new Player("Alice", "X")};
         this.board = new Board();
         this.currentPlayerIndex = 0;
         this.moveHistory = new ArrayDeque<>();
-        this.scoreTracker = new ScoreTracker();
     }
 
     public void playMove(int row, int column) {
-        Player currentPlayer = players[currentPlayerIndex];
+        Player player = players[currentPlayerIndex];
 
+        // Step 1: Validate Move
         if(!board.isValidMove(row, column)) {
             System.out.println("Invalid Move!");
             return;
         }
 
+        // Step 2: Update board state
         board.makeMove(row, column, currentPlayer.symbol);
-        moveHistory.push(new Move(row, column, currentPlayer));
 
-        if(board.isWinningMove(row, column)) {
-            scoreTacker.incrementWins(currentPlayer);
+        // Step 3: Record move in move history
+        moveHistory.push(new Move(row, column, player));
+
+        // Step 4: Check for a win
+        if(board.isWinningMove(row, column, player.symbol)) {
+            currentPlayer.incrementWins();
             return;
         }
 
+        // Step 5: Check for a draw
         if(board.isfull()) {
             System.out.println("Draw!");
             return;
         }
 
+        // Step 6: Switch turn to next player
         switchTurn();
-
     }
 
     public void undo() {
-
         if(moveHistory.isEmpty()) {
-            System.out.println("No moves for undo");
+            System.out.println("No moves to undo!");
             return;
         }
 
+        // Step 1: Retrieve the last move
         Move lastMove = moveHistory.pop();
+        
+        // Step 2: Revert the board state
         board.undoMove(move.row, move.column);
 
+        // Step 3: Switch turn back to the previous player
         switchTurn();
     }
 
     private void switchTurn() {
         currentPlayerIndex = (currentPlayerIndex + 1) % 2;
     }
-
 }
 ```
 
 #### Player
 
+The `Player` class represents a participant in the game. It serves as a data holder with 
+limited behavior, typically including attributes such as the player's name, assigned symbol 
+(e.g., X or O), and score (number of wins).
+
+```java
+class Player {
+    String name;
+    Symbol symbol;
+    int wins;
+
+    Person(String name, Symbol symbol) {
+        this.name = name;
+        this.symbol = symbol;
+    }
+
+    public void incrementWins() {
+        wins++;
+    }
+}
+```
+
 #### Board
 
-#### MoveHistory
-
-
+(continue from here)
 
 #### Move 
 
