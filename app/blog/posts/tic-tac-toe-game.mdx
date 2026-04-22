@@ -43,8 +43,8 @@ enforcing turn order, and determining game outcomes such as win or draw.
 1. A player makes a move by selecting a cell using a `[row, column]` coordinate 
 on the board.
 
-2. The system validates that the selected cell is within bounds and not already occupied. 
-If valid, it updates the cell with the player's symbol.
+2. The system validates if the selected cell is not already occupied. If valid, it updates 
+the cell with the player's symbol.
 
 3. Next, the system evaluates whether the move results in a win or draw. If the game is still 
 in progress, the turn is switched to the next player.
@@ -58,12 +58,72 @@ in progress, the turn is switched to the next player.
 2. The system retrieves the most recent move from the move history and reverts the board state 
 by clearing that move.
 
-3. Next, the system switches the turn back to the player who made the undone move and reverts 
-the game state from WIN / DRAW to IN-PROGRESS if needed.
+3. Next, the system switches the turn back to the player who made the undone move and updates 
+the player's score if necessary.
 
 ---
 
 ### Object-Model Design
+
+The primary entities in the system include:
+
+#### Game
+
+The `Game` class is responsible for validating and coordinating each player's move, swithing 
+turns, updating the board state, and tracking each player's wins.
+
+It maintains the core state required to run the game, include the list of players, the 
+current player's turn, the board instance, and a history of moves to support undo functionality;
+
+In order to adhere to the **Single Responsibility Principle**, it should not manage low-level 
+details like validate if the move is valid or record move or handle the undo steps.
+
+```java
+class Game {
+
+    Player[] players;
+    Board board;
+    int currentPlayerIndex;
+    MoveHistory moveHistory;
+    ScoreTracker scoreTracker;
+
+    Game(Player player1, Player player2) {
+        this.players = new Player[]{player1, player2};
+        this.board = new Board();
+        this.currentPlayerIndex = 0;
+        this.moveHistory = new MoveHistory();
+        this.scoreTracker = new ScoreTracker();
+    }
+
+    public void playMove(int row, int column) {
+        Player player = players[currentPlayerIndex];
+
+        if(!board.isValidMove(row, column)) {
+            System.out.println("Invalid Move!");
+            return;
+        }
+
+        board.makeMove(row, column, player.symbol);
+        moveHistory.recordMove(new Move(row, column, player));
+
+        if(isWinningMove(row, column)) {
+
+        }
+    }
+
+
+
+
+}
+```
+
+#### Player
+
+#### Board
+
+#### MoveHistory
+
+
 
 #### Move 
 
