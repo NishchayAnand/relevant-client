@@ -31,7 +31,7 @@ export default function RootLayout({
     <html lang="en" >
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased m-8`}>
         <Navbar />
-        <main className="max-w-3xl mt-10 mb-20 mx-auto">
+        <main className="max-w-4xl mt-10 mb-20 mx-auto">
           {children}
         </main>
       </body>
