@@ -79,12 +79,8 @@ the previous and the next nodes.
 
 ### Implementation
 
-The most efficient way to implement `LRUCache` is by using a `HashMap` for `O(1)` lookup and a 
+The most efficient way to implement an `LRUCache` is by using a `HashMap` for `O(1)` lookup and a 
 `DoublyLinkedList` to maintain the access order. 
-
-Instead of letting `head` and `tail` point to actual cache entries, we can use dummy nodes to
-act as fixed boundary markers. This removes the need for null checks when inserting or deleting 
-nodes, since every real node will always have a valid previous and next node.
 
 ```java
 class LRUCache {
@@ -94,7 +90,6 @@ class LRUCache {
         int key, value;
         Node prev, next;
 
-        // package-private: only accessible inside LRUCache and the same package
         Node(int key, int value) {
             this.key = key;
             this.value = value;
@@ -109,14 +104,12 @@ class LRUCache {
     public int get(int key) {...}
     public void put(int key, int value) {...}
 
-    .
-    .
-    .
-
 }   
 ```
 
-#### 1. LRUCache(int capacity) 
+Let’s implement each of the core public functionalities step by step.
+
+#### LRUCache(int capacity)
 
 ```java
 public LRUCache(int capacity) {
@@ -131,7 +124,12 @@ public LRUCache(int capacity) {
 }
 ```
 
-#### 2. get(int key)
+Instead of letting `head` and `tail` point to actual cache entries, we can use 
+dummy nodes to act as fixed boundary markers. This removes the need for null checks 
+when inserting or deleting nodes, since every real node will always have a valid 
+previous and next node.
+
+#### get(int key)
 
 ```java
 public int get(int key) {
@@ -144,7 +142,10 @@ public int get(int key) {
 }
 ```
 
-#### 3. put(int key, int value)
+Operations that modify the list are internal implementation details and can be abstracted 
+into private helper methods to keep the public API clean.
+
+#### put(int key, int value)
 
 ```java
 public void put(int key, int value) {
@@ -168,7 +169,7 @@ public void put(int key, int value) {
 }
 ```
 
-#### 4. moveToHead(Node node)
+#### moveToHead(Node node)
 
 ```java
 private void moveToHead(Node node) {
@@ -177,31 +178,36 @@ private void moveToHead(Node node) {
 }
 ```
 
-#### 5. removeNode(Node node)
+#### removeNode(Node node)
 
 ```java
 private void removeNode(Node node) {
     Node prev = node.prev;
     Node next = node.next;
 
+    // Connect previous node to the next node
     prev.next = next;
     next.prev = prev;
 }
 ```
 
-#### 6. addNode(Node node)
+#### addNode(Node node)
 
 ```java
 private void addNode(Node node) {
+    // Step 1: Link new node with the current first node
     node.next = head.next;
     head.next.prev = node;
 
+    // Step 2: Link new node with the head
     node.prev = head;
     head.next = node;
+
+    // Final structure: head <-> node <-> previousFirstNode
 }
 ```
 
-#### 7. removeTail()
+#### removeTail()
 
 ```java
 private Node removeTail() {
