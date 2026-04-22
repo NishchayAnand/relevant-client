@@ -84,35 +84,58 @@ class Game {
     Player[] players;
     Board board;
     int currentPlayerIndex;
-    MoveHistory moveHistory;
+    Stack<Move> moveHistory;
     ScoreTracker scoreTracker;
 
     Game(Player player1, Player player2) {
         this.players = new Player[]{player1, player2};
         this.board = new Board();
         this.currentPlayerIndex = 0;
-        this.moveHistory = new MoveHistory();
+        this.moveHistory = new ArrayDeque<>();
         this.scoreTracker = new ScoreTracker();
     }
 
     public void playMove(int row, int column) {
-        Player player = players[currentPlayerIndex];
+        Player currentPlayer = players[currentPlayerIndex];
 
         if(!board.isValidMove(row, column)) {
             System.out.println("Invalid Move!");
             return;
         }
 
-        board.makeMove(row, column, player.symbol);
-        moveHistory.recordMove(new Move(row, column, player));
+        board.makeMove(row, column, currentPlayer.symbol);
+        moveHistory.push(new Move(row, column, currentPlayer));
 
-        if(isWinningMove(row, column)) {
-
+        if(board.isWinningMove(row, column)) {
+            scoreTacker.incrementWins(currentPlayer);
+            return;
         }
+
+        if(board.isfull()) {
+            System.out.println("Draw!");
+            return;
+        }
+
+        switchTurn();
+
     }
 
+    public void undo() {
 
+        if(moveHistory.isEmpty()) {
+            System.out.println("No moves for undo");
+            return;
+        }
 
+        Move lastMove = moveHistory.pop();
+        board.undoMove(move.row, move.column);
+
+        switchTurn();
+    }
+
+    private void switchTurn() {
+        currentPlayerIndex = (currentPlayerIndex + 1) % 2;
+    }
 
 }
 ```
