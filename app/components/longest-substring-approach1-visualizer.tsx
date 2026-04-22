@@ -151,7 +151,7 @@ export function LongestSubstringApproach1Visualizer() {
   const s = STEPS[step];
 
   return (
-    <div className="not-prose my-4 mt-8 rounded-xl bg-gray-900 border border-gray-700 p-4 text-sm font-mono">
+    <div className="not-prose my-4 mt-4 rounded-xl bg-gray-900 border border-gray-700 p-4 text-sm font-mono">
 
       <div className="space-y-4">
         {/* String with pointers */}
