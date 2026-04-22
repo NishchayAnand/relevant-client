@@ -2,3 +2,64 @@
 title: 'Object Oriented Design Fundamentals'
 publishedAt: '2025-12-01'
 ---
+
+---
+
+### Inner Classes
+
+**Inner classes** in Java are simply classes defined inside another class, used to group
+related logic and improve encapsulation. The inner class is tied to outer and usually 
+represents something that makes sense within it.
+
+Types of inner classes include:
+
+**1. Non-static Inner Class (Member Inner Class)**
+
+A non-static inner class is tied to an instance of the outer class and can access 
+all its members.
+
+```java
+class Outer {
+    int x = 10;
+
+    class Inner {
+        void display() {
+            System.out.println(x); // can access directly
+        }
+    }
+}
+
+Outer o = new Outer();
+Outer.Inner i = o.new Inner();
+```
+
+**2. Static Nested Class**
+
+A static nested class does not require an outer instance and can only access static members.
+
+```java
+class Outer {
+    static class Inner {
+        void display() {
+            System.out.println("Inner class");
+        }
+    }
+}
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

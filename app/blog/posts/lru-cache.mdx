@@ -77,19 +77,19 @@ the previous and the next nodes.
 
 ---
 
-### Low-Level Design
+### Implementation
 
 The most efficient way to implement `LRUCache` is by using a `HashMap` for `O(1)` lookup and a 
 `DoublyLinkedList` to maintain the access order. 
 
-We can define an . Additionally, we 
-can maintain two pointers: `head` and `tail` to mark the most recently and least recently 
-used nodes.
+Instead of letting `head` and `tail` point to actual cache entries, we can use dummy nodes to
+act as fixed boundary markers. This removes the need for null checks when inserting or deleting 
+nodes, since every real node will always have a valid previous and next node.
 
 ```java
 class LRUCache {
 
-    // Inner class to represent (key, value) pair -> understand this further 
+    // Inner class to represent (key, value) pair 
     class Node {
         int key, value;
         Node prev, next;
@@ -109,10 +109,12 @@ class LRUCache {
     public int get(int key) {...}
     public void put(int key, int value) {...}
 
+    .
+    .
+    .
+
 }   
 ```
-
-> What is the use of internal class?
 
 #### 1. LRUCache(int capacity) 
 
