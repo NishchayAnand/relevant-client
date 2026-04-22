@@ -17,19 +17,19 @@ function StepNav({
   onNext: () => void;
 }) {
   return (
-    <div className="flex items-center justify-between mt-4">
+    <div className="flex items-center justify-between gap-2 mt-4 flex-wrap">
       <button
         onClick={onPrev}
         disabled={step === 0}
-        className="p-1.5 rounded bg-gray-700 text-gray-300 disabled:opacity-30 hover:bg-gray-600 transition"
+        className="p-1.5 rounded bg-gray-700 text-gray-300 disabled:opacity-30 hover:bg-gray-600 transition flex-shrink-0"
       >
         <ChevronLeft size={16} />
       </button>
-      <div className="flex gap-1.5">
+      <div className="flex gap-1 flex-wrap justify-center flex-1 min-w-0">
         {Array.from({ length: total }).map((_, i) => (
           <div
             key={i}
-            className={`w-1.5 h-1.5 rounded-full transition-colors ${
+            className={`w-1.5 h-1.5 rounded-full transition-colors flex-shrink-0 ${
               i === step ? "bg-indigo-400" : "bg-gray-500"
             }`}
           />
@@ -38,7 +38,7 @@ function StepNav({
       <button
         onClick={onNext}
         disabled={step === total - 1}
-        className="p-1.5 rounded bg-gray-700 text-gray-300 disabled:opacity-30 hover:bg-gray-600 transition"
+        className="p-1.5 rounded bg-gray-700 text-gray-300 disabled:opacity-30 hover:bg-gray-600 transition flex-shrink-0"
       >
         <ChevronRight size={16} />
       </button>

@@ -307,21 +307,21 @@ export default function MergeIntervalsVisualizer() {
       )}
 
       {/* Navigation */}
-      <div className="flex items-center justify-between px-5 py-3 border-t border-gray-100 bg-gray-50">
+      <div className="flex items-center justify-between gap-2 px-5 py-3 border-t border-gray-100 bg-gray-50 flex-wrap">
         <button
           onClick={() => setStepIdx(s => Math.max(0, s - 1))}
           disabled={stepIdx === 0}
-          className="flex items-center gap-1 px-3 py-1.5 text-sm rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed"
+          className="flex items-center gap-1 px-3 py-1.5 text-sm rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed flex-shrink-0"
         >
           <ChevronLeft size={14} /> Prev
         </button>
 
-        <div className="flex gap-1.5">
+        <div className="flex gap-1 flex-wrap justify-center flex-1 min-w-0">
           {STEPS.map((_, i) => (
             <button
               key={i}
               onClick={() => setStepIdx(i)}
-              className={`w-2 h-2 rounded-full transition-colors ${i === stepIdx ? "bg-gray-700" : "bg-gray-300 hover:bg-gray-400"}`}
+              className={`w-2 h-2 rounded-full transition-colors flex-shrink-0 ${i === stepIdx ? "bg-gray-700" : "bg-gray-300 hover:bg-gray-400"}`}
             />
           ))}
         </div>

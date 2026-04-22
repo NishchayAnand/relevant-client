@@ -49,6 +49,7 @@ import {
 } from './lru-key-observations-visualizer';
 import TicTacToeVisualizer from './tic-tac-toe-visualizer';
 import MergeIntervalsVisualizer from './merge-intervals-visualizer';
+import { LongestSubstringApproach1Visualizer } from './longest-substring-approach1-visualizer';
 
 hljs.registerLanguage('javascript', javascript);
 
@@ -237,6 +238,7 @@ let components = {
   ScanMovementVisualizer: ScanMovementVisualizer,
   TicTacToeVisualizer: TicTacToeVisualizer,
   MergeIntervalsVisualizer: MergeIntervalsVisualizer,
+  LongestSubstringApproach1Visualizer: LongestSubstringApproach1Visualizer,
   Image: RoundedImage,
   a: CustomLink,
   code: Code,
