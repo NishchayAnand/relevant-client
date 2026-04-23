@@ -50,6 +50,7 @@ import {
 import TicTacToeVisualizer from './tic-tac-toe-visualizer';
 import MergeIntervalsVisualizer from './merge-intervals-visualizer';
 import { LongestSubstringApproach1Visualizer } from './longest-substring-approach1-visualizer';
+import { LongestSubstringApproach2Visualizer } from './longest-substring-approach2-visualizer';
 
 hljs.registerLanguage('javascript', javascript);
 
@@ -239,6 +240,7 @@ let components = {
   TicTacToeVisualizer: TicTacToeVisualizer,
   MergeIntervalsVisualizer: MergeIntervalsVisualizer,
   LongestSubstringApproach1Visualizer: LongestSubstringApproach1Visualizer,
+  LongestSubstringApproach2Visualizer: LongestSubstringApproach2Visualizer,
   Image: RoundedImage,
   a: CustomLink,
   code: Code,

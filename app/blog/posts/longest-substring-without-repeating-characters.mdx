@@ -98,11 +98,77 @@ Any starting index before that would only produce smaller substrings.
 
 ![key-observations](/longest-substring-without-repeating-characters/key-observation.png)
 
+> **NOTE:** A character is only considered duplicate only if its previous occurrence lies 
+within the current window. If it appears before the current starting index, it can be safely 
+ignored.
+
+![key-observations](/longest-substring-without-repeating-characters/current-window.png)
+
 ---
 
 ### Approach 2: Expand & Shrink
 
+Use two pointers `(i, j)` to traverse the string while maintaining a sliding window.
 
+- Expland the window (`j++`) when the current character is **not duplicate withing the current 
+window**.
+
+- If a duplicate character is encountered, shrink the window by moving `i` forward until the
+duplicate is removed.
+
+> **NOTE:** Maintain a `HashMap` to store the **last seen index** of each character. This 
+allows you to efficiently jump `i` forward to `lastSeenIndex + 1`, instead of moving it step 
+by step.
+
+#### Algorithm
+
+```java
+public int lengthOfLongestSubstring(String s) {
+
+    int maxLength = Integer.MIN_VALUE;
+    Map<Character, Integer> lastSeen = new HashMap<>();
+    
+    int i = 0;
+    for(int j = 0; j < s.length(); j++) {
+
+        char ch = s.charAt(j);
+
+        // If duplicate, shrink the window
+        if(lastSeen.containsKey(ch) && lastSeen.get(ch) >= i) {
+            i = lastSeen.get(ch) + 1;
+        }
+
+        // Persist current character index 
+        lastSeen.put(ch, j);
+
+        maxLength = Math.max(maxLength, j - i + 1);
+
+    }
+
+    return maxLength == Integer.MIN_VALUE ? 0 : maxLength;
+
+}
+```
+
+#### Visualization
+
+<LongestSubstringApproach2Visualizer />
+
+#### Time Complexity
+
+Each character is visited at most twice, once when the right pointer expands the window and 
+once when the left pointer shrinks it.
+
+Since both pointers traverse the string at most `n` times, the overall time complexity = `O(n)`.
+
+#### Space Complexity
+
+The `HashMap` stores the last seen index of each unique character. In the worst case (when all 
+characters are distinct), it can hold up to `n` entries.
+
+Therefore, the overall space complexity = `O(n)`.
+
+---
 
 
 
