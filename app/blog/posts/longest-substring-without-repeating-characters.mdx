@@ -71,6 +71,39 @@ public int lengthOfLongestSubstring(String s) {
 
 #### Time Complexity
 
+In the worst-case scenario (all characters in the input string are unique), for 
+every starting index `i`, we explore all `(n-i)` ending indices to its right. 
+
+This results in a total of: `n + (n-1) + ... + 2 + 1 = n(n+1)/2` iterations of the inner loop
+across all starting indices. 
+
+Therefore, the overall time complexity = `O(n²)`.
+
 #### Space Complexity
 
+We use a `HashSet` to store the characters in the current substring. In the worst case (when all 
+characters are unique), the set can grow to hold at most `n` characters at a time.
+
+Therefore, the overall space complexity = `O(n)`.
+
 ---
+
+### Key Observation
+
+While expanding a substring, if we encounter a character that has already been seen, we can 
+directly move the starting index `i` to the position right after the previous occurrence of 
+that character.
+
+Any starting index before that would only produce smaller substrings.
+
+![key-observations](/longest-substring-without-repeating-characters/key-observation.png)
+
+---
+
+### Approach 2: Expand & Shrink
+
+
+
+
+
+
