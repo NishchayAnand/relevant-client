@@ -104,14 +104,14 @@ class Game {
         }
 
         // Step 2: Update board state
-        board.makeMove(row, column, currentPlayer.symbol);
+        board.makeMove(row, column, player.symbol);
 
         // Step 3: Record move in move history
         moveHistory.push(new Move(row, column, player));
 
         // Step 4: Check for a win
         if(board.isWinningMove(row, column, player.symbol)) {
-            currentPlayer.incrementWins();
+            player.incrementWins();
             return;
         }
 
@@ -172,7 +172,49 @@ class Player {
 
 #### Board
 
-(continue from here)
+The `Board` class represents the core data structure of the game. It encapsulates all board-related 
+operations, such as validating whether a move is allowed, updating the state of a cell when a 
+move is made, and reverting a move when an undo is requested.
+
+> **NOTE:** Since each cell only needs to store a `Symbol`, we can use a `Symbol[][]` for 
+simplicity and efficiency. We can introduce a `Cell` abstraction only if additional metadata or 
+behavior per cell is required.
+
+```java
+enum Symbol {
+    X,
+    O,
+    EMPTY // represents unoccupied cells
+}
+
+class Board {
+    private static final int SIZE = 3;
+    private Symbol[][] grid;
+
+
+    public Board() {
+        this.grid = new Symbol[SIZE][SIZE];
+
+        // Initialize all cells to EMPTY
+        for(int i = 0; i < SIZE; i++) {
+            for(int j = 0; j < SIZE; j++) {
+                grid[i][j] = Symbol.EMPTY;
+            }
+        }
+    }
+
+    // Validate if cell is empty
+    public boolean isValidMove(int row, int col) {
+        return grid[row][col] == Symbol.EMPTY;
+    }
+
+    // Apply move
+    public boolean makeMove(int row, int col, Symbol symbol) {
+        
+    }
+
+}
+```
 
 #### Move 
 
@@ -190,21 +232,7 @@ class Move {
 }
 ```
 
-#### Cell 
 
-```java
-class Cell {
-    int row;
-    int col;
-    Symbol symbol;
-
-    Cell(int row, int col) {
-        this.row = row;
-        this.col = col;
-        this.symbol = Symbol.EMPTY;
-    }
-}
-```
 
 #### Board
 
