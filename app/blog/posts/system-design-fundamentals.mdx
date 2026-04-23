@@ -9,17 +9,56 @@ Instead of memorizing patterns or blindly following best practices, we'll ask th
 
 ### What is Latency?
 
+Latency is the the time taken for a request to travel from the client to the server and back. It 
+primarily depends on:
+
+#### Network Delay
+
+The time taken for data to travel across the network. It is mainly influenced by three factors:
+
+1. **Physical Distance:** The farther the server is, the longer it takes for data to travel. For 
+example, a user in India hitting a server in Delhi receives response in ~10-20 ms, however, the 
+same user hitting a server in US (California) receives it in ~200-300 ms.
+
+2. **Routing (Path Taken):** Data doesn't go directly from point A → B. It passes through 
+multiple intermediate nodes (routers, ISPs).
+
+3. **Network Congestion:** When too many request are flowing through the network, packets get 
+delayed, queues build up, and some packets may even be retransmitted.
+
+> **NOTE:** Routers can become overloaded and their buffers may fill up, causing some packets to be 
+dropped before they reach the destination. In protocols like TCP, the receiver detects missing 
+packets (for example, by noticing gaps in sequence numbers) or the sender detects a lack of 
+acknowledgment.
+
+#### Server Processing Time 
+
+The time taken by the server to handle the request, including business logic execution and data 
+access (e.g., fetching data from in-memory stores like Redis or querying a database).
+
+<LatencyVisualizer />
+
 ---
 
 ### What is Throughput?
+
+It is defined as the amount of work done by a machine in a given particular time. We measure the 
+throughput of the server by how many API Calls it serves in a unit of time.
+
+Generally, we measure throughput in GBps, MBps, KBps.
 
 ---
 
 ### What is Scalability?
 
+Scalability refers to a system's ability to handle increasing workloads efficiently by adding 
+resources (e.g., servers, storage, network capacity) without compromising performance.
+
 ---
 
 ### What is Availability?
+
+Availability refers to a system’s ability to remain operational, even in the presence of failures.
 
 ---
 
@@ -30,6 +69,18 @@ Instead of memorizing patterns or blindly following best practices, we'll ask th
 ---
 
 ### What is Partition Tolerance?
+
+Fault tolerance is a design choice to handle hardware/software failures effectively.
+
+Achieved through replication (e.g., database replicas, redundant servers) and failover mechanisms 
+(automatic switching to backups).
+
+For example, imagine a cart service in an e-commerce platform like Amazon. If a user adds an item 
+to their shopping cart, the system must not lose it, even if the cart service fails. A replicated 
+server should take over to ensure the cart remains intact.
+
+> **NOTE:** Redundancy has a cost, but a reliable system must invest in eliminating every single 
+point of failure to maintain resilience.
 
 ---
 
