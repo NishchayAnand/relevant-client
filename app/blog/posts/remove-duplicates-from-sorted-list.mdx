@@ -1,0 +1,33 @@
+---
+title: 'Data Structures & Algorithms (Linked List): Remove Duplicates from Sorted List'
+publishedAt: '2025-09-17'
+---
+
+Given the `head` of a sorted linked list, delete all duplicates such that each element appears only once.
+Return the `head` of the updated linked list.
+
+```
+Example 1:
+
+Input: head -> 1 -> 2 -> 3 -> 3 -> 4
+Output: head -> 1 -> 2 -> 3 -> 4
+```
+
+> **Solve Here:** [Leetcode 83](https://leetcode.com/problems/remove-duplicates-from-sorted-list/description/)
+
+---
+
+### Intuition
+
+Since the linked list is sorted, duplicate elements will always appear next to each other. 
+
+Therefore, for any give node, we only need to compare it with its immediate next node. If both values
+are equal, we can safely skip the next node by updating the current node's pointer.
+
+
+
+---
+
+Since, we need to keep track of the current node and the previous node, we can append a dummy node 
+infront of the head of the linked list. This will ensure all nodes have a previous node and would
+help us avoid handling edge cases differently.
