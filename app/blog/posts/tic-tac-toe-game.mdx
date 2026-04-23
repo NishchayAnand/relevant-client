@@ -82,6 +82,7 @@ better maintainability.
 
 ```java
 class Game {
+
     Player[] players;
     Board board;
     int currentPlayerIndex;
@@ -135,7 +136,7 @@ class Game {
         Move lastMove = moveHistory.pop();
         
         // Step 2: Revert the board state
-        board.undoMove(move.row, move.column);
+        board.undoMove(lastMove.row, lastMove.column);
 
         // Step 3: Switch turn back to the previous player
         switchTurn();
@@ -144,6 +145,7 @@ class Game {
     private void switchTurn() {
         currentPlayerIndex = (currentPlayerIndex + 1) % 2;
     }
+
 }
 ```
 
@@ -155,6 +157,7 @@ limited behavior, typically including attributes such as the player's name, assi
 
 ```java
 class Player {
+
     String name;
     Symbol symbol;
     int wins;
@@ -167,6 +170,7 @@ class Player {
     public void incrementWins() {
         wins++;
     }
+
 }
 ```
 
@@ -188,6 +192,7 @@ enum Symbol {
 }
 
 class Board {
+
     private static final int SIZE = 3;
     private Symbol[][] grid;
 
@@ -210,274 +215,94 @@ class Board {
 
     // Apply move
     public boolean makeMove(int row, int col, Symbol symbol) {
-        
+        grid[row][col] = symbol;
+    }
+
+    // Undo move
+    public void undoMove(int row, int col) {
+        grid[row][col] = Symbol.EMPTY;
+    }
+
+    // Check if board is full
+    public boolean isFull() {
+        for (int i = 0; i < SIZE; i++) {
+            for (int j = 0; j < SIZE; j++) {
+                if (grid[i][j] == Symbol.EMPTY) return false;
+            }
+        }
+        return true;
+    }
+
+    // Check if the move is a winning move
+    public boolean isWinningMove(int row, int col, Symbol symbol) {
+
+        // Check row
+        boolean isWinningRow = true;
+        for (int j = 0; j < SIZE; j++) {
+            if (grid[row][j] != symbol) {
+                isWinningRow = false;
+                break;
+            }
+        }
+
+        // Check column
+        boolean isWinningColumn = true;
+        for (int i = 0; i < SIZE; i++) {
+            if (grid[i][col] != symbol) {
+                isWinningColumn = false;
+                break;
+            }
+        }
+
+        // Check diagonal
+        boolean isWinningDiagonal = true;
+        if (row == col) {
+            for (int i = 0; i < SIZE; i++) {
+                if (grid[i][i] != symbol) {
+                    isWinningDiagonal = false;
+                    break;
+                }
+            }
+        } else {
+            isWinningDiagonal = false;
+        }
+
+        // Check Anti-Diagonal
+        boolean isWinningAntiDiagonal = true;
+        if (row + col == SIZE - 1) {
+            for(int i = 0; i < SIZE; i++) {
+                if (grid[i][SIZE - i - 1] != symbol) {
+                    isWinningAntiDiagonal = false;
+                    break;
+                }
+            }
+        } else {
+            isWinningAntiDiagonal = false;
+        }
+
+        return isWinningRow || isWinningColumn || isWinningDiagonal || isWinningAntiDiagonal;
+
     }
 
 }
 ```
 
-#### Move 
+#### Move
+
+The `Move` class represents a single action taken by a player during the game. One of the primary 
+reasons for introducing the `Move` class is to support undo functionality.
 
 ```java
 class Move {
+
     int row;
     int col;
-    Player player;
 
-    Move(int row, int col, Player player) {
+    Move(int row, int col) {
         this.row = row;
         this.col = col;
-        this.player = player;
-    }
-}
-```
-
-
-
-#### Board
-
-```java
-
-```
-
-#### Game
-
-The `Game` act as the controller, resposible
-
-```java
-public class Game {
-    Board board;
-    Player[] players;
-    int currentPlayerIndex;
-    GameStatus status;
-    Stack<Move> history;
-
-    // For O(1) winner check
-    int[] rows;
-    int[] cols;
-    int diagonal;
-    int antiDiagonal;
-
-    Game(int size, Player p1, Player p2) {
-        this.board = new Board(size);
-        this.players = new Player[]{p1, p2};
-        this.currentPlayerIndex = 0;
-        this.status = GameStatus.IN_PROGRESS;
-        this.history = new Stack<>();
-
-        this.rows = new int[size];
-        this.cols = new int[size];
-        this.diagonal = 0;
-        this.antiDiagonal = 0;
     }
 
-    public void playMove(int row, int col) {
-
-        Player player = players[currentPlayerIndex];
-
-        if (!board.isValidMove(row, col)) {
-            System.out.println("Invalid move!");
-            return;
-        }
-
-        board.makeMove(row, col, player.symbol);
-        history.push(new Move(row, col, player));
-
-        updateCounts(row, col, player.symbol);
-
-        if (checkWinner(row, col)) {
-            status = GameStatus.WIN;
-            board.printBoard();
-            System.out.println(player.name + " wins!");
-            return;
-        }
-
-        if (board.isFull()) {
-            status = GameStatus.DRAW;
-            board.printBoard();
-            System.out.println("Game is a draw!");
-            return;
-        }
-
-        switchTurn();
-        board.printBoard();
-    }
-
-    public void undo() {
-        if (history.isEmpty()) {
-            System.out.println("No moves to undo!");
-            return;
-        }
-
-        Move lastMove = history.pop();
-        board.undoMove(lastMove.row, lastMove.col);
-
-        revertCounts(lastMove.row, lastMove.col, lastMove.player.symbol);
-
-        currentPlayerIndex = (currentPlayerIndex + 1) % 2;
-        status = GameStatus.IN_PROGRESS;
-
-        board.printBoard();
-        System.out.println("Undo successful!");
-    }
-
-    private void switchTurn() {
-        currentPlayerIndex = (currentPlayerIndex + 1) % 2;
-    }
-
-    private void updateCounts(int row, int col, Symbol symbol) {
-        int val = (symbol == Symbol.X) ? 1 : -1;
-
-        rows[row] += val;
-        cols[col] += val;
-
-        if (row == col) diagonal += val;
-        if (row + col == board.size - 1) antiDiagonal += val;
-    }
-
-    private void revertCounts(int row, int col, Symbol symbol) {
-        int val = (symbol == Symbol.X) ? 1 : -1;
-
-        rows[row] -= val;
-        cols[col] -= val;
-
-        if (row == col) diagonal -= val;
-        if (row + col == board.size - 1) antiDiagonal -= val;
-    }
-
-    private boolean checkWinner(int row, int col) {
-        int size = board.size;
-
-        return Math.abs(rows[row]) == size ||
-               Math.abs(cols[col]) == size ||
-               Math.abs(diagonal) == size ||
-               Math.abs(antiDiagonal) == size;
-    }
-}
-```
-
-
-
----
-
-### EXTRA
-
-```java
-// ENUMS
-enum Symbol {
-    X, O, EMPTY
-}
-
-enum GameStatus {
-    IN_PROGRESS, WIN, DRAW
-}
-
-// CELL
-class Cell {
-    int row;
-    int col;
-    Symbol symbol;
-
-    Cell(int row, int col) {
-        this.row = row;
-        this.col = col;
-        this.symbol = Symbol.EMPTY;
-    }
-}
-
-// MOVE
-class Move {
-    int row;
-    int col;
-    Player player;
-
-    Move(int row, int col, Player player) {
-        this.row = row;
-        this.col = col;
-        this.player = player;
-    }
-}
-
-// PLAYER
-class Player {
-    String name;
-    Symbol symbol;
-
-    Player(String name, Symbol symbol) {
-        this.name = name;
-        this.symbol = symbol;
-    }
-}
-
-// BOARD
-class Board {
-    int size;
-    Cell[][] grid;
-    int movesCount;
-
-    Board(int size) {
-        this.size = size;
-        this.grid = new Cell[size][size];
-        this.movesCount = 0;
-
-        for (int i = 0; i < size; i++) {
-            for (int j = 0; j < size; j++) {
-                grid[i][j] = new Cell(i, j);
-            }
-        }
-    }
-
-    boolean isValidMove(int row, int col) {
-        return row >= 0 && row < size &&
-               col >= 0 && col < size &&
-               grid[row][col].symbol == Symbol.EMPTY;
-    }
-
-    void makeMove(int row, int col, Symbol symbol) {
-        grid[row][col].symbol = symbol;
-        movesCount++;
-    }
-
-    void undoMove(int row, int col) {
-        grid[row][col].symbol = Symbol.EMPTY;
-        movesCount--;
-    }
-
-    boolean isFull() {
-        return movesCount == size * size;
-    }
-
-    void printBoard() {
-        for (int i = 0; i < size; i++) {
-            for (int j = 0; j < size; j++) {
-                System.out.print(grid[i][j].symbol + " ");
-            }
-            System.out.println();
-        }
-        System.out.println();
-    }
-}
-
-// GAME
-
-
-// DRIVER
-public class TicTacToe {
-    public static void main(String[] args) {
-        Player p1 = new Player("Player 1", Symbol.X);
-        Player p2 = new Player("Player 2", Symbol.O);
-
-        Game game = new Game(3, p1, p2);
-
-        game.playMove(0, 0);
-        game.playMove(0, 1);
-        game.playMove(1, 1);
-        game.playMove(0, 2);
-        game.playMove(2, 2); // win
-
-        game.undo(); // undo win
-        game.playMove(2, 0);
-    }
 }
 ```
 
