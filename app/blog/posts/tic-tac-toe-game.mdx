@@ -289,23 +289,27 @@ class Board {
 
 #### Move
 
-The `Move` class represents a single action taken by a player during the game. One of the primary 
-reasons for introducing the `Move` class is to support undo functionality.
+The `Move` class represents a single action taken by a player during the game. It encapsulates the 
+minimal information required to describe an action: the `row` and `column` of the selected cell, 
+and the `Player` who made the move.
+
+One of the primary reasons for introducing the `Move` class is to support undo functionality.
 
 ```java
 class Move {
-
+    
     int row;
     int col;
+    Player player; // what is the need for Player object here...
 
-    Move(int row, int col) {
+    Move(int row, int col, Player player) {
         this.row = row;
         this.col = col;
+        this.player = player;
     }
 
 }
 ```
-
 ---
 
 ### Final UML Diagram
