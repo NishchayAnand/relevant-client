@@ -146,6 +146,34 @@ This makes it the fastest backend caching layer, ideal for ultra-low-latency acc
 5. **Expensive disk I/O operations:** Reading from disk is slow compared to memory. Databases use internal caches (like buffer pools in PostgreSQL) 
 to keep frequently accessed data in memory, reducing disk reads and improving query performance.
 
+#### Caching Strategies for Different Workloads
+
+Different caching strategies exist because systems have different priorities. The 
+right choice depends on the specific problem you are solving, such as reducing database load, 
+ensuring consistency, or handling high write traffic. 
+
+Below are the common caching strategies, reframed as solutions tailored to specific use cases:
+
+1. **Cache-Aside (Lazy Loading)**: The application first checks the cache (e.g., Redis). On a 
+cache miss, it fetches data from the database (e.g., PostgreSQL), stores it in the cache, and 
+returns the response. Use this when your system is **read-heavy**, you want control over what 
+gets cached, and you can tolerate slightly stale data.
+
+2. **Write-Through Caching**: The application writes data to the cache, and the cache synchronously
+updates the database before confirming success. Use this when your reads must always return 
+up-to-date data (strong consistency is required), such as in financial or critical user data 
+systems.
+
+3. **Write-Behind (Write-Back) Caching**: The application writes only to the cache, and the 
+cache asynchronously persists data to the database, often in batches. Use this when extremely 
+high write throughput is needed and eventual consistency is acceptable (e.g., analytics, 
+logging systems).
+
+4. **Read-Through Caching**: The cache acts as a smart intermediary. On a cache miss, it automatically
+fetches data from the database, stores it, and returns it, without the application directly 
+interacting with the database. Use this when you want to simplify application logic and 
+centralize caching behavior. CDNs like Cloudflare use a similar pattern.
+
 #### Cache Eviction Strategies: Managing Limited Memory Effectively
 
 Caches are memory-constrained by design, which means they cannot store everything forever. 
@@ -165,29 +193,6 @@ Use this when simplicity is more important than optimization, though it’s rare
 
 4. **TTL (Time To Live):** TTL assigns an expiration time to each cache entry, automatically removing data after a set duration.
 Use this when data must be refreshed periodically (e.g., API responses, authentication tokens, or time-sensitive data).
-
-#### Caching Strategies
-
-Different caching strategies exist because systems have different priorities—some optimize for read performance, others for write throughput, and some for data freshness or simplicity. There is no universally “best” approach; the right choice depends on the specific problem you are solving, such as reducing database load, ensuring consistency, or handling high write traffic. Below are the common caching strategies, reframed as solutions tailored to specific use cases.
-
-Cache-Aside (Lazy Loading) → Best for Read-Heavy Systems with Simplicity Needs
-This is the most commonly used strategy, where the application first checks the cache (e.g., Redis), and on a miss, fetches data from the database (e.g., PostgreSQL), stores it in the cache, and returns it.
-Use this when: your system is read-heavy, you want control over what gets cached, and you can tolerate slightly stale data. It’s simple, flexible, and widely used in real-world systems.
-
-Write-Through Caching → Best for Strong Consistency on Reads
-Here, the application writes to the cache, and the cache synchronously updates the database before confirming success.
-Use this when: your reads must always return up-to-date data, such as in financial or critical user data systems.
-Trade-off: slower writes and potential consistency issues due to dual writes, even with systems like Redis in place.
-
-Write-Behind (Write-Back) Caching → Best for High Write Throughput Systems
-Writes go only to the cache, and the cache asynchronously persists them to the database in batches.
-Use this when: you need extremely fast writes and can tolerate eventual consistency or minor data loss (e.g., analytics, logging systems).
-Trade-off: risk of data loss if the cache fails before flushing to the database.
-
-Read-Through Caching → Best for Abstracting Data Access Logic
-The cache acts as a smart intermediary. On a cache miss, it fetches data from the database, stores it, and returns it—without the application directly interacting with the database.
-Use this when: you want to simplify application logic and centralize caching behavior.
-Real-world example: CDNs like Cloudflare use a similar pattern—on a cache miss, they fetch from the origin, cache it, and serve future requests.
 
 #### Caching makes systems faster, but it also introduces new failure modes. 
 
