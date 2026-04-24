@@ -41,6 +41,7 @@ import ScanMovementVisualizer from './scan-movement-visualizer';
 import CombinationSumRecursionVisualizer from './combination-sum-recursion-visualizer';
 import CombinationSumNaryVisualizer from './combination-sum-nary-visualizer';
 import LRUCacheVisualizer from './lru-cache-visualizer';
+import { RemoveDuplicatesSortedListVisualizer } from './remove-duplicates-sorted-list-visualizer';
 import {
   LRUHashMapVisualizer,
   LRUSinglyLinkedListVisualizer,
@@ -244,6 +245,7 @@ let components = {
   LongestSubstringApproach1Visualizer: LongestSubstringApproach1Visualizer,
   LongestSubstringApproach2Visualizer: LongestSubstringApproach2Visualizer,
   LatencyVisualizer: LatencyVisualizer,
+  RemoveDuplicatesSortedListVisualizer: RemoveDuplicatesSortedListVisualizer,
   Image: RoundedImage,
   a: CustomLink,
   code: Code,
