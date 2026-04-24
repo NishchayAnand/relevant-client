@@ -37,20 +37,17 @@ export function RemoveDuplicatesSortedListVisualizer() {
     return () => clearTimeout(timer);
   }, [isPlaying, currentIndex, nodes, originalList.length]);
 
-  useEffect(() => {
-    if (duplicateFound) {
-      const timer = setTimeout(() => {
-        setDuplicateFound(false);
-      }, 600);
-      return () => clearTimeout(timer);
-    }
-  }, [duplicateFound]);
-
   const executeStep = () => {
     if (currentIndex >= nodes.length - 1) {
       setMessage('✓ Complete!');
       setIsPlaying(false);
       setIsComplete(true);
+      return;
+    }
+
+    // After showing pointer update, clear flags and continue
+    if (showPointerUpdate && !duplicateFound) {
+      setShowPointerUpdate(false);
       return;
     }
 
@@ -64,12 +61,13 @@ export function RemoveDuplicatesSortedListVisualizer() {
         setDuplicateFound(true);
         setShowPointerUpdate(true);
       } else {
-        // Phase 2: Update pointer and remove node
-        setMessage(`Pointer updated: ${current.val} → ${nodes[currentIndex + 2]?.val || 'null'}`);
-        setDuplicateFound(false);
-        setShowPointerUpdate(false);
+        // Phase 2: Remove duplicate node and show pointer update
         const newNodes = nodes.filter((_, idx) => idx !== currentIndex + 1);
         setNodes(newNodes);
+        const nextValue = newNodes[currentIndex + 1]?.val || 'null';
+        setMessage(`Pointer updated: ${current.val} → ${nextValue}`);
+        setDuplicateFound(false);
+        // Keep showPointerUpdate true so next step clears it
       }
     } else {
       setMessage(`Move to next: ${next.val}`);
@@ -136,7 +134,6 @@ export function RemoveDuplicatesSortedListVisualizer() {
               const isNext = idx === currentIndex + 1;
               const isDuplicate = duplicateFound && (isCurrent || isNext);
               const isPointerTarget = showPointerUpdate && isCurrent;
-              const isSkippedDuplicate = showPointerUpdate && isNext;
 
               return (
                 <div key={node.index} className="flex items-center gap-2">
@@ -145,10 +142,9 @@ export function RemoveDuplicatesSortedListVisualizer() {
                       w-12 h-12 rounded flex items-center justify-center font-semibold transition-all
                       ${isDuplicate ? 'bg-yellow-400 text-slate-900 ring-4 ring-yellow-300 animate-pulse' : ''}
                       ${isPointerTarget ? 'bg-green-500 text-white ring-4 ring-green-300' : ''}
-                      ${isSkippedDuplicate ? 'opacity-40 bg-slate-300 text-slate-600 line-through' : ''}
                       ${isCurrent && !isDuplicate && !isPointerTarget ? 'bg-blue-500 text-white ring-2 ring-blue-300' : ''}
-                      ${isNext && !isComplete && !isDuplicate && !isSkippedDuplicate ? 'bg-red-500 text-white ring-2 ring-red-300' : ''}
-                      ${!isCurrent && !isNext && !isDuplicate && !isSkippedDuplicate ? 'bg-slate-300 text-slate-800' : ''}
+                      ${isNext && !isComplete && !isDuplicate ? 'bg-red-500 text-white ring-2 ring-red-300' : ''}
+                      ${!isCurrent && !isNext && !isDuplicate ? 'bg-slate-300 text-slate-800' : ''}
                     `}
                   >
                     {node.val}
