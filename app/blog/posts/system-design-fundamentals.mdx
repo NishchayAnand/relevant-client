@@ -42,14 +42,23 @@ access (e.g., fetching data from in-memory stores like Redis or querying a datab
 all requests, rather than relying on a single average value. P50 shows normal behavior, while P90 
 and P99 reveal how the system behaves under stress and edge cases.
 
+Caching is the solution for latency??
+
 ---
 
 ### What is Throughput?
 
-It is defined as the amount of work done by a machine in a given particular time. We measure the 
-throughput of the server by how many API Calls it serves in a unit of time.
+Throughput is the amount of work a system can handle in a given period of time. In backend systems,
+it is typically measured as the **number of requests (API calls) processed per second (RPS)**.
 
-Generally, we measure throughput in GBps, MBps, KBps.
+Throughput can be increased by horizontally scaling the system and distributing data across 
+multiple nodes.
+
+---
+
+### Little's Law
+
+
 
 ---
 
@@ -57,6 +66,8 @@ Generally, we measure throughput in GBps, MBps, KBps.
 
 Scalability refers to a system's ability to handle increasing workloads efficiently by adding 
 resources (e.g., servers, storage, network capacity) without compromising performance.
+
+Data sharding helps achieve scalability.
 
 ---
 
@@ -83,6 +94,8 @@ For example, imagine a cart service in an e-commerce platform like Amazon. If a 
 to their shopping cart, the system must not lose it, even if the cart service fails. A replicated 
 server should take over to ensure the cart remains intact.
 
+Data Replication is the solution.
+
 > **NOTE:** Redundancy has a cost, but a reliable system must invest in eliminating every single 
 point of failure to maintain resilience.
 
@@ -107,6 +120,8 @@ and availability.
 
 A cache is a small, fast storage layer that keeps copies of frequently accessed data 
 so future requests can be served quickly instead of fetching from a slower source.
+
+![caching](/redis/distributed-cache.png)
 
 #### Caching is not a Single Component, it’s a Layered Strategy
 
@@ -150,6 +165,29 @@ Use this when simplicity is more important than optimization, though it’s rare
 
 4. **TTL (Time To Live):** TTL assigns an expiration time to each cache entry, automatically removing data after a set duration.
 Use this when data must be refreshed periodically (e.g., API responses, authentication tokens, or time-sensitive data).
+
+#### Caching Strategies
+
+Different caching strategies exist because systems have different priorities—some optimize for read performance, others for write throughput, and some for data freshness or simplicity. There is no universally “best” approach; the right choice depends on the specific problem you are solving, such as reducing database load, ensuring consistency, or handling high write traffic. Below are the common caching strategies, reframed as solutions tailored to specific use cases.
+
+Cache-Aside (Lazy Loading) → Best for Read-Heavy Systems with Simplicity Needs
+This is the most commonly used strategy, where the application first checks the cache (e.g., Redis), and on a miss, fetches data from the database (e.g., PostgreSQL), stores it in the cache, and returns it.
+Use this when: your system is read-heavy, you want control over what gets cached, and you can tolerate slightly stale data. It’s simple, flexible, and widely used in real-world systems.
+
+Write-Through Caching → Best for Strong Consistency on Reads
+Here, the application writes to the cache, and the cache synchronously updates the database before confirming success.
+Use this when: your reads must always return up-to-date data, such as in financial or critical user data systems.
+Trade-off: slower writes and potential consistency issues due to dual writes, even with systems like Redis in place.
+
+Write-Behind (Write-Back) Caching → Best for High Write Throughput Systems
+Writes go only to the cache, and the cache asynchronously persists them to the database in batches.
+Use this when: you need extremely fast writes and can tolerate eventual consistency or minor data loss (e.g., analytics, logging systems).
+Trade-off: risk of data loss if the cache fails before flushing to the database.
+
+Read-Through Caching → Best for Abstracting Data Access Logic
+The cache acts as a smart intermediary. On a cache miss, it fetches data from the database, stores it, and returns it—without the application directly interacting with the database.
+Use this when: you want to simplify application logic and centralize caching behavior.
+Real-world example: CDNs like Cloudflare use a similar pattern—on a cache miss, they fetch from the origin, cache it, and serve future requests.
 
 #### Caching makes systems faster, but it also introduces new failure modes. 
 
