@@ -10,6 +10,23 @@ and acknowledge them asynchronously.
 
 ---
 
+### Functional Requirements
+
+Publishers A and B are producing messages to Topic X. Subscribers C and D are subscribed to 
+Topic X.
+
+Publishers A, B, and C are producing messages concurrently to the same topic. The system 
+should ensure that there are no race conditions, and each message is safely enqueued in the 
+correct order.
+
+---
+
+### Non-Functional Requirements
+
+
+
+---
+
 ### Extra
 
 Design a thread-safe, topic-based message broker that supports publish-subscribe semantics.
