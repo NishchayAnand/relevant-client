@@ -214,9 +214,7 @@ Cache invalidation on writes: Delete the cache entry after updating the database
 Short TTLs for stale tolerance: Let slightly stale data live temporarily if eventual consistency is acceptable.
 Accept eventual consistency: For feeds, metrics, and analytics, a short delay is usually fine.
 
----
-
-### When to Bring Up Caching?
+#### When to Bring Up Caching?
 
 Don't jump straight to caching. You need to establish why it's necessary first.
 Bring up caching when you identify one of these problems:
@@ -236,7 +234,7 @@ to cache."
 
 ---
 
-### How to Introduce Caching?
+#### How to Introduce Caching?
 
 Once you've established the need for caching, walk through your caching strategy systematically:
 
@@ -264,5 +262,14 @@ If you're dealing with static content like images or videos, mention CDN caching
     - Thundering herd: What happens when a popular cache entry expires and 1000 requests try to refetch it simultaneously? "For extremely popular keys, we can use probabilistic early expiration or request coalescing so only one request fetches from the database while others wait for that result."
 
 ---
+
+### Event-Driven Communication
+
+
+
+--
+
+
+
 
 
