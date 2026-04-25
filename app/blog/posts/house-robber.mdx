@@ -33,10 +33,52 @@ Total amount you can rob = 2 + 2 = 4.
 
 ### Intuition
 
-Explore all possible combinations of non-adjacent elements in the `nums` array and return the 
-maximum sum among them.
+Explore all possible combinations of non-adjacent houses and return the maximum amount 
+among them.
 
 ![intuition](/house-robber/intuition.png)
 
 ---
+
+### Approach 1: Explore All Possible Combinations
+
+The problem is naturally recursive in nature. For every house, we can either rob it and 
+move to the house two steps ahead, or skip the current house and move to the next house.
+
+#### Hypotheses
+
+Let `F(currentIndex, nums)` be the function that returns the maximum amount of money that can 
+be robbed from the houses in the range `[currentIndex, nums.length-1]`.
+
+#### Recursive Steps
+
+```java
+// Step 1: Rob the current house and go explore the remaining houses in the range [currentIndex + 2, nums.length-1]
+int include = nums[currentIndex] + F(currentIndex + 2, nums);
+
+// Step 2: Ignore the current house and go explore the remaining houses in the range [currentIndex + 1, nums.length-1]
+int exclude = F(currentIndex + 1, nums);
+
+// Step 3: Return the maximum amount that can be robbed
+return Math.max(include, exclude);
+```
+
+#### Base Conditions
+
+If no houses are left to be robbed, the maximum amount one can accumulate is `0`.
+
+```java
+if (currentIndex >= nums.length) {
+    return 0;
+}
+```
+
+#### Visualization
+
+#### Time Complexity
+
+#### Space Complexity
+
+---
+
 

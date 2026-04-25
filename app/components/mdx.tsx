@@ -54,7 +54,6 @@ import { LongestSubstringApproach1Visualizer } from './longest-substring-approac
 import { LongestSubstringApproach2Visualizer } from './longest-substring-approach2-visualizer';
 import { LatencyVisualizer } from './latency-visualizer';
 
-
 hljs.registerLanguage('javascript', javascript);
 
 interface TableData {
