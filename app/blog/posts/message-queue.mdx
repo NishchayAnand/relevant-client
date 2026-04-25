@@ -12,22 +12,104 @@ and acknowledge them asynchronously.
 
 ### Functional Requirements
 
+1. Ensure each message is processed once.
+
+2. Support acknowledgment (ACK) from consumers after successful processing of a message.
+
+3. Should retry message delivery if a message is not acknowledged.
+
+4. Support multiple consumers consuming messages from the same queue.
+
+---
+
+### Non-Functional Requirements
+
+1. Ensure thread-safe operations for concurrent producers and consumers.
+<br/>
+---
+
+###  Low-Level Design
+
+
+#### MessageQueue
+
+```java
+class MessageQueue {
+    Deque<Message> queue;          // main storage
+    Map<String, Message> inFlight; // messages being processed
+
+    public synchronized void enqueue(Message message) {
+        queue.offerLast(message);
+    }
+
+    public synchronized Message poll() {
+        Message msg = queue.pollFirst();
+        if (msg != null) {
+            inFlight.put(msg.id, msg);
+        }
+        return msg;
+    }
+
+    public synchronized void ack(String messageId) {
+        inFlight.remove(messageId);
+    }
+
+    public synchronized void retryUnacked() {
+        for (Message msg : inFlight.values()) {
+            if (shouldRetry(msg)) {
+                msg.retryCount++;
+                queue.offerLast(msg);
+            }
+        }
+        inFlight.clear();
+    }
+
+}
+```
+
+#### Message 
+
+```java
+class Message {
+    String id;
+    String payload;
+    long createdAt;
+    int retryCount;
+}
+```
+
+#### Producer
+
+```java
+class Producer {
+    void publish(MessageQueue queue, Message message) {
+        queue.enqueue(message);
+    }
+}
+```
+
+#### Consumer 
+
+```java
+class Consumer {
+    void consume(MessageQueue queue) {
+        Message msg = queue.poll();
+        process(msg);
+        queue.ack(msg.id);
+    }
+}
+```
+
+---
+
+### Extra
+
 Publishers A and B are producing messages to Topic X. Subscribers C and D are subscribed to 
 Topic X.
 
 Publishers A, B, and C are producing messages concurrently to the same topic. The system 
 should ensure that there are no race conditions, and each message is safely enqueued in the 
 correct order.
-
----
-
-### Non-Functional Requirements
-
-
-
----
-
-### Extra
 
 Design a thread-safe, topic-based message broker that supports publish-subscribe semantics.
 The broker should allow multiple publishers and subscribers to operate concurrently and
