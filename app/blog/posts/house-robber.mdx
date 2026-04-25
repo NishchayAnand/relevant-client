@@ -63,6 +63,15 @@ int exclude = F(currentIndex + 1, nums);
 return Math.max(include, exclude);
 ```
 
+check why the below steps are not better?
+
+```java
+int maxAmount = Integer.MIN_VALUE;
+for(int i = currentIndex; i < nums.length; i++) {
+    maxAmount = Math.max(maxAmount, nums[i] + F(i + 2, nums));
+}
+```
+
 #### Base Conditions
 
 If no houses are left to be robbed, the maximum amount one can accumulate is `0`.
