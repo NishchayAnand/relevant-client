@@ -2,3 +2,14 @@
 title: 'Low Level Design: Message Queue'
 publishedAt: '2025-11-19'
 ---
+
+Design a thread‑safe, topic‑based message broker that supports publish‑subscribe semantics. The broker should allow multiple publishers and subscribers to operate concurrently and enable subscribers to replay messages by resetting their offset.
+
+Maintain a separate queue for each topic.
+Publishers can publish a message to a specific topic.
+Subscribers can subscribe to one or more topics and should receive every message published to those topics after they subscribe.
+When a message is published to a topic, all active subscribers of that topic must receive the message.
+Each subscriber tracks its own offset per topic; the broker must provide an operation to reset a subscriber’s offset to any previous position so the subscriber can re‑read messages.
+The system must handle concurrent publish and subscribe operations safely, ensuring no race conditions or data corruption.
+Subscribers should be able to consume messages in parallel without blocking each other.
+Assume messages are simple strings; persistence, replication, and fault tolerance are out of scope.
