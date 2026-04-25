@@ -53,6 +53,7 @@ import MergeIntervalsVisualizer from './merge-intervals-visualizer';
 import { LongestSubstringApproach1Visualizer } from './longest-substring-approach1-visualizer';
 import { LongestSubstringApproach2Visualizer } from './longest-substring-approach2-visualizer';
 import { LatencyVisualizer } from './latency-visualizer';
+import HouseRobberVisualizer from './house-robber-visualizer';
 
 hljs.registerLanguage('javascript', javascript);
 
@@ -245,6 +246,7 @@ let components = {
   LongestSubstringApproach2Visualizer: LongestSubstringApproach2Visualizer,
   LatencyVisualizer: LatencyVisualizer,
   RemoveDuplicatesSortedListVisualizer: RemoveDuplicatesSortedListVisualizer,
+  HouseRobberVisualizer: HouseRobberVisualizer,
   Image: RoundedImage,
   a: CustomLink,
   code: Code,
