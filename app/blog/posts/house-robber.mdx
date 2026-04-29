@@ -42,6 +42,10 @@ move to the house two steps ahead, or skip the current house and move to the nex
 
 ### Approach 1: Include - Exclude Pattern
 
+Use Recursion to iterate over the houses sequentially. At each index, make a decision to 
+either rob the current house (and skip the next one) or skip the current house and move to 
+the next.
+
 #### Hypotheses
 
 Let `F(currentIndex, nums)` be the function that returns the maximum amount of money that can 
@@ -76,7 +80,16 @@ if (currentIndex >= nums.length) {
 
 #### Time Complexity
 
+Each function branches into two choices. This creates a binary recursion tree whose depth 
+is proportional to `n` (the number of houses). Hence, the overall time complexity = `O(2^n)`. 
+
 #### Space Complexity
+
+At each step, the function moves either one step ahead (`i + 1`) or two steps ahead (`i + 2`). 
+
+The deepest the recursion can go is when we keep taking the `i + 1` path, resulting in a maximum
+depth of `n`. Since no additional data structure is used, the overall space complexity = `O(n)` 
+due to call stack. 
 
 ---
 
