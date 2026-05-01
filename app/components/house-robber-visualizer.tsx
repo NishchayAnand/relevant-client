@@ -380,7 +380,7 @@ export default function HouseRobberVisualizer() {
         </div>
 
         {/* Explanation */}
-        <div className="bg-white rounded-xl border border-gray-100 px-4 py-3 text-sm text-gray-600 leading-relaxed min-h-[44px] mb-4">
+        <div className="bg-white rounded-xl border border-gray-100 px-4 py-3 text-sm text-gray-600 leading-relaxed min-h-11 mb-4">
           <span className="font-mono font-semibold text-amber-700 mr-2">
             {activeNode ? `F(${activeNode.index})` : "F(?)"}
           </span>
