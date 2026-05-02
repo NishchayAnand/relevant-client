@@ -98,16 +98,14 @@ due to call stack.
 The problem exhibits overlapping subproblems, where we repeatedly compute the maximum amount of 
 money that can be robbed across the same subset of houses.
 
-We can cache the results of each recursive call to ensure that every subproblem is solved only once. 
-
 ![overlapping-subproblems](/house-robber/overlapping-subproblems.png)
 
 ---
 
 ### Approach 2: Memoization
 
-Cache the results of each recursive call in an array. Whenever the same subset of houses are encountred again, 
-reuse the stored result instead of recomputing it.
+Cache the results of each recursive call in an array to ensure that every subproblem is solved only once. 
+Whenever the same subset of houses are encountred again, reuse the stored result instead of recomputing it.
 
 #### Hypotheses
 
@@ -174,6 +172,13 @@ Therefore, the overall space complexity = `O(n)`.
 ---
 
 ### Key Observation 
+
+The result of each subproblem `dp[currentIndex]` is dependent on the results of the 
+`dp[currentIndex + 1]` and `dp[currentIndex + 2]` subproblems.
+
+![dp-dependency](/house-robber/dp-dependency.png)
+
+---
 
 
 
