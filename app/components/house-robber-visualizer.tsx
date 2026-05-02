@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Play, Pause, SkipForward, RotateCcw, ChevronRight } from "lucide-react";
+import { Play, Pause, SkipForward, RotateCcw } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -335,12 +335,6 @@ export default function HouseRobberVisualizer() {
             placeholder="e.g. 2, 7, 9, 3, 1"
             className="flex-1 min-w-36 px-3 py-2 rounded-lg border border-gray-300 text-sm font-mono bg-white focus:outline-none focus:border-amber-500 text-gray-800"
           />
-          <button
-            onClick={applyInput}
-            className="px-4 py-2 rounded-lg bg-gray-800 text-white text-sm font-medium hover:bg-gray-700 flex items-center gap-1"
-          >
-            Build <ChevronRight size={14} />
-          </button>
           {(["2,1,1,2", "1,2,3,1", "2,7,9,3,1"] as const).map(p => (
             <button
               key={p}

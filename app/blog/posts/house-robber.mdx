@@ -104,7 +104,7 @@ We can cache the results of each recursive call to ensure that every subproblem 
 
 ---
 
-#### Approach 2: Memoization
+### Approach 2: Memoization
 
 Cache the results of each recursive call in an array. Whenever the same subset of houses are encountred again, 
 reuse the stored result instead of recomputing it.
@@ -153,15 +153,28 @@ if (dp[currentIndex] != -1) {
 }
 ```
 
-#### Visualization 
+#### Visualization
 
+<HouseRobberMemoVisualizer />
 
 #### Time Complexity
 
+Since, we only compute each subproblem `F(currentIndex, nums, dp)` once and the `currentIndex` only 
+ranges from `0` to `n-1`, the overall time complexity = `O(n)`.
 
 #### Space complexity
 
+We are using a 1-D array of size `n` to store the results of each subproblem. 
+
+The maximum depth the call stack can reach is when we keep taking the `i + 1` (exclude) path, 
+resulting in a maximum depth of `n`. 
+
+Therefore, the overall space complexity = `O(n)`.
+
 ---
+
+### Key Observation 
+
 
 
 
