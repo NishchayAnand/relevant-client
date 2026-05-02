@@ -22,6 +22,15 @@ plan, fetch new information, and make adjustments to the itinerary. ???
 <br/>
 ---
 
+### Primary Use Cases
+
+A chatbot agent could gather the information of a user. After it has gathered all the information it 
+needs, it could generate this JSON object from the chat transcript.
+
+Now that we have the trip details, we can retrieve the weather and activity schedules for the dates of 
+the trip. We will call an API to get all the data at once, in order to be able to include it in the 
+context for our itinerary planning agent.
+
 ### Design Rationale
 
 The agent will interact with a Large Language Model (LLM) to perform two main functions:
@@ -32,7 +41,13 @@ Based on a set of user-defined travel preferences (destination, dates, budget, i
 LLM will generate a detailed, day-to-day itinerary. This itinerary needs to be a structured JSON object 
 that conforms to a prefined **Pydantic** model.
 
-#### Itinerary Enhancement
+1. This system prompt must instruct the LLM to act as an expert travel planner.
+2. It must clearly define the task: to generate a comprehensive travel itinerary based on user preferences.
+3. It must specify the output format, which must include a JSON object conforming to the TravelPlan Pydantic model structure that is provided in the notebook.
+4. It must provided the necessary context needed to complete the task, e.g. the VacationInfo object and others.
+5. It should encourage detailed, well-thought-out daily plans, using a Chain-of-Thought process. This process may be guided explicitly using instructions, examples, and/or by specifying the output format.
+
+#### Itinerary Evaluation and Enhancement
 
 Once an initial itinerary is generated, the user might have follow-up questions or modification requests.
 
@@ -46,7 +61,61 @@ request for the tool. How???
 
 ### Data Modeling 
 
-1. VacationInfo
+#### VacationInfo
+
+```JSON
+VACATION_INFO_DICT = {
+    "travelers": [
+        {
+            "name": "Yuri",
+            "age": 30,
+            # Possible interests: art, cooking, comedy, dancing, fitness, gardening, hiking, movies,
+            # music, photography, reading, sports, technology, theatre, tennis, writing
+            "interests": ["tennis", "cooking", "comedy", "technology"],
+        },
+        {
+            "name": "Hiro",
+            "age": 25,
+            # Possible interests: art, cooking, comedy, dancing, fitness, gardening, hiking, movies,
+            # music, photography, reading, sports, technology, theatre, tennis, writing
+            "interests": ["reading", "music", "theatre", "art"],
+        },
+    ],
+    "destination": "AgentsVille",
+    "date_of_arrival": "2025-06-10",  # Mock data exists for 2025-06-10
+    "date_of_departure": "2025-06-12",  # ...until 2025-06-15.
+    "budget": 130,  # Budget is in fictional currency units.
+}
+
+class Traveler(BaseModel):
+    """A traveler with a name, age, and list of interests.
+    
+    Attributes:
+        name (str): The name of the traveler.
+        age (int): The age of the traveler.
+        interests (List[Interest]): A list of interests of the traveler.
+    """
+    name: str
+    age: int
+    interests: List[Interest]
+
+class VacationInfo(BaseModel):
+    """Vacation information including travelers, destination, dates, and budget.
+    Attributes:
+        travelers (List[Traveler]): A list of travelers.
+        destination (str): The vacation destination.
+        date_of_arrival (datetime.date): The date of arrival.
+        date_of_departure (datetime.date): The date of departure.
+        budget (int): The budget for the vacation in fictional currency units.
+    """
+    # TODO: Fill in the the missing fields for the VacationInfo class
+    "**********"
+    "**********"
+    "**********"
+    "**********"
+    "**********"
+```
+
 2. TravelItinerary
 3. Activity
 4. DayPlan
@@ -66,6 +135,14 @@ request for the tool. How???
 NOTE: We need an available_tools dictionary to map the tool name to the tool function and their 
 JSON schemas (for prompting the LLM).
 
+#### ItineraryAgent
+
+First we will review the Pydantic objects used for defining the output of our agent, the TravelPlan, ItineraryDay, Activity, and Weather classes.
+
+Second, we will create a Chain-of-Thought prompt to guide the agent in planning the trip. This prompt will instruct the agent to consider the weather, activities, and user preferences when creating the itinerary.
+
+Third, we will run the agent to produce the TravelPlan object, which will will refine in the following steps.
+
 ---
 
 ### Extra
@@ -74,6 +151,52 @@ Example Prompts:
 
 - A long weekend focused on art galleries and technology meetups, or 
 - A week-long dive into cultural experiences and street food, all within a specified budget.
+
+1. Define Vacation Details
+
+- Specify the trip duration, interests, and constraints.
+- Use Pydantic to structure and verify this information in a class called VacationInfo.
+
+2. Review Weather and Activity schedules
+
+- Simulate API calls to gather weather data and available activities in bulk.
+- Review the data manually to understand the available options.
+
+3. The ItineraryAgent
+
+- Implement an agent that generates a day-by-day itinerary based on the vacation details
+- The system prompt will guide the agent's reasoning through a step-by-step planning process to take travel preferences (e.g. destination, dates, interests) and generate a detailed day-by-day itinerary
+- Craft the components of the prompt (including the role, task/instructions, output format, examples, and context) to elicit the best possible itinerary in one LLM call.
+
+4. Evaluating the Itinerary
+
+Evaluate the itinerary using a set of criteria to ensure a high-quality travel plan. For instance:
+- does the itinerary match the city and the dates requested?
+- Or, is the total cost calulation accurate and is it within budget?
+- Or, does the agent hallucinate any activities that are not available?
+- Or, does the agent suggest activities that are not suitable for the weather? This specific evaluation function will require the use of an LLM to compare the event description against the weather data.
+
+5. Defining the Tools
+
+We will define four tools to assist the agent
+- calculator_tool: to accurately calculate costs
+- get_activities_by_date_tool: to retrieve activities for a specific date
+- run_evals_tool: to evaluate the itinerary against the criteria
+- final_answer_tool: to provide the final answer in a structured format
+
+6. The ItineraryRevisionAgent
+
+- We will implement a second agent that revises the itinerary based on feedback using the 
+ReAct THOUGHT → ACTION → OBSERVATION cycle.
+
+    - The LLM will first generated a THOUGHT / ACTION message, which contains reasoning steps and a tool call 
+invocation.
+    - The Python code will parse the tool call and execute it, returning the result as a string to the LLM in an OBSERVATION message.
+    - After this cycle repeats n number of times, the LLM will invoke the final_answer_tool to signal to the Python code to end the loop and return the final answer.
+
+- This agent will also incorporate feedback on the initial itinerary from the travelers to ensure the final plan has at least 2 activities per day. A new evaluation function using a powerful LLM will be created to check this user feedback.
+
+- The agent will use the tools above to refine the plan iteratively, checking the weather and available activities, and ensuring the itinerary meets all constraints.
 
 
 
