@@ -2,3 +2,84 @@
 title: 'AI-Driven System Design: Travel Assistant System'
 publishedAt: '2026-02-03'
 ---
+
+Design a multi-agent travel assistant system that reasons, plans, and interacts with external 
+information sources to provide a truly personalized travel planning experience.
+
+![ai-travel-assistant](/ai-travel-assistant/ai-travel-assistant.png)
+
+<br/>
+---
+
+### Functional Requirements
+
+1. **Plan Comprehensive Travel Itineraries:** The system should generate detailed, day-to-day itinerary
+that is not just a list of activities, but a coherent plan that includes transportation, accommodation, and activities.
+
+2. **Evaluate and Enhance:** Refine the itinerary by intelligently using a set of tools to evalaute the 
+plan, fetch new information, and make adjustments to the itinerary. ???
+
+<br/>
+---
+
+### Design Rationale
+
+The agent will interact with a Large Language Model (LLM) to perform two main functions:
+
+#### Initial Itinerary Generation
+
+Based on a set of user-defined travel preferences (destination, dates, budget, interests,etc.), the 
+LLM will generate a detailed, day-to-day itinerary. This itinerary needs to be a structured JSON object 
+that conforms to a prefined **Pydantic** model.
+
+#### Itinerary Enhancement
+
+Once an initial itinerary is generated, the user might have follow-up questions or modification requests.
+
+The agent should be able to analyze the user's request in the context of the current itinerary.
+It will then decide if any if the available tools can be used to answer the user's request.
+
+- If a tools is needed, the agent will **think** about its plan and **act** by generating a structured
+request for the tool. How???
+
+---
+
+### Data Modeling 
+
+1. VacationInfo
+2. TravelItinerary
+3. Activity
+4. DayPlan
+5. ToolCall
+
+---
+
+### Low-Level Design
+
+1. get_weather_forecast
+2. search_activities_tool
+3. search_flights_tool
+4. find_hotels_tool
+5. get_weather_tool
+6. get_activities_tool
+
+NOTE: We need an available_tools dictionary to map the tool name to the tool function and their 
+JSON schemas (for prompting the LLM).
+
+---
+
+### Extra
+
+Example Prompts: 
+
+- A long weekend focused on art galleries and technology meetups, or 
+- A week-long dive into cultural experiences and street food, all within a specified budget.
+
+
+
+
+
+
+
+
+
