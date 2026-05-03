@@ -42,37 +42,57 @@ function cellCX(i: number): number {
   return i * CELL_STEP + CELL_W / 2;
 }
 
-function getExplanation(
-  data: StepData | null,
-  nums: number[],
-  step: number,
-): string {
+// ─── Formula panel ────────────────────────────────────────────────────────────
+
+function FormulaPanel({
+  data,
+  nums,
+  step,
+}: {
+  data: StepData | null;
+  nums: number[];
+  step: number;
+}) {
   if (step === 0) {
     return (
-      "Bottom-up DP: iterate right → left, filling dp[] from the last house to the first. " +
-      "Each dp[i] = max(rob house i, skip house i). Press Play or Step → to begin."
+      <p className="text-sm text-gray-400 py-3">
+        Fill <span className="font-mono text-gray-600">dp[]</span> from right to left.
+        At each index <span className="font-mono text-gray-600">i</span>:{" "}
+        <span className="font-mono text-gray-700">dp[i] = max(nums[i] + dp[i+2],&nbsp;dp[i+1])</span>
+      </p>
     );
   }
-  if (!data) return "";
+  if (!data) return null;
 
   const { i, include, exclude, result } = data;
   const n = nums.length;
 
   const inclExpr =
     i + 2 < n
-      ? `nums[${i}] + dp[${i + 2}] = ${nums[i]} + ${data.dpSnapshot[i + 2]} = ${include}`
-      : `nums[${i}] = ${nums[i]}  (dp[${i + 2}] is out of bounds → 0)`;
+      ? `nums[${i}] + dp[${i + 2}]  =  ${nums[i]} + ${data.dpSnapshot[i + 2]}  =  ${include}`
+      : `nums[${i}]  (i+2 out of bounds)  =  ${include}`;
 
   const exclExpr =
     i + 1 < n
-      ? `dp[${i + 1}] = ${exclude}`
-      : `0  (dp[${i + 1}] is out of bounds)`;
+      ? `dp[${i + 1}]  =  ${exclude}`
+      : `0  (i+1 out of bounds)`;
+
+  const rows: { key: string; label: string; expr: string; value: number | string; color: string }[] = [
+    { key: "inc", label: "include", expr: inclExpr, value: include, color: "text-green-700" },
+    { key: "exc", label: "exclude", expr: exclExpr, value: exclude, color: "text-blue-700"  },
+    { key: "res", label: `dp[${i}]`, expr: `max(${include}, ${exclude})`, value: result,  color: "text-amber-700" },
+  ];
 
   return (
-    `Computing dp[${i}]: ` +
-    `include = ${inclExpr};  ` +
-    `exclude = ${exclExpr};  ` +
-    `dp[${i}] = max(${include}, ${exclude}) = ${result}.`
+    <div className="divide-y divide-gray-100">
+      {rows.map(({ key, label, expr, value, color }, idx) => (
+        <div key={key} className={`flex items-baseline gap-3 py-2 ${idx === 2 ? "font-semibold" : ""}`}>
+          <span className={`font-mono text-[11px] w-16 shrink-0 ${color}`}>{label}</span>
+          <span className="font-mono text-xs text-gray-500 flex-1">{expr}</span>
+          <span className={`font-mono text-sm tabular-nums ${color}`}>{value}</span>
+        </div>
+      ))}
+    </div>
   );
 }
 
@@ -190,37 +210,43 @@ function CellRow({
   mode: "nums" | "dp";
 }) {
   return (
-    <div className="flex items-center gap-3">
-      <span className="text-[10px] font-medium text-gray-400 uppercase tracking-wide w-8 shrink-0">
-        {label}
-      </span>
+    <div className="flex items-start gap-3">
+      {/* Row label */}
+      <div className="w-8 shrink-0 pt-2.5 flex flex-col items-start gap-0.5">
+        <span className="text-[10px] font-medium text-gray-400 uppercase tracking-wide leading-none">
+          {label}
+        </span>
+        {mode === "dp" && (
+          <span className="text-[9px] text-gray-300 leading-none whitespace-nowrap">← i</span>
+        )}
+      </div>
+
+      {/* Cells */}
       <div className="flex gap-2">
         {values.map((v, i) => {
-          let box = "border-gray-200 bg-gray-50 text-gray-500";
+          let box = "border-gray-200 bg-gray-50 text-gray-400";
 
           if (mode === "dp") {
             if (i === currentI) {
               box = "border-amber-500 bg-amber-50 text-amber-900";
             } else if (currentI !== null && i === currentI + 1) {
-              box = "border-blue-500 bg-blue-50 text-blue-900";
+              box = "border-blue-400 bg-blue-50 text-blue-800";
             } else if (currentI !== null && i === currentI + 2) {
-              box = "border-green-500 bg-green-50 text-green-900";
+              box = "border-green-500 bg-green-50 text-green-800";
             } else if (v !== -1) {
-              box = "border-emerald-400 bg-emerald-50 text-emerald-900";
+              box = "border-emerald-300 bg-emerald-50 text-emerald-800";
             }
           } else {
-            // nums row
             if (i === currentI) {
               box = "border-amber-400 bg-amber-50 text-amber-900";
             } else if (currentI !== null && i === currentI + 2) {
-              box = "border-green-400 bg-green-50 text-green-900";
+              box = "border-green-400 bg-green-50 text-green-800";
             } else {
-              box = "border-gray-200 bg-white text-gray-800";
+              box = "border-gray-200 bg-white text-gray-700";
             }
           }
 
-          const display =
-            mode === "dp" ? (v === -1 ? "−1" : String(v)) : String(v);
+          const display = mode === "dp" ? (v === -1 ? "−1" : String(v)) : String(v);
 
           return (
             <div key={i} className="flex flex-col items-center gap-1">
@@ -229,7 +255,7 @@ function CellRow({
               >
                 {display}
               </div>
-              <span className="text-[10px] text-gray-400">{i}</span>
+              <span className="text-[10px] text-gray-300">{i}</span>
             </div>
           );
         })}
@@ -241,12 +267,10 @@ function CellRow({
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export default function HouseRobberTabVisualizer() {
-  const [inputVal, setInputVal]     = useState<string>("2, 7, 9, 3, 1");
-  const [nums, setNums]             = useState<number[]>(DEFAULT_NUMS);
-  const [inputError, setInputError] = useState<string>("");
-  const [step, setStep]             = useState<number>(0);
-  const [isPlaying, setIsPlaying]   = useState<boolean>(false);
-  const [steps, setSteps]           = useState<StepData[]>(
+  const [nums, setNums]           = useState<number[]>(DEFAULT_NUMS);
+  const [step, setStep]           = useState<number>(0);
+  const [isPlaying, setIsPlaying] = useState<boolean>(false);
+  const [steps, setSteps]         = useState<StepData[]>(
     () => computeSteps(DEFAULT_NUMS),
   );
 
@@ -255,20 +279,6 @@ export default function HouseRobberTabVisualizer() {
     setStep(0);
     setIsPlaying(false);
   }, []);
-
-  const applyInput = (): void => {
-    const parsed = inputVal
-      .split(/[\s,]+/)
-      .map(Number)
-      .filter(n => !isNaN(n) && n > 0);
-    if (parsed.length < 2 || parsed.length > 6) {
-      setInputError("Enter 2–6 positive integers.");
-      return;
-    }
-    setInputError("");
-    setNums(parsed);
-    rebuild(parsed);
-  };
 
   const isDone = step >= steps.length;
 
@@ -282,11 +292,9 @@ export default function HouseRobberTabVisualizer() {
   const dpView =
     currentData?.dpSnapshot ?? Array.from<number>({ length: nums.length }).fill(-1);
   const currentI = currentData?.i ?? null;
-  const answer   = dpView[0] !== -1 ? dpView[0] : "—";
 
   const handlePreset = (p: string): void => {
     const ns = p.split(",").map(Number);
-    setInputVal(p.split(",").join(", "));
     setNums(ns);
     rebuild(ns);
   };
@@ -294,129 +302,77 @@ export default function HouseRobberTabVisualizer() {
   return (
     <div className="border border-gray-200 rounded-2xl overflow-hidden bg-white mt-5 mb-10">
 
-      {/* ── Header ── */}
-      <div className="bg-gray-50 border-b border-gray-100 px-5 pt-5 pb-4">
+      {/* ── Main two-column layout ── */}
+      <div className="flex gap-0 divide-x divide-gray-100">
 
-        {/* Input row */}
-        <div className="flex gap-2 mb-4 flex-wrap">
-          <input
-            value={inputVal}
-            onChange={e => setInputVal(e.target.value)}
-            onKeyDown={e => e.key === "Enter" && applyInput()}
-            placeholder="e.g. 2, 7, 9, 3, 1"
-            className="flex-1 min-w-36 px-3 py-2 rounded-lg border border-gray-300 text-sm font-mono bg-white focus:outline-none focus:border-emerald-500 text-gray-800"
-          />
-          {(["2,1,1,2", "1,2,3,1", "2,7,9,3,1"] as const).map(p => (
-            <button
-              key={p}
-              type="button"
-              onClick={() => handlePreset(p)}
-              className="px-3 py-2 rounded-lg border border-gray-200 text-xs text-gray-600 hover:bg-gray-100 font-mono"
-            >
-              [{p}]
-            </button>
-          ))}
-        </div>
-        {inputError && <p className="text-xs text-red-500 mb-3">{inputError}</p>}
-
-        {/* Stats */}
-        <div className="grid grid-cols-4 gap-3 mb-4">
-          {([
-            { label: "Current i",  value: currentI !== null ? currentI : "—", cls: "text-2xl font-bold text-amber-600" },
-            { label: "Include",    value: currentData ? currentData.include : "—", cls: "text-2xl font-bold text-green-600" },
-            { label: "Exclude",    value: currentData ? currentData.exclude : "—", cls: "text-2xl font-bold text-blue-600" },
-            { label: "Result dp[0]", value: answer, cls: "text-2xl font-bold text-gray-900" },
-          ] as { label: string; value: string | number; cls: string }[]).map(({ label, value, cls }) => (
-            <div key={label} className="rounded-xl border border-gray-200 bg-white p-3">
-              <div className="text-xs text-gray-500 mb-0.5">{label}</div>
-              <div className={cls}>{value}</div>
-            </div>
-          ))}
-        </div>
-
-        {/* Array display */}
-        <div className="bg-white rounded-xl border border-gray-100 px-4 py-4 mb-4 space-y-3">
-          <CellRow
-            values={nums}
-            label="nums"
-            currentI={currentI}
-            mode="nums"
-          />
-          <CellRow
-            values={dpView}
-            label="dp"
-            currentI={currentI}
-            mode="dp"
-          />
-          {/* Dependency arrows sit flush below dp row */}
+        {/* Left: arrays + arrows */}
+        <div className="px-5 pt-5 pb-5 shrink-0 space-y-2.5">
+          <CellRow values={nums}   label="nums" currentI={currentI} mode="nums" />
+          <CellRow values={dpView} label="dp"   currentI={currentI} mode="dp"   />
           <div className="pl-11">
             <DependencyArrows currentI={currentI} n={nums.length} />
           </div>
         </div>
 
-        {/* Legend */}
-        <div className="flex flex-wrap gap-4 mb-4 text-xs text-gray-500">
-          {[
-            { cls: "border-amber-500 bg-amber-50",   label: "Current dp[i]" },
-            { cls: "border-green-500 bg-green-50",   label: "dp[i+2] (rob branch)" },
-            { cls: "border-blue-500 bg-blue-50",     label: "dp[i+1] (skip branch)" },
-            { cls: "border-emerald-400 bg-emerald-50", label: "Already computed" },
-          ].map(({ cls, label }) => (
-            <span key={label} className="flex items-center gap-1.5">
-              <span className={`inline-block w-3 h-3 rounded border-2 ${cls}`} />
-              {label}
-            </span>
-          ))}
-        </div>
-
-        {/* Explanation */}
-        <div className="bg-white rounded-xl border border-gray-100 px-4 py-3 text-sm text-gray-600 leading-relaxed min-h-11 mb-4">
-          <span className="font-mono font-semibold text-emerald-700 mr-2">
-            {currentI !== null ? `dp[${currentI}]` : "dp[?]"}
-          </span>
-          {getExplanation(currentData, nums, step)}
-        </div>
-
-        {/* Controls */}
-        <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={() => {
-              if (isDone) { setStep(0); setIsPlaying(false); }
-              else setIsPlaying(p => !p);
-            }}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700"
-          >
-            {isPlaying ? <Pause size={15} /> : <Play size={15} />}
-            {isDone ? "Restart" : isPlaying ? "Pause" : "Play"}
-          </button>
-          <button
-            type="button"
-            onClick={() => { if (!isDone && !isPlaying) setStep(s => s + 1); }}
-            disabled={isPlaying || isDone}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-green-600 text-white text-sm font-medium hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
-          >
-            <SkipForward size={15} /> Step
-          </button>
-          <button
-            type="button"
-            onClick={() => { setStep(0); setIsPlaying(false); }}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-600 text-white text-sm font-medium hover:bg-gray-700"
-          >
-            <RotateCcw size={15} /> Reset
-          </button>
-
-          <div className="flex-1 flex items-center gap-2 ml-2">
-            <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-emerald-400 rounded-full transition-all duration-200"
-                style={{ width: `${steps.length ? (step / steps.length) * 100 : 0}%` }}
-              />
-            </div>
-            <span className="text-xs text-gray-400 tabular-nums">
-              {step}/{steps.length}
-            </span>
+        {/* Right: presets + formula */}
+        <div className="flex-1 flex flex-col px-5 pt-5 pb-5 min-w-0">
+          {/* Presets */}
+          <div className="flex gap-2 flex-wrap mb-4">
+            {(["2,1,1,2", "1,2,3,1", "2,7,9,3,1"] as const).map(p => (
+              <button
+                key={p}
+                type="button"
+                onClick={() => handlePreset(p)}
+                className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs text-gray-500 hover:bg-gray-50 font-mono"
+              >
+                [{p}]
+              </button>
+            ))}
           </div>
+          {/* Formula */}
+          <div className="flex-1">
+            <FormulaPanel data={currentData} nums={nums} step={step} />
+          </div>
+        </div>
+      </div>
+
+      {/* ── Controls ── */}
+      <div className="border-t border-gray-100 px-5 py-4 flex gap-2">
+        <button
+          type="button"
+          onClick={() => {
+            if (isDone) { setStep(0); setIsPlaying(false); }
+            else setIsPlaying(p => !p);
+          }}
+          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700"
+        >
+          {isPlaying ? <Pause size={15} /> : <Play size={15} />}
+          {isDone ? "Restart" : isPlaying ? "Pause" : "Play"}
+        </button>
+        <button
+          type="button"
+          onClick={() => { if (!isDone && !isPlaying) setStep(s => s + 1); }}
+          disabled={isPlaying || isDone}
+          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-800 text-white text-sm font-medium hover:bg-gray-700 disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed"
+        >
+          <SkipForward size={15} /> Step
+        </button>
+        <button
+          type="button"
+          onClick={() => { setStep(0); setIsPlaying(false); }}
+          className="flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-200 text-gray-600 text-sm font-medium hover:bg-gray-50"
+        >
+          <RotateCcw size={15} /> Reset
+        </button>
+
+        <div className="flex-1 flex items-center gap-2 ml-2">
+          <div className="flex-1 h-1 bg-gray-100 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-emerald-400 rounded-full transition-all duration-200"
+              style={{ width: `${steps.length ? (step / steps.length) * 100 : 0}%` }}
+            />
+          </div>
+          <span className="text-xs text-gray-400 tabular-nums">{step}/{steps.length}</span>
         </div>
       </div>
     </div>
