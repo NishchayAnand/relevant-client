@@ -207,5 +207,59 @@ public int rob(int[] nums) {
 
 <HouseRobberTabVisualizer />
 
+#### Time Complexity
 
+Since, we are iterating through the houses from right to left, the overall time complexity = `O(n)`.
 
+#### Space Complexity
+
+We are using a 1-D array of size `n` to store the results of each subproblem. Therefore, the overall 
+space complexity = `O(n)`.
+
+---
+
+### Key Observation 
+
+Each subproblem `dp[currentIndex]` is **only dependent** on the results of the 
+`dp[currentIndex + 1]` and `dp[currentIndex + 2]` subproblems.
+
+---
+
+### Approach 4: Two Variables
+
+Instead of storing the results of all subproblems in an array, we can use two variables to store the 
+results of the last two subproblems.
+
+#### Algorithm
+
+```java
+public int rob(int[] nums) {
+    int n = nums.length;
+    int result = 0;
+
+    int next = 0;
+    int nextToNext = 0;
+    for(int i = n - 1; i >= 0; i--) {
+        result = Math.max(nums[i] + nextToNext, next);
+        nextToNext = next;
+        next = result;
+    }
+
+    return result;  
+}
+```
+
+#### Visualization
+
+<HouseRobberTwoVarVisualizer />
+
+#### Time Complexity
+
+Since, we are iterating through the houses from right to left, the overall time complexity = `O(n)`.
+
+#### Space Complexity
+
+We are using two variables to store the results of the last two subproblems. Therefore, the overall 
+space complexity = `O(1)`.
+
+---

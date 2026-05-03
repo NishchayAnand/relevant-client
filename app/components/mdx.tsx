@@ -56,6 +56,7 @@ import { LatencyVisualizer } from './latency-visualizer';
 import HouseRobberVisualizer from './house-robber-visualizer';
 import HouseRobberMemoVisualizer from './house-robber-memo-visualizer';
 import HouseRobberTabVisualizer from './house-robber-tab-visualizer';
+import HouseRobberTwoVarVisualizer from './house-robber-two-var-visualizer';
 
 hljs.registerLanguage('javascript', javascript);
 
@@ -251,6 +252,7 @@ let components = {
   HouseRobberVisualizer: HouseRobberVisualizer,
   HouseRobberMemoVisualizer: HouseRobberMemoVisualizer,
   HouseRobberTabVisualizer: HouseRobberTabVisualizer,
+  HouseRobberTwoVarVisualizer: HouseRobberTwoVarVisualizer,
   Image: RoundedImage,
   a: CustomLink,
   code: Code,
