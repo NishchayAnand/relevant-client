@@ -3,7 +3,43 @@ title: 'AI-Driven System Design Fundamentals'
 publishedAt: '2026-02-01'
 ---
 
+As multi-agent systems become increasingly prominent, mastering the design and implementation of 
+AI-driven architectures is more critical than ever. 
+
+In this article, we delve into the core principles of AI-driven system design, emphasizing key concepts 
+and practices in building robust multi-agent systems.
+
+---
+
+### What is a Multi-Agent System?
+
+A multi-agent system is a system that consists of multiple agents that interact with each other and 
+can make decisions to handle complicated natural language requests from users. 
+
+To make multi-agent systems powerful, we need to make sure that the **agents themselves can integrate 
+with our bussiness systems**. We also need to learn how to route data and memories between agents as well
+as how to use agents to carefully augment requests to AI models with relevant context.
+
+---
+
+### Multi-Agent System Architecture
+
+1. **Orchestrator Pattern**: A centralized architecture where a single agent (the orchestrator) manages 
+and delegates tasks to other worker agents.
+
+2. **Peer-to-Peer Pattern**: A decentralized architecture where requests immediately goes to the most
+qualified agent for handling. Agents often commnunicate directly with each other without a central 
+orchestrator.
+
+Regardless of the the pattern, we need to define roles, communication protocols, state management,
+and data flow strategies for our multi-agent system.
+
+---
+
 ### Role-Based Prompting
+
+
+
 
 ---
 
@@ -22,3 +58,7 @@ publishedAt: '2026-02-01'
 ### Pydantic Model
 
 ---
+
+### Extra
+
+The main role of an LLM within an AI agent is to provide reasoning and language processing capabilities.
