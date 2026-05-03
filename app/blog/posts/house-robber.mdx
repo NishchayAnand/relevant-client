@@ -182,10 +182,30 @@ The result of each subproblem `dp[currentIndex]` is dependent on the results of 
 
 ### Approach 3: Tabulation
 
+Iterate through the houses from right to left, and at each index, compute the maximum amount of money 
+that can be robbed from the houses in the range `[currentIndex, nums.length - 1]` using the formnula:
+`dp[currentIndex] = Math.max(nums[currentIndex] + dp[currentIndex + 2], dp[currentIndex + 1])`.
 
+#### Algorithm 
 
+```java
+public int rob(int[] nums) {
+    int n = nums.length;
+    int[] dp = new int[n];
 
+    for(int i = n - 1; i >= 0; i--) {
+        int include = i + 2 < n ? nums[i] + dp[i + 2] : nums[i];
+        int exclude = i + 1 < n ? dp[i + 1] : 0;
+        dp[i] = Math.max(include, exclude);
+    }
 
+    return dp[0];
+}
+```
+
+#### Visualization
+
+<HouseRobberTabVisualizer />
 
 
 

@@ -55,6 +55,7 @@ import { LongestSubstringApproach2Visualizer } from './longest-substring-approac
 import { LatencyVisualizer } from './latency-visualizer';
 import HouseRobberVisualizer from './house-robber-visualizer';
 import HouseRobberMemoVisualizer from './house-robber-memo-visualizer';
+import HouseRobberTabVisualizer from './house-robber-tab-visualizer';
 
 hljs.registerLanguage('javascript', javascript);
 
@@ -249,6 +250,7 @@ let components = {
   RemoveDuplicatesSortedListVisualizer: RemoveDuplicatesSortedListVisualizer,
   HouseRobberVisualizer: HouseRobberVisualizer,
   HouseRobberMemoVisualizer: HouseRobberMemoVisualizer,
+  HouseRobberTabVisualizer: HouseRobberTabVisualizer,
   Image: RoundedImage,
   a: CustomLink,
   code: Code,
