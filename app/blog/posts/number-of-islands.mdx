@@ -110,3 +110,96 @@ if (i < 0 || i >= grid.length || j < 0 || j >= grid[0].length || grid[i][j] == '
 
 <NumberOfIslandsDFSVisualizer />
 
+#### Time Complexity
+
+Since, we are visiting each cell in the grid at most twice, the overall time complexity = `O(m * n)`.
+
+#### Space Complexity
+
+We are using a `visited` array of size `m * n` to store the visited cells. The recursive call stack can 
+go up to a maximum depth of `O(m * n)` in the worst case (when all cells are land cells).
+
+Hence, overall space complexity = `O(m * n)`.
+
+---
+
+### Approach 2: Breadth-First Search (BFS)
+
+For each land cell (`'1'`), add all its adjacent land cells (up, down, left, right) 
+to a queue and mark them as visited, potentially creating the next layer of land cells for exploration. 
+
+#### Algorithm
+
+```java
+class Cell {
+    int x;
+    int y;
+
+    Cell(int i, int j) {
+        this.x = i;
+        this.y = j;
+    }
+}
+
+private boolean isInBound(int i, int j, int m, int n) {
+    return i >= 0 && i < m && j >=0 && j < n; 
+}
+
+private void bfs(char[][] grid, int i, int j, boolean[][] visited) {
+
+    Queue<Cell> queue = new LinkedList<>();
+    queue.offer(new Cell(i, j));
+    visited[i][j] = true;
+
+    while (!queue.isEmpty()) {
+        Cell cell = queue.poll();
+        int x = cell.x;
+        int y = cell.y;
+
+        // Explore neighbour at the top
+        if (isInBound(x-1, y, grid.length, grid[0].length) && grid[x-1][y] == '1' && visited[x-1][y] == false) {
+            queue.offer(new Cell(x-1, y));
+            visited[x-1][y] = true;
+        }
+        // Explore neighbour on the left
+        if (isInBound(x, y-1, grid.length, grid[0].length) && grid[x][y-1] == '1' && visited[x][y-1] == false) {
+            queue.offer(new Cell(x, y-1));
+            visited[x][y-1] = true;
+        }
+
+        // Explore neighbour at the bottom
+        if (isInBound(x+1, y, grid.length, grid[0].length) && grid[x+1][y] == '1' && visited[x+1][y] == false) {
+            queue.offer(new Cell(x+1, y));
+            visited[x+1][y] = true;
+        }
+
+        // Explore neighbout on the right
+        if (isInBound(x, y+1, grid.length, grid[0].length) && grid[x][y+1] == '1' && visited[x][y+1] == false) {
+            queue.offer(new Cell(x, y+1));
+            visited[x][y+1] = true;
+        }
+
+    }
+
+}
+```
+
+#### Visualization
+
+<NumberOfIslandsBFSVisualizer />
+
+#### Time Complexity
+
+Since, we are visiting each cell in the grid at most twice, the overall time complexity = `O(m * n)`.
+
+#### Space Complexity
+
+In a grid completely filled with land, the maximum number of cells in the queue at any given time is 
+bounded by the smaller dimension of the grid, i.e., `min(m, n)`.
+
+Additionally, we are using a `visited` array of size `m * n` to store the visited cells. Therefore, the 
+overall space complexity = `O(min(m, n)) + O(m * n) ~ O(m * n)`. 
+
+![bfs-space-complexity](/number-of-islands/bfs-space-complexity.png)
+
+---

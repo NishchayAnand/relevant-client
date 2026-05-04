@@ -58,6 +58,7 @@ import HouseRobberMemoVisualizer from './house-robber-memo-visualizer';
 import HouseRobberTabVisualizer from './house-robber-tab-visualizer';
 import HouseRobberTwoVarVisualizer from './house-robber-two-var-visualizer';
 import NumberOfIslandsDFSVisualizer from './number-of-islands-dfs-visualizer';
+import NumberOfIslandsBFSVisualizer from './number-of-islands-bfs-visualizer';
 
 hljs.registerLanguage('javascript', javascript);
 
@@ -255,6 +256,7 @@ let components = {
   HouseRobberTabVisualizer: HouseRobberTabVisualizer,
   HouseRobberTwoVarVisualizer: HouseRobberTwoVarVisualizer,
   NumberOfIslandsDFSVisualizer: NumberOfIslandsDFSVisualizer,
+  NumberOfIslandsBFSVisualizer: NumberOfIslandsBFSVisualizer,
   Image: RoundedImage,
   a: CustomLink,
   code: Code,
