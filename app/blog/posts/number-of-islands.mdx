@@ -35,8 +35,42 @@ Output: 3
 
 ---
 
-### Intuition 
+### Intuition
+
+Each cell in the grid with value `'1'` represents a land cell. An island can be considered as a graph 
+of adjacent land cells.
 
 ![example](/number-of-islands/example.png)
 
+Iterate over the input grid marking each cell as visited. 
+
+Whenever we encounter a land cell (`'1'`), we treat it as a new island, increment the island count, and 
+then use DFS or BFS to traverse all its adjacent land cells (up, down, left, right), marking them as 
+visited. This ensures that all connected land cells are counted as part of the same island and not 
+revisited.
+
+```java
+public int numIslands(char[][] grid) {
+
+  if (grid.length == 0) return 0;
+  
+  int islandCount = 0;
+  boolean[][] visited = new boolean[grid.length][grid[0].length];
+  
+  for(int i = 0; i < grid.length; i++) {
+    for(int j = 0; j < grid[0].length; j++) {
+      if (grid[i][j] == '1' && visited[i][j] == false) {
+        islandCount++;
+        // dfs(grid, i, j, visited) or bfs(grid, i, j, visited)
+      }
+    }
+  }
+
+  return islandCount;
+
+}
+```
+
 ---
+
+### Approach 1: Depth-First Search (DFS)
