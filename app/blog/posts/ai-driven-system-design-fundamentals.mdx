@@ -75,15 +75,61 @@ Otherwise, it calls a denial notification agent.
 
 ---
 
-### Routing and Data Flow Management
+### Routing & Data Flow Management
 
 Routing patterns:
 
 #### Content-Based Routing
 
+A routing strategy that directs a message based on its content or metadata (e.g., keywords, data type).
+
+Inspects the message itself to decide where it goes. This is useful for sorting diverse incoming 
+requests.
+
 #### Round-Robin Routing
 
+A routing strategy that distributes tasks evenly across a pool of similar agents, one after another.
+
+Spreads the workload evenly across similar agents. This is useful for scaling.
+
 #### Priority-Based Routing
+
+A routing strategy that processes messages based on a predefined priority level.
+
+Treats urgent tasks differently from routine ones.
+
+---
+
+### State Management & Coordination
+
+State management is about giving your agent team a collective memory.
+
+State Coordination represents the set of mechanisms that ensure multiple agents have a consistent 
+and synchronized view of a shared state, especially during concurrent operations.
+
+We need mechanisms to detect when one agent's knowledge contradicts another and clear rules for 
+resolving those conflicts.
+
+#### Synchronization Strategies
+
+1. **Lean on Your Database:** For state stored in a database, the database itself is your primary 
+source of truth. Your agent tools can leverage features like locking and transactions.
+
+2. **State Broadcasting / Eventing:** When a tool successfully updates critical state, it can 
+publish an event. Interested agents can subscribe to these events and react accordingly.
+
+3. **Optimistic Concurrency Control:** Assume conflicts are rare, but check for them before 
+committing changes.
+
+#### Conflict Resolution Strategies
+
+1. **Predefined Rules/Policies:** Embed conflict resolution logic directly.
+
+2. **Negotiation/Consensus:** Agents actively communicate to find a resolution.
+
+3. **Rollback & Retry:** If an update fails due to a conflict, roll back the operation and retry.
+
+4. **Human Escalation:** For critical or ambiguous conflicts, escalate to a human.
 
 ---
 
