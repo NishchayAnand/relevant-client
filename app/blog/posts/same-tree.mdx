@@ -67,3 +67,18 @@ if(p == null || q == null) {
 ```
 
 #### Visualization
+
+<SameTreeVisualizer />
+
+#### Time Complexity
+
+Since, we are visting each node in the trees at most once, the overall time complexity = `O(min(m, n))`,
+where `m` and `n` are the number of nodes in the trees.
+
+#### Space Complexity
+
+The maximum depth of the recursion stack equals the height of the smaller tree. In case of a 
+balanced tree, the height is `log(min(m, n))`, however, in the worst case (skewed tree), the height
+can be `min(m, n)`. Hence, overall space complexity = `O(min(m, n))`.
+
+---
