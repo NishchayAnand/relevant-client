@@ -60,6 +60,7 @@ import HouseRobberTwoVarVisualizer from './house-robber-two-var-visualizer';
 import NumberOfIslandsDFSVisualizer from './number-of-islands-dfs-visualizer';
 import NumberOfIslandsBFSVisualizer from './number-of-islands-bfs-visualizer';
 import SameTreeVisualizer from './same-tree-visualizer';
+import SameTreeBFSVisualizer from './same-tree-bfs-visualizer';
 
 hljs.registerLanguage('javascript', javascript);
 
@@ -259,6 +260,7 @@ let components = {
   NumberOfIslandsDFSVisualizer: NumberOfIslandsDFSVisualizer,
   NumberOfIslandsBFSVisualizer: NumberOfIslandsBFSVisualizer,
   SameTreeVisualizer: SameTreeVisualizer,
+  SameTreeBFSVisualizer: SameTreeBFSVisualizer,
   Image: RoundedImage,
   a: CustomLink,
   code: Code,
