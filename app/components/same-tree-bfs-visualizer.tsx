@@ -7,19 +7,51 @@ import { Play, Pause, SkipForward, RotateCcw } from "lucide-react";
 
 type TreeNode = { val: number; left: TreeNode | null; right: TreeNode | null };
 
-function n(val: number, left: TreeNode | null = null, right: TreeNode | null = null): TreeNode {
-  return { val, left, right };
-}
+// ─── Presets (level-order strings, "null" for missing) ───────────────────────
 
-// ─── Presets ──────────────────────────────────────────────────────────────────
-
-const PRESETS: Record<string, [TreeNode | null, TreeNode | null]> = {
-  "same":        [n(1, n(2), n(3)),  n(1, n(2), n(3))],
-  "diff val":    [n(1, n(2), n(3)),  n(1, n(2), n(4))],
-  "diff struct": [n(1, n(2), null),  n(1, null,  n(2))],
+const PRESETS: Record<string, string> = {
+  "same":        "1,2,3 | 1,2,3",
+  "diff val":    "1,2,3 | 1,2,4",
+  "diff struct": "1,2 | 1,null,2",
+  "deeper":      "1,2,3,4,5 | 1,2,3,4,5",
 };
 
-// ─── Utilities ────────────────────────────────────────────────────────────────
+// ─── Level-order parser ───────────────────────────────────────────────────────
+
+function parseLevelOrder(s: string): TreeNode | null {
+  const tokens = s.split(",").map(t => t.trim()).filter(t => t.length > 0);
+  if (tokens.length === 0 || tokens[0] === "null") return null;
+
+  const rootVal = Number(tokens[0]);
+  if (!Number.isFinite(rootVal)) throw new Error(`Invalid value "${tokens[0]}"`);
+
+  const root: TreeNode = { val: rootVal, left: null, right: null };
+  const queue: TreeNode[] = [root];
+  let i = 1;
+
+  while (queue.length > 0 && i < tokens.length) {
+    const node = queue.shift()!;
+    for (const slot of ["left", "right"] as const) {
+      if (i >= tokens.length) break;
+      const t = tokens[i++];
+      if (t === "null") continue;
+      const v = Number(t);
+      if (!Number.isFinite(v)) throw new Error(`Invalid value "${t}"`);
+      const child: TreeNode = { val: v, left: null, right: null };
+      node[slot] = child;
+      queue.push(child);
+    }
+  }
+  return root;
+}
+
+function parseInput(s: string): [TreeNode | null, TreeNode | null] {
+  const parts = s.split("|");
+  if (parts.length !== 2) throw new Error('Input must contain exactly one "|" separator');
+  return [parseLevelOrder(parts[0]), parseLevelOrder(parts[1])];
+}
+
+// ─── Tree utilities ───────────────────────────────────────────────────────────
 
 function nodeAt(root: TreeNode | null, path: string): TreeNode | null {
   let cur = root;
@@ -44,19 +76,63 @@ function pathLabel(path: string): string {
   return path.split("").map(c => (c === "L" ? "left" : "right")).join(" → ");
 }
 
+function treeDepth(p: TreeNode | null, q: TreeNode | null): number {
+  if (!p && !q) return 0;
+  return 1 + Math.max(
+    treeDepth(p?.left ?? null, q?.left ?? null),
+    treeDepth(p?.right ?? null, q?.right ?? null),
+  );
+}
+
+// ─── Algorithm shown on the right panel ──────────────────────────────────────
+// Indices in this array correspond to line numbers (1-indexed).
+
+const ALGORITHM_LINES = [
+  "function isSameTree(p, q):",                          //  1
+  "  queue = new Queue()",                               //  2
+  "  queue.offer([p, q])",                               //  3
+  "",                                                    //  4
+  "  while (!queue.isEmpty()):",                         //  5
+  "    [first, second] = queue.poll()",                  //  6
+  "",                                                    //  7
+  "    if (first == null && second == null):",           //  8
+  "      continue",                                      //  9
+  "",                                                    // 10
+  "    if (first == null || second == null):",           // 11
+  "      return false",                                  // 12
+  "",                                                    // 13
+  "    if (first.val != second.val):",                   // 14
+  "      return false",                                  // 15
+  "",                                                    // 16
+  "    queue.offer([first.left,  second.left])",         // 17
+  "    queue.offer([first.right, second.right])",        // 18
+  "",                                                    // 19
+  "  return true",                                       // 20
+];
+
 // ─── Simulation ───────────────────────────────────────────────────────────────
 
 type NodeState = "idle" | "inQueue" | "active" | "match" | "mismatch";
-type StepKind  = "init" | "skip" | "dequeue" | "match_val" | "mismatch_val" | "mismatch_null" | "done";
+type StepKind  =
+  | "init"
+  | "pop"
+  | "skip_both_null"
+  | "mismatch_null"
+  | "compare_val"
+  | "mismatch_val"
+  | "enqueue_left"
+  | "enqueue_right"
+  | "done_true";
 
 type Step = {
   pState:      Record<string, NodeState>;
   qState:      Record<string, NodeState>;
-  queueSnap:   string[];            // paths in queue, front = index 0
+  queueSnap:   string[];
   activePath:  string | null;
   description: string;
   result:      boolean | null;
   kind:        StepKind;
+  lines:       number[];
 };
 
 function simulate(p: TreeNode | null, q: TreeNode | null): Step[] {
@@ -70,91 +146,99 @@ function simulate(p: TreeNode | null, q: TreeNode | null): Step[] {
     description: string,
     result: boolean | null,
     kind: StepKind,
+    lines: number[],
   ) {
     steps.push({
       pState: { ...pS }, qState: { ...qS },
-      queueSnap: [...queue], activePath, description, result, kind,
+      queueSnap: [...queue], activePath, description, result, kind, lines,
     });
   }
 
-  // Enqueue root pair
   const bfsQueue: string[] = [""];
   pS[""] = "inQueue";
   qS[""] = "inQueue";
-  snap([...bfsQueue], null, "Enqueue root pair (p, q) → start BFS.", null, "init");
+  snap([...bfsQueue], null, "Enqueue the root pair (p, q) and start the BFS loop.", null, "init", [3]);
 
   while (bfsQueue.length > 0) {
     const path = bfsQueue.shift()!;
     const pN   = nodeAt(p, path);
     const qN   = nodeAt(q, path);
     const loc  = pathLabel(path);
+    const pVal = pN ? pN.val : "null";
+    const qVal = qN ? qN.val : "null";
 
-    // Both null: skip, continue to next pair
+    pS[path] = "active";
+    qS[path] = "active";
+    snap([...bfsQueue], path,
+      `Dequeued the front pair at ${loc}: first=${pVal}, second=${qVal}.`,
+      null, "pop", [6]);
+
     if (!pN && !qN) {
       snap([...bfsQueue], path,
-        `Dequeued at ${loc}: both null → skip, continue.`,
-        null, "skip");
+        `Both null at ${loc} → skip and continue to next pair.`,
+        null, "skip_both_null", [9]);
+      delete pS[path];
+      delete qS[path];
       continue;
     }
 
-    // Mark the pair as active
-    pS[path] = "active";
-    qS[path] = "active";
-
-    // One null: structural mismatch
     if (!pN || !qN) {
       pS[path] = "mismatch";
       qS[path] = "mismatch";
       snap([...bfsQueue], path,
-        `Dequeued at ${loc}: p=${pN?.val ?? "null"}, q=${qN?.val ?? "null"} — one is null → structures differ → return false`,
-        false, "mismatch_null");
+        `One is null at ${loc} (first=${pVal}, second=${qVal}) → structural mismatch → return false.`,
+        false, "mismatch_null", [12]);
       return steps;
     }
 
-    // Both non-null: compare values
     snap([...bfsQueue], path,
-      `Dequeued at ${loc}: compare p.val=${pN.val} and q.val=${qN.val}`,
-      null, "dequeue");
+      `Both non-null at ${loc}: compare first.val=${pN.val} with second.val=${qN.val}.`,
+      null, "compare_val", [14]);
 
     if (pN.val !== qN.val) {
       pS[path] = "mismatch";
       qS[path] = "mismatch";
       snap([...bfsQueue], path,
-        `At ${loc}: ${pN.val} ≠ ${qN.val} — values differ → return false`,
-        false, "mismatch_val");
+        `Values differ (${pN.val} ≠ ${qN.val}) → return false.`,
+        false, "mismatch_val", [15]);
       return steps;
     }
 
-    // Values match: enqueue both children pairs
-    const lp = path + "L", rp = path + "R";
-    bfsQueue.push(lp, rp);
-    // Mark inQueue for both trees at both child positions (covers ghost nodes too)
-    pS[lp] = "inQueue"; qS[lp] = "inQueue";
-    pS[rp] = "inQueue"; qS[rp] = "inQueue";
     pS[path] = "match";
     qS[path] = "match";
 
+    const lp = path + "L", rp = path + "R";
+    bfsQueue.push(lp);
+    pS[lp] = "inQueue";
+    qS[lp] = "inQueue";
     snap([...bfsQueue], path,
-      `At ${loc}: ${pN.val} = ${qN.val} — values match → enqueue left and right child pairs`,
-      null, "match_val");
+      `${pN.val} = ${qN.val} → enqueue the left children pair.`,
+      null, "enqueue_left", [17]);
+
+    bfsQueue.push(rp);
+    pS[rp] = "inQueue";
+    qS[rp] = "inQueue";
+    snap([...bfsQueue], path,
+      `Enqueue the right children pair.`,
+      null, "enqueue_right", [18]);
   }
 
-  snap([], null, "Queue empty → all pairs checked → return true", true, "done");
+  snap([], null, "Queue is empty → every pair matched → return true.", true, "done_true", [20]);
   return steps;
 }
 
 // ─── SVG helpers ──────────────────────────────────────────────────────────────
 
-const SVG_W  = 160;
-const SVG_H  = 125;
+const SVG_W  = 180;
 const R_NODE = 18;
+const LEVEL_H = 60;
 
 function pathXY(path: string): [number, number] {
   let l = 0, r = SVG_W, y = 25;
   for (const c of path) {
     const m = (l + r) / 2;
     if (c === "L") r = m; else l = m;
-    y += 65;
+    y += LEVEL_H;
   }
   return [(l + r) / 2, y];
 }
@@ -179,28 +263,33 @@ function ghostStyle(s: NodeState) {
 // ─── TreePanel ────────────────────────────────────────────────────────────────
 
 function TreePanel({
-  tree, otherTree, paths, state, label,
+  tree, otherTree, paths, state, label, height,
 }: {
   tree: TreeNode | null; otherTree: TreeNode | null;
-  paths: string[]; state: Record<string, NodeState>; label: string;
+  paths: string[]; state: Record<string, NodeState>;
+  label: string; height: number;
 }) {
   const edges = paths.filter(p => p.length > 0).map(p => [p.slice(0, -1), p] as [string, string]);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
       <span style={{ fontSize: 11, fontWeight: 600, color: "#6b7280", letterSpacing: "0.04em" }}>{label}</span>
-      <svg width={SVG_W} height={SVG_H} style={{ overflow: "visible" }}>
+      <svg width={SVG_W} height={height} style={{ overflow: "visible" }}>
         {edges.map(([from, to]) => {
           const [x1, y1] = pathXY(from);
           const [x2, y2] = pathXY(to);
           if (!nodeAt(tree, from)) return null;
           const childExists = !!nodeAt(tree, to);
           return (
-            <line key={`e-${to}`} x1={x1} y1={y1} x2={x2} y2={y2}
+            <line
+              key={`e-${to}`} x1={x1} y1={y1} x2={x2} y2={y2}
               stroke={childExists ? "#d1d5db" : "#e5e7eb"}
-              strokeWidth={1.5} strokeDasharray={childExists ? undefined : "4,3"} />
+              strokeWidth={1.5}
+              strokeDasharray={childExists ? undefined : "4,3"}
+            />
           );
         })}
+
         {paths.map(path => {
           const nd      = nodeAt(tree, path);
           const otherNd = nodeAt(otherTree, path);
@@ -275,20 +364,58 @@ function QueueDisplay({
   );
 }
 
+// ─── Algorithm panel ──────────────────────────────────────────────────────────
+
+function AlgorithmPanel({ activeLines }: { activeLines: number[] }) {
+  return (
+    <div className="font-mono text-[12px] leading-[1.55]">
+      {ALGORITHM_LINES.map((line, idx) => {
+        const lineNum  = idx + 1;
+        const isActive = activeLines.includes(lineNum);
+        return (
+          <div
+            key={lineNum}
+            className={`flex transition-colors duration-150 rounded ${
+              isActive ? "bg-amber-100/80" : ""
+            }`}
+          >
+            <span className="w-7 text-right text-gray-300 pr-2 select-none tabular-nums">
+              {lineNum}
+            </span>
+            <span className={`flex-1 whitespace-pre ${
+              isActive ? "text-amber-900 font-semibold" : "text-gray-600"
+            }`}>
+              {line || "\u00A0"}
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 // ─── Main component ───────────────────────────────────────────────────────────
 
+const DEFAULT_PRESET = "same";
+
 export default function SameTreeBFSVisualizer() {
-  const [presetKey, setPresetKey] = useState("same");
-  const [[p, q], setPQ]           = useState<[TreeNode | null, TreeNode | null]>(PRESETS["same"]);
-  const [steps, setSteps]         = useState<Step[]>(() => simulate(PRESETS["same"][0], PRESETS["same"][1]));
+  const [presetKey, setPresetKey] = useState<string>(DEFAULT_PRESET);
+
+  const [trees, setTrees] = useState<[TreeNode | null, TreeNode | null]>(
+    () => parseInput(PRESETS[DEFAULT_PRESET]),
+  );
+  const [steps, setSteps] = useState<Step[]>(() => {
+    const [a, b] = parseInput(PRESETS[DEFAULT_PRESET]);
+    return simulate(a, b);
+  });
   const [step, setStep]           = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
 
   const loadPreset = useCallback((key: string) => {
-    const pq = PRESETS[key];
+    const [a, b] = parseInput(PRESETS[key]);
     setPresetKey(key);
-    setPQ(pq);
-    setSteps(simulate(pq[0], pq[1]));
+    setTrees([a, b]);
+    setSteps(simulate(a, b));
     setStep(0);
     setIsPlaying(false);
   }, []);
@@ -302,89 +429,89 @@ export default function SameTreeBFSVisualizer() {
   }, [isPlaying, step, isDone]);
 
   const cur         = step > 0 ? steps[step - 1] : null;
+  const [p, q]      = trees;
   const paths       = unionPaths(p, q);
   const pState      = cur?.pState    ?? {};
   const qState      = cur?.qState    ?? {};
   const queueSnap   = cur?.queueSnap ?? [];
   const description = cur?.description
-    ?? "Step through the BFS to compare the two trees level by level. The queue holds pairs (P-node, Q-node) to be checked.";
-  const result      = cur?.result  ?? null;
-  const kind        = cur?.kind    ?? null;
+    ?? "Press Step or Start to walk through the BFS. Pick a preset below to try a different test case.";
+  const kind        = cur?.kind  ?? null;
+  const lines       = cur?.lines ?? [];
   const finalResult = steps.length > 0 ? steps[steps.length - 1].result : null;
 
-  const activePath = cur?.activePath ?? null;
-  const curPVal    = activePath !== null ? (nodeAt(p, activePath)?.val ?? null) : null;
-  const curQVal    = activePath !== null ? (nodeAt(q, activePath)?.val ?? null) : null;
+  // Tree panel height — fits whichever tree is deepest.
+  const depth     = treeDepth(p, q);
+  const svgHeight = Math.max(85, 25 + Math.max(0, depth - 1) * LEVEL_H + R_NODE + 8);
 
   return (
     <div className="border border-gray-200 rounded-2xl overflow-hidden bg-white mt-5 mb-10">
 
-      {/* ── Main two-column layout ── */}
+      {/* ── Main split: visualization (left) | algorithm (right) ── */}
       <div className="flex divide-x divide-gray-100">
 
-        {/* Left: trees + queue */}
-        <div className="px-6 pt-6 pb-5 flex flex-col gap-4 shrink-0">
-          <div className="flex items-start gap-5">
-            <TreePanel tree={p} otherTree={q} paths={paths} state={pState} label="Tree P" />
-            <div className="self-stretch w-px bg-gray-100 mt-6" />
-            <TreePanel tree={q} otherTree={p} paths={paths} state={qState} label="Tree Q" />
-          </div>
+        {/* Left: visualization (trees stacked + queue) */}
+        <div className="w-[260px] shrink-0 px-5 pt-5 pb-5 flex flex-col gap-3">
+          <TreePanel tree={p} otherTree={q} paths={paths} state={pState} label="Tree P" height={svgHeight} />
+          <div className="h-px bg-gray-100" />
+          <TreePanel tree={q} otherTree={p} paths={paths} state={qState} label="Tree Q" height={svgHeight} />
+          <div className="h-px bg-gray-100" />
           <QueueDisplay queue={queueSnap} p={p} q={q} />
-        </div>
 
-        {/* Right: presets + status */}
-        <div className="flex-1 flex flex-col px-5 pt-5 pb-5 gap-4 min-w-0">
-
-          {/* Presets */}
-          <div className="flex gap-2 flex-wrap">
-            {Object.keys(PRESETS).map(key => (
-              <button key={key} type="button" onClick={() => loadPreset(key)}
-                className={`px-3 py-1.5 rounded-lg border text-xs font-mono transition-colors ${
-                  presetKey === key
-                    ? "border-gray-400 bg-gray-100 text-gray-800"
-                    : "border-gray-200 text-gray-500 hover:bg-gray-50"
-                }`}>
-                {key}
-              </button>
+          {/* Compact legend */}
+          <div className="flex flex-wrap gap-2 text-[10px] mt-auto pt-2">
+            {[
+              { fill: "#fef3c7", stroke: "#f59e0b", label: "Processing" },
+              { fill: "#e0f2fe", stroke: "#0ea5e9", label: "In queue" },
+              { fill: "#d1fae5", stroke: "#10b981", label: "Match" },
+              { fill: "#fee2e2", stroke: "#ef4444", label: "Mismatch" },
+              { fill: "transparent", stroke: "#e5e7eb", dashed: true, label: "null slot" },
+            ].map(({ fill, stroke, label, dashed }) => (
+              <span key={label} className="flex items-center gap-1">
+                <span style={{
+                  display: "inline-block", width: 10, height: 10, borderRadius: "50%",
+                  background: fill,
+                  border: `1.5px ${dashed ? "dashed" : "solid"} ${stroke}`,
+                }} />
+                <span style={{ color: "#6b7280" }}>{label}</span>
+              </span>
             ))}
           </div>
+        </div>
 
-          {/* Current pair being processed */}
-          <div className="rounded-xl bg-gray-50 border border-gray-100 px-4 py-3 space-y-1">
-            <div className="flex items-center gap-1 flex-wrap">
-              <span className="text-xs font-mono text-gray-400">Pair(</span>
-              <span className={`px-1.5 py-0.5 rounded font-mono font-semibold text-xs ${
-                curPVal === null ? "bg-gray-100 text-gray-400" : "bg-sky-50 text-sky-800"
-              }`}>
-                {curPVal ?? (activePath !== null ? "null" : "?")}
-              </span>
-              <span className="text-xs font-mono text-gray-400">,</span>
-              <span className={`px-1.5 py-0.5 rounded font-mono font-semibold text-xs ${
-                curQVal === null ? "bg-gray-100 text-gray-400" : "bg-sky-50 text-sky-800"
-              }`}>
-                {curQVal ?? (activePath !== null ? "null" : "?")}
-              </span>
-              <span className="text-xs font-mono text-gray-400">)</span>
-              {result !== null && (
-                <span className={`ml-auto text-xs font-bold font-mono ${result ? "text-emerald-600" : "text-red-500"}`}>
-                  → {String(result)}
-                </span>
-              )}
-            </div>
-            <div className="text-[10px] text-gray-400 font-mono">
-              at {activePath !== null ? pathLabel(activePath) : "—"}
-            </div>
+        {/* Right: algorithm code + step description */}
+        <div className="flex-1 min-w-0 bg-gray-50/60 px-5 pt-5 pb-5 flex flex-col gap-3">
+          <div className="flex flex-col gap-2">
+            <span className="text-[10px] uppercase tracking-wide text-gray-400 font-semibold px-1">
+              Algorithm
+            </span>
+            <AlgorithmPanel activeLines={lines} />
           </div>
 
-          {/* Step kind + description */}
-          <div className="flex flex-col gap-1">
-            {kind === "init"          && <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Start</span>}
-            {kind === "dequeue"       && <span className="text-[10px] font-semibold uppercase tracking-wide text-sky-500">BFS</span>}
-            {kind === "match_val"     && <span className="text-[10px] font-semibold uppercase tracking-wide text-emerald-600">Match</span>}
-            {kind === "mismatch_val"  && <span className="text-[10px] font-semibold uppercase tracking-wide text-red-500">Mismatch</span>}
-            {kind === "mismatch_null" && <span className="text-[10px] font-semibold uppercase tracking-wide text-red-500">Mismatch</span>}
-            {kind === "skip"          && <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Skip</span>}
-            {kind === "done"          && <span className="text-[10px] font-semibold uppercase tracking-wide text-emerald-600">Done</span>}
+          {/* Step description */}
+          <div className="flex flex-col gap-1 mt-2 pt-3 border-t border-gray-200/70">
+            <span className={`text-[10px] font-semibold uppercase tracking-wide ${
+              kind === "done_true"      ? "text-emerald-600" :
+              kind === "mismatch_null" ||
+              kind === "mismatch_val"   ? "text-red-500"     :
+              kind === "compare_val"    ? "text-amber-600"   :
+              kind === "enqueue_left" ||
+              kind === "enqueue_right"  ? "text-emerald-600" :
+              kind === "skip_both_null" ? "text-gray-400"    :
+              kind === "pop"            ? "text-sky-500"     :
+                                          "text-gray-400"
+            }`}>
+              {kind === "init"            ? "Start"     :
+               kind === "pop"             ? "Dequeue"   :
+               kind === "skip_both_null"  ? "Skip"      :
+               kind === "mismatch_null"   ? "Mismatch"  :
+               kind === "compare_val"     ? "Compare"   :
+               kind === "mismatch_val"    ? "Mismatch"  :
+               kind === "enqueue_left"    ? "Enqueue L" :
+               kind === "enqueue_right"   ? "Enqueue R" :
+               kind === "done_true"       ? "Done"      :
+                                            "Ready"}
+            </span>
             <p className="text-xs text-gray-600 leading-relaxed">{description}</p>
           </div>
 
@@ -398,68 +525,74 @@ export default function SameTreeBFSVisualizer() {
               {finalResult ? "✓ Same Tree — true" : "✗ Not Same Tree — false"}
             </div>
           )}
-
-          {/* Legend */}
-          <div className="flex flex-col gap-1.5 mt-auto">
-            <span className="text-[10px] text-gray-400 uppercase tracking-wide">Legend</span>
-            <div className="flex flex-wrap gap-2 text-[10px]">
-              {[
-                { fill: "#fef3c7", stroke: "#f59e0b", label: "Processing" },
-                { fill: "#e0f2fe", stroke: "#0ea5e9", label: "In queue"   },
-                { fill: "#d1fae5", stroke: "#10b981", label: "Match"      },
-                { fill: "#fee2e2", stroke: "#ef4444", label: "Mismatch"   },
-              ].map(({ fill, stroke, label }) => (
-                <span key={label} className="flex items-center gap-1">
-                  <span style={{
-                    display: "inline-block", width: 11, height: 11, borderRadius: "50%",
-                    background: fill, border: `1.5px solid ${stroke}`,
-                  }} />
-                  <span style={{ color: "#6b7280" }}>{label}</span>
-                </span>
-              ))}
-              <span className="flex items-center gap-1">
-                <span style={{
-                  display: "inline-block", width: 11, height: 11, borderRadius: "50%",
-                  background: "none", border: "1.5px dashed #e5e7eb",
-                }} />
-                <span style={{ color: "#6b7280" }}>null slot</span>
-              </span>
-            </div>
-          </div>
         </div>
       </div>
 
-      {/* ── Controls ── */}
-      <div className="border-t border-gray-100 px-5 py-4 flex gap-2">
-        <button type="button"
-          onClick={() => {
-            if (isDone) { setStep(0); setIsPlaying(false); }
-            else setIsPlaying(prev => !prev);
-          }}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-sky-600 text-white text-sm font-medium hover:bg-sky-700"
-        >
-          {isPlaying ? <Pause size={15} /> : <Play size={15} />}
-          {isDone ? "Restart" : isPlaying ? "Pause" : "Play"}
-        </button>
-        <button type="button"
-          onClick={() => { if (!isDone && !isPlaying) setStep(s => s + 1); }}
-          disabled={isPlaying || isDone}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-800 text-white text-sm font-medium hover:bg-gray-700 disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed"
-        >
-          <SkipForward size={15} /> Step
-        </button>
-        <button type="button"
-          onClick={() => { setStep(0); setIsPlaying(false); }}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-200 text-gray-600 text-sm font-medium hover:bg-gray-50"
-        >
-          <RotateCcw size={15} /> Reset
-        </button>
-        <div className="flex-1 flex items-center gap-2 ml-2">
-          <div className="flex-1 h-1 bg-gray-100 rounded-full overflow-hidden">
-            <div className="h-full bg-sky-400 rounded-full transition-all duration-200"
-              style={{ width: `${steps.length ? (step / steps.length) * 100 : 0}%` }} />
+      {/* ── Footer ── */}
+      <div className="border-t border-gray-100 bg-gray-50/40 px-5 py-3.5 flex flex-col gap-2.5">
+
+        {/* Presets row */}
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <span className="text-[10px] uppercase tracking-wide text-gray-400 font-semibold mr-1">
+            Presets
+          </span>
+          {Object.entries(PRESETS).map(([key, raw]) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => loadPreset(key)}
+              className={`px-2.5 py-1 rounded-md border text-[11px] font-mono transition-colors ${
+                presetKey === key
+                  ? "border-gray-400 bg-white text-gray-800"
+                  : "border-gray-200 text-gray-500 hover:bg-white"
+              }`}
+              title={raw}
+            >
+              {key}
+            </button>
+          ))}
+        </div>
+
+        {/* Controls row */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            type="button"
+            onClick={() => {
+              if (isDone) { setStep(0); setIsPlaying(false); }
+              else setIsPlaying(prev => !prev);
+            }}
+            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-sky-600 text-white text-xs font-medium hover:bg-sky-700"
+          >
+            {isPlaying ? <Pause size={13} /> : <Play size={13} />}
+            {isDone ? "Restart" : isPlaying ? "Pause" : "Start"}
+          </button>
+          <button
+            type="button"
+            onClick={() => { if (!isDone && !isPlaying) setStep(s => s + 1); }}
+            disabled={isPlaying || isDone}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-800 text-white text-xs font-medium hover:bg-gray-700 disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed"
+          >
+            <SkipForward size={13} /> Step
+          </button>
+          <button
+            type="button"
+            onClick={() => { setStep(0); setIsPlaying(false); }}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-gray-600 text-xs font-medium hover:bg-gray-50"
+          >
+            <RotateCcw size={13} /> Reset
+          </button>
+
+          <div className="flex-1 flex items-center gap-2 min-w-[120px]">
+            <div className="flex-1 h-1 bg-gray-200/70 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-sky-400 rounded-full transition-all duration-200"
+                style={{ width: `${steps.length ? (step / steps.length) * 100 : 0}%` }}
+              />
+            </div>
+            <span className="text-[10px] text-gray-400 tabular-nums font-mono">
+              {step}/{steps.length}
+            </span>
           </div>
-          <span className="text-xs text-gray-400 tabular-nums">{step}/{steps.length}</span>
         </div>
       </div>
     </div>
