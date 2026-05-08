@@ -88,26 +88,25 @@ function treeDepth(p: TreeNode | null, q: TreeNode | null): number {
 // Indices in this array correspond to line numbers (1-indexed).
 
 const ALGORITHM_LINES = [
-  "function isSameTree(p, q):",                          //  1
-  "  queue = new Queue()",                               //  2
-  "  queue.offer([p, q])",                               //  3
-  "",                                                    //  4
-  "  while (!queue.isEmpty()):",                         //  5
-  "    [first, second] = queue.poll()",                  //  6
-  "",                                                    //  7
-  "    if (first == null && second == null):",           //  8
-  "      continue",                                      //  9
-  "",                                                    // 10
-  "    if (first == null || second == null):",           // 11
-  "      return false",                                  // 12
-  "",                                                    // 13
-  "    if (first.val != second.val):",                   // 14
-  "      return false",                                  // 15
-  "",                                                    // 16
-  "    queue.offer([first.left,  second.left])",         // 17
-  "    queue.offer([first.right, second.right])",        // 18
-  "",                                                    // 19
-  "  return true",                                       // 20
+  "boolean isSameTree(TreeNode p, TreeNode q) {",                //  1
+  "  Queue<TreeNode[]> queue = new LinkedList<>();",             //  2
+  "  queue.offer(new TreeNode[]{p, q});",                        //  3
+  "",                                                            //  4
+  "  while (!queue.isEmpty()) {",                                //  5
+  "    TreeNode[] pair = queue.poll();",                         //  6
+  "    TreeNode first  = pair[0];",                              //  7
+  "    TreeNode second = pair[1];",                              //  8
+  "",                                                            //  9
+  "    if (first == null && second == null) continue;",          // 10
+  "    if (first == null || second == null) return false;",      // 11
+  "    if (first.val != second.val) return false;",              // 12
+  "",                                                            // 13
+  "    queue.offer(new TreeNode[]{first.left,  second.left});",  // 14
+  "    queue.offer(new TreeNode[]{first.right, second.right});", // 15
+  "  }",                                                         // 16
+  "",                                                            // 17
+  "  return true;",                                              // 18
+  "}",                                                           // 19
 ];
 
 // ─── Simulation ───────────────────────────────────────────────────────────────
@@ -158,6 +157,7 @@ function simulate(p: TreeNode | null, q: TreeNode | null): Step[] {
   pS[""] = "inQueue";
   qS[""] = "inQueue";
   snap([...bfsQueue], null, "Enqueue the root pair (p, q) and start the BFS loop.", null, "init", [3]);
+  // line numbers below correspond to ALGORITHM_LINES indices (1-indexed).
 
   while (bfsQueue.length > 0) {
     const path = bfsQueue.shift()!;
@@ -176,7 +176,7 @@ function simulate(p: TreeNode | null, q: TreeNode | null): Step[] {
     if (!pN && !qN) {
       snap([...bfsQueue], path,
         `Both null at ${loc} → skip and continue to next pair.`,
-        null, "skip_both_null", [9]);
+        null, "skip_both_null", [10]);
       delete pS[path];
       delete qS[path];
       continue;
@@ -187,20 +187,20 @@ function simulate(p: TreeNode | null, q: TreeNode | null): Step[] {
       qS[path] = "mismatch";
       snap([...bfsQueue], path,
         `One is null at ${loc} (first=${pVal}, second=${qVal}) → structural mismatch → return false.`,
-        false, "mismatch_null", [12]);
+        false, "mismatch_null", [11]);
       return steps;
     }
 
     snap([...bfsQueue], path,
       `Both non-null at ${loc}: compare first.val=${pN.val} with second.val=${qN.val}.`,
-      null, "compare_val", [14]);
+      null, "compare_val", [12]);
 
     if (pN.val !== qN.val) {
       pS[path] = "mismatch";
       qS[path] = "mismatch";
       snap([...bfsQueue], path,
         `Values differ (${pN.val} ≠ ${qN.val}) → return false.`,
-        false, "mismatch_val", [15]);
+        false, "mismatch_val", [12]);
       return steps;
     }
 
@@ -213,17 +213,17 @@ function simulate(p: TreeNode | null, q: TreeNode | null): Step[] {
     qS[lp] = "inQueue";
     snap([...bfsQueue], path,
       `${pN.val} = ${qN.val} → enqueue the left children pair.`,
-      null, "enqueue_left", [17]);
+      null, "enqueue_left", [14]);
 
     bfsQueue.push(rp);
     pS[rp] = "inQueue";
     qS[rp] = "inQueue";
     snap([...bfsQueue], path,
       `Enqueue the right children pair.`,
-      null, "enqueue_right", [18]);
+      null, "enqueue_right", [15]);
   }
 
-  snap([], null, "Queue is empty → every pair matched → return true.", true, "done_true", [20]);
+  snap([], null, "Queue is empty → every pair matched → return true.", true, "done_true", [18]);
   return steps;
 }
 

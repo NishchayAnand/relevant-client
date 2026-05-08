@@ -83,20 +83,15 @@ function treeDepth(p: TreeNode | null, q: TreeNode | null): number {
 // Indices in this array correspond to line numbers (1-indexed).
 
 const ALGORITHM_LINES = [
-  "function isSameTree(p, q):",                  //  1
-  "  if (p == null && q == null):",              //  2
-  "    return true",                             //  3
-  "",                                            //  4
-  "  if (p == null || q == null):",              //  5
-  "    return false",                            //  6
-  "",                                            //  7
-  "  if (p.val != q.val):",                      //  8
-  "    return false",                            //  9
-  "",                                            // 10
-  "  if (!isSameTree(p.left,  q.left)):",        // 11
-  "    return false",                            // 12
-  "",                                            // 13
-  "  return isSameTree(p.right, q.right)",       // 14
+  "boolean isSameTree(TreeNode p, TreeNode q) {",        //  1
+  "  if (p == null && q == null) return true;",          //  2
+  "  if (p == null || q == null) return false;",         //  3
+  "",                                                    //  4
+  "  if (p.val != q.val) return false;",                 //  5
+  "",                                                    //  6
+  "  if (!isSameTree(p.left,  q.left)) return false;",   //  7
+  "  return isSameTree(p.right, q.right);",              //  8
+  "}",                                                   //  9
 ];
 
 // ─── Simulation ───────────────────────────────────────────────────────────────
@@ -146,7 +141,7 @@ function simulate(p: TreeNode | null, q: TreeNode | null): Step[] {
     if (!pN && !qN) {
       snap(path,
         `At ${loc}: both nodes are null → return true.`,
-        "base_both_null", [3], true);
+        "base_both_null", [2], true);
       return true;
     }
 
@@ -156,7 +151,7 @@ function simulate(p: TreeNode | null, q: TreeNode | null): Step[] {
     if (!pN || !qN) {
       snap(path,
         `At ${loc}: one is null (p=${pN?.val ?? "null"}, q=${qN?.val ?? "null"}) → structures differ → return false.`,
-        "mismatch_null", [6], false);
+        "mismatch_null", [3], false);
       pS[path] = "mismatch";
       qS[path] = "mismatch";
       return false;
@@ -164,12 +159,12 @@ function simulate(p: TreeNode | null, q: TreeNode | null): Step[] {
 
     snap(path,
       `At ${loc}: both non-null — compare p.val=${pN.val} with q.val=${qN.val}.`,
-      "compare_val", [8]);
+      "compare_val", [5]);
 
     if (pN.val !== qN.val) {
       snap(path,
         `At ${loc}: ${pN.val} ≠ ${qN.val} — values differ → return false.`,
-        "mismatch_val", [9], false);
+        "mismatch_val", [5], false);
       pS[path] = "mismatch";
       qS[path] = "mismatch";
       return false;
@@ -177,7 +172,7 @@ function simulate(p: TreeNode | null, q: TreeNode | null): Step[] {
 
     snap(path,
       `At ${loc}: ${pN.val} = ${qN.val} — recurse into the left subtrees.`,
-      "recurse_left", [11]);
+      "recurse_left", [7]);
 
     pS[path] = "visiting";
     qS[path] = "visiting";
@@ -188,7 +183,7 @@ function simulate(p: TreeNode | null, q: TreeNode | null): Step[] {
     if (!leftOk) {
       snap(path,
         `At ${loc}: left subtrees differ → short-circuit, return false.`,
-        "left_mismatch", [12], false);
+        "left_mismatch", [7], false);
       pS[path] = "mismatch";
       qS[path] = "mismatch";
       return false;
@@ -196,7 +191,7 @@ function simulate(p: TreeNode | null, q: TreeNode | null): Step[] {
 
     snap(path,
       `At ${loc}: left subtrees match — recurse into the right subtrees.`,
-      "left_match_recurse_right", [14]);
+      "left_match_recurse_right", [8]);
 
     pS[path] = "visiting";
     qS[path] = "visiting";
@@ -206,7 +201,7 @@ function simulate(p: TreeNode | null, q: TreeNode | null): Step[] {
 
     snap(path,
       `At ${loc}: right subtrees ${rightOk ? "match" : "differ"} → return ${rightOk}.`,
-      "return_right", [14], rightOk);
+      "return_right", [8], rightOk);
 
     return rightOk;
   }
