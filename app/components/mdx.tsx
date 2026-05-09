@@ -61,6 +61,8 @@ import NumberOfIslandsDFSVisualizer from './number-of-islands-dfs-visualizer';
 import NumberOfIslandsBFSVisualizer from './number-of-islands-bfs-visualizer';
 import SameTreeVisualizer from './same-tree-visualizer';
 import SameTreeBFSVisualizer from './same-tree-bfs-visualizer';
+import MinSwapsBruteForceVisualizer from './min-swaps-brute-force-visualizer';
+import MinSwapsSlidingWindowIntuitionVisualizer from './min-swaps-sliding-window-intuition';
 
 hljs.registerLanguage('javascript', javascript);
 
@@ -261,6 +263,8 @@ let components = {
   NumberOfIslandsBFSVisualizer: NumberOfIslandsBFSVisualizer,
   SameTreeVisualizer: SameTreeVisualizer,
   SameTreeBFSVisualizer: SameTreeBFSVisualizer,
+  MinSwapsBruteForceVisualizer: MinSwapsBruteForceVisualizer,
+  MinSwapsSlidingWindowIntuitionVisualizer: MinSwapsSlidingWindowIntuitionVisualizer,
   Image: RoundedImage,
   a: CustomLink,
   code: Code,

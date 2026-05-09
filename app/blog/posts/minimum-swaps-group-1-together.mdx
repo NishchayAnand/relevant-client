@@ -37,5 +37,43 @@ Let `k` represents the number of `1s` in the array.
 In any contiguous subarray of length `k`, the number of swaps required to group all `1s` 
 together is equal to the number of `0s` in that subarray.
 
+![intuition-2](/minimum-swaps-group-1-together/intuition-2.png)
 
+---
+
+### Brute Force Approach: Nested Loops
+
+Use nested loops to iterate over all possible contiguous subarrays of length `k` 
+(number of `1s` in the array), compute the number of zeros in each subarray, and keep track 
+of the minimum count.
+
+#### Algorithm
+
+<MinSwapsBruteForceVisualizer />
+
+#### Time Complexity
+
+The outer loop runs `n - k + 1` times. For each outer loop iteration, the inner loop runs `k` times.
+
+Hence, overall time complexity = `O(n * k)`.
+
+#### Space Complexity
+
+We are not using any extra space. Hence, overall space complexity = `O(1)`.
+
+---
+
+### Key Observation
+
+Instead of recomputing the number of zeros for each subarray of length `k` using nested loops,
+we can use a sliding window of length `k`.
+
+As the window moves forward, we can decrement the zero count if the outgoing element is `0`,
+and increment the zero count if the incoming element is `0`.
+
+<MinSwapsSlidingWindowIntuitionVisualizer />
+
+---
+
+### Sliding Window Approach 
 
