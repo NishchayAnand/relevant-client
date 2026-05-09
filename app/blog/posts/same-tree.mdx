@@ -89,7 +89,17 @@ return false.
 
 #### Time Complexity
 
+Since, we are visiting each node in the trees at most once, the overall time complexity = `O(min(m, n))`,
+where `m` and `n` are the number of nodes in the trees.
 
 #### Space Complexity
+
+The queue grows level by level. At any moment, it holds nodes from a single level of both the trees. 
+So the space complexity depends on the maximum width of the trees.
+
+For a skewed tree, the maximum width is `1`. However, in a balanced tree, `ith` level contains 
+`2^i` nodes. For a tree of height `h`, the maximum width is `2^h = 2^(log(min(m, n))) = min(m, n)`. 
+
+Hence, overall space complexity = `O(min(m, n))`.
 
 ---
