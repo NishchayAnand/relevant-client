@@ -63,6 +63,7 @@ import SameTreeVisualizer from './same-tree-visualizer';
 import SameTreeBFSVisualizer from './same-tree-bfs-visualizer';
 import MinSwapsBruteForceVisualizer from './min-swaps-brute-force-visualizer';
 import MinSwapsSlidingWindowIntuitionVisualizer from './min-swaps-sliding-window-intuition';
+import MinSwapsSlidingWindowVisualizer from './min-swaps-sliding-window-visualizer';
 
 hljs.registerLanguage('javascript', javascript);
 
@@ -265,6 +266,7 @@ let components = {
   SameTreeBFSVisualizer: SameTreeBFSVisualizer,
   MinSwapsBruteForceVisualizer: MinSwapsBruteForceVisualizer,
   MinSwapsSlidingWindowIntuitionVisualizer: MinSwapsSlidingWindowIntuitionVisualizer,
+  MinSwapsSlidingWindowVisualizer: MinSwapsSlidingWindowVisualizer,
   Image: RoundedImage,
   a: CustomLink,
   code: Code,

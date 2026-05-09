@@ -77,3 +77,24 @@ and increment the zero count if the incoming element is `0`.
 
 ### Sliding Window Approach 
 
+Use sliding window to process fixed size subarrays of length `k`, reusing previous results and
+updating only the elements entering and leaving the window.
+
+#### Algorithm
+
+<MinSwapsSlidingWindowVisualizer />
+
+#### Time Complexity
+
+We first iterate over the array once to compute the number of `1s`. 
+
+Then, while sliding the window, each element is processed at most twice (once entering, 
+once leaving the window).
+
+Hence, overall time complexity = `O(n)`.
+
+#### Space Complexity
+
+We are not using any extra space. Hence, overall space complexity = `O(1)`.
+
+---
