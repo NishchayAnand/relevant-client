@@ -1,6 +1,6 @@
 ---
-title: 'Data Structures & Algorithms (Arrays & Strings): Minimum Swaps to Group All 1s Together'
-publishedAt: '2025-08-11'
+title: 'Data Structures & Algorithms (Sliding Window): Minimum Swaps to Group All 1s Together'
+publishedAt: '2025-09-05'
 ---
 
 You are given a binary array `nums` consisting of only `0s` and `1s`. In one operation, you can swap 
@@ -27,6 +27,15 @@ Q. What will be the output if `nums` contains only `0s`?\
 A. Return `-1`.
 
 ---
+
+### Intuition
+
+Let `k` represents the number of `1s` in the array.
+
+![intuition-1](/minimum-swaps-group-1-together/intuition-1.png)
+
+In any contiguous subarray of length `k`, the number of swaps required to group all `1s` 
+together is equal to the number of `0s` in that subarray.
 
 
 
