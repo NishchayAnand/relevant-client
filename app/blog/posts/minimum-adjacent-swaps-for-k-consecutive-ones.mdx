@@ -2,3 +2,44 @@
 title: 'Data Structures & Algorithms (Sliding Window): Minimum Adjacent Swaps for K Consecutive Ones'
 publishedAt: '2025-09-07'
 ---
+
+Given a binary array `nums` (containing only `0s` and `1s`) and an integer `k`, return 
+the minimum numbers of adjacent swaps required so that `nums` has `k` consecutive `1s`.
+
+```
+Example 1:
+
+Input: nums = [1,0,0,1,0,1], k = 2
+Output: 1
+Explanation: We can swap the 1 at index 3 with the 0 at index 4 to get [1,0,0,0,1,1] and
+have 2 consecutive 1's.
+
+Example 2:
+
+Input: nums = [1,1,0,1], k = 2
+Output:0
+Explanation: nums already has 2 consecutive 1's.
+```
+
+> **Solve Here**: [Leetcode 1703](https://leetcode.com/problems/minimum-adjacent-swaps-for-k-consecutive-ones/description/)
+
+---
+
+### Intuition
+
+The challenge is to determine which k ones to group together and where to group them to 
+minimize the total number of swaps.
+
+Adjacent swaps preserve the relative order of `1s`. ???
+
+when we want to group k ones together into consecutive positions, the optimal strategy is to 
+move them towards their median position. For example, if we have ones at positions [2, 5, 9] 
+and want them consecutive, moving them to positions around 5 (the median) like [4, 5, 6] 
+requires fewer moves than moving them to positions around 2 or 9.
+
+
+
+
+
+Choose a window of `k` ones and move them toward the median position 
+(minimum movement property). ???
