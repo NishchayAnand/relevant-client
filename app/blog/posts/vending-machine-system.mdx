@@ -1,0 +1,55 @@
+---
+title: 'Object Oriented Design: Vending Machine System'
+publishedAt: '2025-12-15'
+---
+
+Design a vending machine system that allows users to select a product from a list of 
+available items and purchase it by inserting cash. 
+
+![vending-machine-system](/vending-machine-system/vending-machine-system.png)
+
+---
+
+### Functional Requirements
+
+The vendoring machine should support for the following operations:
+
+1. Display all available products along with important details like name, price and 
+the quantity available in stock.
+
+2. Allow users to select a product and insert coins or notes as payment. Once the inserted 
+amount is sufficient, the machine should dispense the product and return the change.
+
+3. Manage product inventory by updating the available stock after every successful 
+purchase to ensure accurate inventory tracking.
+
+---
+
+### Primary Use Cases
+
+The primary use case for the vending machine system is to allow users to select a product 
+and purchase it by inserting coins or notes as payment. Here's how its workflow looks like:
+
+1. User selects a `Product` and inserts coins or notes as `Payment`.
+
+2. The `VendingMachine` **validates** the `insertedAmount` against the `productPrice` and 
+**dispenses** the `Product` and returns the change if the `Payment` is greater than the 
+`productPrice`.
+
+4. Finally, the `VendingMachine` **updates** the `Inventory` after every successful purchase 
+to keep track of the available stock.
+
+---
+
+### Object Model Design 
+
+The primary entities in the system include:
+
+#### VendingMachine
+
+Serves as the central controller for the system, handling product selection and dispensing,
+managing product inventory and processing cash payments.
+
+To prevent the `VendingMachine` from becoming a **God Object** (a class with too many 
+responsibilities), it can act as a facade and delegate the responsibility of managing the 
+product inventory and processing cash payments to specialized components.
