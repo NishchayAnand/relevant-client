@@ -11,6 +11,55 @@ and practices in building robust multi-agent systems.
 
 ---
 
+### What is an AI Agent?
+
+An agent is an intelligent system capable of perceiving its environment, making decisions, 
+and taking actions to achieve specific goals.
+
+They take the power of generative AI, particularly Large Language Models (or LLMs), a step 
+further.
+
+---
+
+### Why Build with Agents?
+
+While powerful, standalone LLMs often fall short when faced with complex, broader tasks 
+requiring multiple steps, planning, and sophisticated reasoning. These tasks often demand 
+accessing external, real-time information or tools outside the LLM's training data.
+
+Agents bridge this gap by integrating LLM reasoning with tools and planning capabilities. 
+They enable the execution of workflows and allow actions in the "real world," whether 
+digital or physical via APIs, to complete tasks.
+
+---
+
+### Components of an AI Agent
+
+The foundation of a modern AI agent typically involves several key components:
+
+1. **Large Language Model (LLM)**: This serves as the "brain" of the agent, providing the 
+ability to understand, reason, and act. LLMs process and generate language, enabling the 
+agent's cognitive functions.
+
+2. **Tools**: These are external functions, APIs, or resources that the agent can access and 
+utilize to interact with its environment and enhance its capabilities. Tools allow agents 
+to perform specific tasks beyond text generation, such as searching the web, querying 
+databases, making calculations, or controlling external systems.
+
+3. **Instructions**: Explicit guidelines, often provided through a system prompt, define how
+the agent should behave and guide its actions.
+
+4. **Memory**: Agents can possess various forms of memory, including short-term memory 
+(context from the current conversation) and long-term memory (from past historical 
+interactions), enabling them to learn from past experiences and maintain context.
+
+5. **Runtime/Orchestration Layer**: This environment allows the agent or LLM to control 
+its execution flow, decide when to use tools, and process observations. In fact, the 
+orchestration layer is what actually runs the tools on the LLM's behalf, since by itself 
+it only generates text.
+
+---
+
 ### What is a Multi-Agent System?
 
 A multi-agent system is a system that consists of multiple agents that interact with each other and 
@@ -134,6 +183,8 @@ committing changes.
 ---
 
 ### Role-Based Prompting
+
+
 
 
 
