@@ -30,31 +30,31 @@ Explanation: nums already has 2 consecutive 1's.
 For adjacent swaps, the optimal strategy is to select a `1` and move all the remaining `(k-1)` 
 `1s` around it, keeping the relative order of the selected `k` `1s` intact.
 
----
-
-### EXTRA
-
-A key observation is that **adjacent swaps preserve the relative order of `1s`.** So, if 
-the positions of the selected 1s are `p1, p2, ..., pk`, after swapping, their order will 
-still remain `p1 < p2 < ... < pk`.
-
-
+![minimum-adjacent-swaps](/minimum-adjacent-swaps/intuition-1.png)
 
 The primary challenge is to determine **which `k` ones to group together** and **where they 
-should be placed so that the total number of adjacent swaps is minimized.
+should be placed** so that the total number of adjacent swaps is minimized.
 
+---
 
+### Trick: Move Towards Median Position
 
-when we want to group k ones together into consecutive positions, the optimal strategy is to 
-move them towards their median position. For example, if we have ones at positions [2, 5, 9] 
-and want them consecutive, moving them to positions around 5 (the median) like [4, 5, 6] 
-requires fewer moves than moving them to positions around 2 or 9.
+When we want to group `k` ones together into consecutive positions, the best way is 
+to move them towards their median position. For example, if we have ones at positions 
+`[0, 3, 4, 8]`, moving them to positions around `4` (the median) like `[2, 3, 4, 5]` 
+requires fewer moves than moving them to positions around `0` or `8`.
 
-Choose a window of `k` ones and move them toward the median position 
-(minimum movement property). for each possible group of k ones, find their median position. 
-Then calculate how many swaps are needed to bring all ones in this group to consecutive 
-positions centered around the median. The ones to the left of the median need to move to 
+![trick](/minimum-adjacent-swaps/trick.png)
+
+The ones to the left of the median need to move to 
 positions [median-x+1, ..., median] and the ones to the right need to move to positions 
 [median+1, ..., median+y].
 
 ---
+
+### Approach 1: Sliding Window 
+
+Choose a window of `k` ones and move them towards the median position 
+(minimum movement property). for each possible group of k ones, find their median position. 
+Then calculate how many swaps are needed to bring all ones in this group to consecutive 
+positions centered around the median. 
