@@ -46,15 +46,85 @@ requires fewer moves than moving them to positions around `0` or `8`.
 
 ![trick](/minimum-adjacent-swaps/trick.png)
 
-The ones to the left of the median need to move to 
-positions [median-x+1, ..., median] and the ones to the right need to move to positions 
-[median+1, ..., median+y].
+> **NOTE:** The ones to the left of the median need to move to positions `[median-x, ..., median-2, median-1]` 
+and the ones to the right need to move to positions `[median+1, median+2, ..., median+y]`.
+
+![intuition-2](/minimum-adjacent-swaps/intuition-2.png)
 
 ---
 
-### Approach 1: Sliding Window 
+### Approach 1: Sliding Window
 
-Choose a window of `k` ones and move them towards the median position 
-(minimum movement property). for each possible group of k ones, find their median position. 
-Then calculate how many swaps are needed to bring all ones in this group to consecutive 
-positions centered around the median. 
+We are only conerned with the positions of `1s`, so, we can first store the indices of all
+`1s` in a `pos` list and then use a sliding window of size `k` to iterate through all possible 
+groups of k ones.
+
+For each group, we find the median position and calculate the minimum number of adjacent 
+swaps required to move all selected `1s` into consecutive positions centered around the 
+median while preserving their relative order.
+
+![sliding-window](/minimum-adjacent-swaps/sliding-window.png)
+
+> **NOTE:** If `mid` is the index of the median in the group, then the target position for 
+any `1` ranked `i` in the window should land at: `target(i) = pos[mid] - (mid - i)`.
+
+#### Algorithm
+
+```java
+public int minMoves(int[] nums, int k) {
+
+    List<Integer> pos = new ArrayList<>();
+
+    // Store positions of all 1s
+    for (int i = 0; i < nums.length; i++) {
+        if (nums[i] == 1) {
+            pos.add(i);
+        }
+    }
+
+    int answer = Integer.MAX_VALUE;
+
+    // Try every possible group of k 1s
+    for (int start = 0; start + k - 1 < pos.size(); start++) {
+
+        int end = start + k - 1;
+        int mid = start + (k / 2);
+        int medianPos = pos.get(mid);
+
+        /* 
+            Calculate the number of moves required to 
+            move all 1s in the group to consecutive positions 
+            centered around the median.
+        */
+        int swaps = 0;
+        for (int i = start; i <= end; i++) {
+            int target = medianPos - (mid - i);
+            swaps += Math.abs(pos.get(i) - target);
+        }
+
+        answer = Math.min(answer, swaps);
+
+    }
+
+    return answer;
+
+}
+```
+
+#### Time Complexity
+
+We iterate over `nums` of length `n` once to store all positions of `1s` in the `pos` list.
+
+If there are `m` `1s` in the array, the number of possible windows of size `k` is `m - k + 1`.
+For each window, we are looping through `k` elements to calculate the number of swaps required
+to group all `1s` in the window into consecutive positions centered around the median.
+
+Hence, overall time complexity = `O(n) + O((m - k + 1) * k)` ~ `O(m * k)`.
+
+#### Space Complexity
+
+We are not using any extra space. Hence, overall space complexity = `O(1)`.
+
+---
+
+
