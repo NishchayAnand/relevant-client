@@ -53,3 +53,78 @@ managing product inventory and processing cash payments.
 To prevent the `VendingMachine` from becoming a **God Object** (a class with too many 
 responsibilities), it can act as a facade and delegate the responsibility of managing the 
 product inventory and processing cash payments to specialized components.
+
+```java
+class VendingMachine {
+
+    private Inventory inventory;
+
+    public void selectProduct(Product product) {
+
+    }
+
+    public void processPayment(Payment payment) {
+
+    }
+
+    public void dispenseProduct(Product product, int quantity) {
+        inventory.removeProduct(product, quantity);
+    }
+
+}
+```
+
+The VendingMachine should provide feedback at each stage to guide the user. For instance, 
+it should display messages like "Insert money to proceed", "Select a product", or 
+"Please collect your change". To handle this, we can use the **State Pattern**. ????
+
+#### Inventory
+
+```java
+class Inventory {
+
+    private Map<Product, Integer> stock;
+    
+    public void addProduct(Product product, int quantity) {
+        stock.put(product, stock.getOrDefault(product, 0) + quantity);
+    }
+
+    public void removeProduct(Product product, int quantity) {
+        if (stock.containsKey(product)) {
+            int currentStock = stock.get(product);
+            if (currentStock >= quantity) {
+                stock.put(product, currentStock - quantity);
+            } else {
+                throw new InsufficientStockException();
+            }
+        } else {
+            throw new ProductNotFoundException();
+        }
+    }
+}
+```
+
+#### Product
+
+```java
+class Product {
+
+    private String name;
+    private double price;
+
+
+    public Product(String name, double price) {
+        this.name = name;
+        this.price = price;
+    }
+
+    public double getPrice() {
+        return price;
+    }
+    
+}
+```
+
+
+
+
