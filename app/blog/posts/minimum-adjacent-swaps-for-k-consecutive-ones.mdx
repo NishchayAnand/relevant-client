@@ -111,6 +111,8 @@ public int minMoves(int[] nums, int k) {
 }
 ```
 
+#### Optimization
+
 We are only interested in calculating the number of swaps required to group all 1s in a 
 window, not their exact target positions. The swap calculation logic can be rewritten as:
 
@@ -248,7 +250,7 @@ public int minMoves(int[] nums, int k) {
         int end = start + k - 1;
         int mid = start + k / 2;  // Median index
         int medianPos = adjustedPos[mid];
-        
+
         int leftCost = (medianPos * (mid - start)) - (prefixSum[mid] - prefixSum[start]);
         int rightCost = (prefixSum[end+1] - prefixSum[mid+1]) - (medianPos * (end - mid));
         int swaps = leftCost + rightCost;
