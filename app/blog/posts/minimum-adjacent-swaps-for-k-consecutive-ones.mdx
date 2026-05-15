@@ -111,6 +111,56 @@ public int minMoves(int[] nums, int k) {
 }
 ```
 
+We are only interested in calculating the number of swaps required to group all 1s in a 
+window, not their exact target positions. The swap calculation logic can be rewritten as:
+
+```
+target[i] = pos[mid] - (mid - i)
+
+swap[i]   = |pos[i] - target[i]|
+          = |pos[i] - (pos[mid] - (mid - i))|
+          = |(pos[i] - i) - (pos[mid] - mid)|
+```
+
+We can precompute `(adjustedPos[i] = pos[i] - i)` for all indices i in the window to simplify 
+the swap calculation.
+
+> **NOTE:** The median depends on the relative ordering of elements, not their actual values. 
+Since the transformation `(adjusted[i] = pos[i] - i)` preserves the ordering of elements, the 
+median index remains unchanged after the transformation.
+
+```java
+public int minMoves(int[] nums, int k) {
+
+    ...
+
+    // Precompute pos[i] - i for all indices i in the window
+    int[] adjustedPos = new int[pos.size()];
+    for (int i = 0; i < pos.size(); i++) {
+        adjustedPos[i] = pos.get(i) - i;
+    }
+
+    int answer = Integer.MAX_VALUE;
+
+    // Try every possible group of k 1s
+    for (int start = 0; start + k - 1 < pos.size(); start++) {
+
+        ...
+
+        int swaps = 0;
+        for (int i = start; i <= end; i++) {
+            swaps += Math.abs(adjusted[i] - medianPos);
+        }
+
+        ...
+
+    }
+
+    ...
+
+}
+```
+
 #### Time Complexity
 
 We iterate over `nums` of length `n` once to store all positions of `1s` in the `pos` list.
@@ -119,11 +169,111 @@ If there are `m` `1s` in the array, the number of possible windows of size `k` i
 For each window, we are looping through `k` elements to calculate the number of swaps required
 to group all `1s` in the window into consecutive positions centered around the median.
 
-Hence, overall time complexity = `O(n) + O((m - k + 1) * k)` ~ `O(m * k)`.
+In the worst case, the array contains all `1s` such that `m = n`. Hence, overall time 
+complexity = `O(n) + O((n - k + 1) * k)` ~ `O(n * k)`.
 
 #### Space Complexity
 
-We are not using any extra space. Hence, overall space complexity = `O(1)`.
+We are using a list to store the positions of all `1s`. Hence, overall space complexity = `O(m)`.
+
+---
+
+### Approach 2: Sliding Window with Prefix Sum
+
+The expensive part is computing total swaps for every window.
+
+```
+swaps = |adjusted[i] - adjusted[mid]| + |adjusted[i+1] - adjusted[mid]| + ... + |adjusted[i + k - 1] - adjusted[mid]|
+```
+
+For the indices to the left of the median, `adjusted[i] <= medianPos`, while for the indices 
+to the right, `adjusted[i] >= medianPos`.
+
+Hence, the total swaps can be computed as:
+
+```
+leftCost  = (adjusted[mid] - adjusted[start]) + (adjusted[mid] - adjusted[start+1]) + ... + (adjusted[mid] - adjusted[mid-1])
+          = adjusted[mid] * (mid - start) - (adjusted[start] + adjusted[start+1] + ... + adjusted[mid-1])
+
+RightCost = (adjusted[mid+1] - adjusted[mid]) + (adjusted[mid+2] - adjusted[mid]) + ... + (adjusted[i + k - 1] - adjusted[mid])
+          = (adjusted[mid+1] + adjusted[mid+2] + ... + adjusted[i + k - 1]) - adjusted[mid] * (i + k - 1 - mid)
+
+swaps = leftCost + rightCost
+```
+
+Instead of iterating over the window to calculate the total swaps, we can precompute the 
+prefix sum of `adjusted` array and use it to calculate the left and right movement costs 
+in O(1).
+
+``` 
+leftCost  = (adjusted[mid] - adjusted[start]) + (adjusted[mid] - adjusted[start+1]) + ... + (adjusted[mid] - adjusted[mid-1])
+          = adjusted[mid] * (mid - start) - (adjusted[start] + adjusted[start+1] + ... + adjusted[mid-1])
+          = adjusted[mid] * (mid - start) - (prefix[mid] - prefix[start])
+
+RightCost = (adjusted[mid+1] - adjusted[mid]) + (adjusted[mid+2] - adjusted[mid]) + ... + (adjusted[i + k - 1] - adjusted[mid])
+          = (adjusted[mid+1] + adjusted[mid+2] + ... + adjusted[i + k - 1]) - adjusted[mid] * (i + k - 1 - mid)
+          = (prefix[i + k] - prefix[mid + 1]) - adjusted[mid] * (i + k - 1 - mid)
+```
+
+#### Algorithm
+
+```java
+public int minMoves(int[] nums, int k) {
+
+    List<Integer> pos = new ArrayList<>();
+
+    // Store positions of all 1s
+    for (int i = 0; i < nums.length; i++) {
+        if (nums[i] == 1) {
+            pos.add(i);
+        }
+    }
+
+    // Compute adjusted positions
+    int[] adjustedPos = new int[pos.size()];
+    for (int i = 0; i < pos.size(); i++) {
+        adjustedPos[i] = pos.get(i) - i;
+    }
+
+    // Prefix Sums
+    int[] prefixSum = new int[pos.size() + 1];
+    for (int i = 0; i < pos.size(); i++) {
+        prefixSum[i+1] = prefixSum[i] + adjustedPos[i];
+    }
+
+    int answer = Integer.MAX_VALUE;
+
+    // Try every contiguous group of k ones
+    for (int start = 0; start + k - 1 < pos.size(); start++) {
+        int end = start + k - 1;
+        int mid = start + k / 2;  // Median index
+        int medianPos = adjustedPos[mid];
+        
+        int leftCost = (medianPos * (mid - start)) - (prefixSum[mid] - prefixSum[start]);
+        int rightCost = (prefixSum[end+1] - prefixSum[mid+1]) - (medianPos * (end - mid));
+        int swaps = leftCost + rightCost;
+        answer = Math.min(answer, swaps);
+    }
+
+    return answer;
+    
+}
+```
+
+#### Time Complexity
+
+Traverse the array to store positions of all 1s → `O(n)`
+Build adjusted positions array → `O(m)`
+Build prefix sum array → `O(m)`
+Sliding window over all groups of k ones → `O(m)`
+
+Since each window's swap cost is computed in `O(1)` using prefix sums, the overall time 
+complexity = `O(n)`.
+
+#### Space Complexity
+
+We use extra space for positions array, adjusted positions array, and prefix sum array. Since, 
+each stores at most `m` elements, the overall space complexity = `O(m)`.
 
 ---
 
