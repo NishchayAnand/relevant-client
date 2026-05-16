@@ -64,6 +64,7 @@ import SameTreeBFSVisualizer from './same-tree-bfs-visualizer';
 import MinSwapsBruteForceVisualizer from './min-swaps-brute-force-visualizer';
 import MinSwapsSlidingWindowIntuitionVisualizer from './min-swaps-sliding-window-intuition';
 import MinSwapsSlidingWindowVisualizer from './min-swaps-sliding-window-visualizer';
+import MissingNumberNestedVisualizer from './missing-number-nested-visualizer';
 
 hljs.registerLanguage('javascript', javascript);
 
@@ -267,6 +268,7 @@ let components = {
   MinSwapsBruteForceVisualizer: MinSwapsBruteForceVisualizer,
   MinSwapsSlidingWindowIntuitionVisualizer: MinSwapsSlidingWindowIntuitionVisualizer,
   MinSwapsSlidingWindowVisualizer: MinSwapsSlidingWindowVisualizer,
+  MissingNumberNestedVisualizer: MissingNumberNestedVisualizer,
   Image: RoundedImage,
   a: CustomLink,
   code: Code,

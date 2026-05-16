@@ -1,0 +1,42 @@
+---
+title: 'Data Structures & Algorithms (Arrays & Strings): Missing Number'
+publishedAt: '2025-08-01'
+---
+
+Given an array `nums` containing `n` distinct numbers in the range `[0, n]`, return the only
+number in the range that is missing from the array.
+
+```
+Example:
+
+Input: nums = [9,6,4,2,3,5,7,0,1]
+Output: 8
+Explanation: 
+    - n = 9 since there are 9 numbers, so all numbers are in the range [0,9]. 
+    - 8 is the missing number in the range since it does not appear in nums.
+```
+
+> **Solve Here**: [Leetcode 268](https://leetcode.com/problems/missing-number/description/)
+
+---
+
+### Approach 1: Nested Loops
+
+Use nested loops to iterate over all numbers in the range `[0, n]` and check if the 
+number is present in `nums`. If a number is not present, return that number.
+
+#### Algorithm
+
+<MissingNumberNestedVisualizer />
+
+#### Time Complexity
+
+The outer loop runs `n+1` times and the inner loop runs `n` times. Hence, overall time 
+complexity = `O(n²)`.
+
+#### Space Complexity
+
+We are not using any extra space. Hence, overall space complexity = `O(1)`.
+
+---
+
