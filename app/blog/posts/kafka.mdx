@@ -2,3 +2,69 @@
 title: 'System Design: Distributed Message Queue (Kafka)'
 publishedAt: '2026-01-05'
 ---
+
+Provides an easy-to-use message queue interface on top of its append-only log-structured 
+storage medium.
+
+---
+
+### Kafka Architecture
+
+1. Kafka runs on the Java Virtual Machine (JVM).
+
+2. Kafka servers are referred to as brokers.
+
+3. All of the brokers that work together are referred to as a cluster. Clusters may 
+consist of just one broker, or thousands of brokers
+
+4. Apache Zookeeper is used by Kafka brokers to determine which broker is the leader of a 
+given partition and topic. Zookeeper keeps track of which brokers are part of the Kafka 
+cluster.
+
+5. Zookeeper stores configuration for topics and permissions (Access Control Lists - ACLs)
+ACLs are Permissions associated with an object. In Kafka, this typically refers to a user's 
+permissions with respect to production and consumption, and/or the topics themselves.
+
+6. Kafka nodes may gracefully join and leave the cluster.
+
+---
+
+### How Kafka Stores Data?
+
+It has a data directory on a disk where it stores logs of data and text files. 
+`/var/lib/kafka/data` is a directory where Kafta sorts data in your workspace and in many 
+Kafka productions systems.
+
+Each topic receives its own sub-directory with the associated name of the topic. Kafka may 
+store more than one log file for a given topic.
+
+---
+
+### Data Partitioning
+
+All Kafka topics consist of one or more partitions. Every partition has a single leader 
+broker. 
+
+Partitions are the basic unit of parallelism in Kafka. The “right” number of partitions 
+is highly dependent on the scenario.
+
+The most important number to understand is desired throughput. 
+How many MB/s do you need to achieve to hit your goal?
+
+Determine the number of partitions you need by dividing the overall throughput you want by 
+the throughput per single consumer partition or the throughput per single producer partition. 
+Pick the larger of these two numbers to determine the needed number of partitions.
+
+```
+Partitions = Max(Overall Throughput/Producer Throughput, Overall Throughput/Consumer Throughput)
+```
+
+
+> **NOTE:** Message ordering is only guaranteed within a partition in Kafka. If your topic has 
+more than one partition, Kafka provides no guarantees that the messages will be consumed in 
+the order they were produced. 
+
+---
+
+
+
