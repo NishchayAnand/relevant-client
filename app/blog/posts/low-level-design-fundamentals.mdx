@@ -233,19 +233,91 @@ public class ResourceNotFoundException extends RuntimeException {
 }
 ```
 
-> **NOTE:** Instead of relying on exceptions to drive your business logic (which is slow and 
-creates messy stack traces), modern design principles dictate that you validate early and 
-reserve exceptions strictly for the "last line of defense."
+On the flip side, some business logic failures are expected outcomes of a normal user 
+interacting with a correct system. For example, a user checking their balance and trying to 
+withdraw more than they have is a standard day-to-day occurrence. The system isn't broken, 
+the user just made an invalid request.
 
+Even though these are technically "recoverable" (the app can gracefully tell the user 
+"Please choose a smaller amount"), modern Java still uses `RuntimeException` for them, 
+but handles them differently.
+
+Instead of relying on exceptions to drive your business logic (which is slow and creates messy 
+stack traces), modern design principles dictate that you validate early and reserve 
+exceptions strictly for the "last line of defense."
+
+```java
+public class AccountService {
+
+    public void withdraw(Wallet wallet, double amount) {
+        // 1. Check a business rule explicitly (No exception thrown yet)
+        if (!wallet.hasSufficientFunds(amount)) {
+            // Actively handle the business logic failure smoothly
+            ui.showErrorMessage("Insufficient funds. Your balance is " + wallet.getBalance());
+            return; 
+        }
+
+        // 2. Proceed with the operation safely
+        wallet.deduct(amount);
+    }
+}
+```
+
+If someone circumvents the validation (or a race condition occurs), your domain entity 
+throws the unchecked exception as a hard stop:
+
+```java
+public class Wallet {
+    private double balance;
+
+    public void deduct(double amount) {
+        if (amount > balance) {
+            // Last resort guardrail. If this fires, it means our Service layer validation failed.
+            throw new InsufficientFundsException("Cannot deduct " + amount + " from balance " + balance);
+        }
+        this.balance -= amount;
+    }
+}
+```
+<br/>
 ---
 
 ### What is a Global Exception Handler?
 
-Modern systems use the Front Controller pattern or interceptors to create a 
-Global Exception Handler (often called `ControllerAdvice` in Java/Spring, `Global Filters` 
-in .NET, or `Middleware` in Node.js).
+Modern architecture treats exception handling as a cross-cutting concern. The goal is to 
+separate your core business logic from your error-handling logic, ensuring that no matter 
+where an error occurs, it is managed globally, logged securely, and translated into a 
+standardized response for the client. 
 
-Instead of catching errors inside your controllers or service layers, you intentionally let them bubble up. The framework intercepts the exception right before it reaches the client and routes it to a dedicated handler.
+Many systems use the Front Controller pattern or interceptors to create a Global Exception
+Handler (often called `ControllerAdvice` in Java/Spring or `Middleware` in Node.js).
+
+Instead of catching errors inside your controllers or service layers, you intentionally let 
+them bubble up. The framework intercepts the exception right before it reaches the client 
+and routes it to a dedicated handler.
+
+```java
+@RestControllerAdvice
+public class GlobalExceptionHandler {
+
+    // 1. Catch specific business/validation failures
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleNotFound(ResourceNotFoundException ex) {
+        ErrorResponse error = new ErrorResponse("NOT_FOUND", ex.getMessage(), LocalDateTime.now());
+        return new ResponseEntity<>(error, HttpStatus.NOT_FOUND);
+    }
+
+    // 2. Catch unexpected system bugs (Fallback)
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ErrorResponse> handleGeneralError(Exception ex) {
+        // Log the actual trace internally, but hide it from the public user!
+        logger.error("Internal system failure: ", ex); 
+        
+        ErrorResponse error = new ErrorResponse("INTERNAL_ERROR", "An unexpected error occurred.", LocalDateTime.now());
+        return new ResponseEntity<>(error, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+}
+```
 
 
 
