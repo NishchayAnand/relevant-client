@@ -5,7 +5,7 @@ publishedAt: '2025-12-01'
 
 ---
 
-### Inner Classes
+### What is an Inner Class?
 
 **Inner classes** in Java are simply classes defined inside another class, used to group
 related logic and improve encapsulation. The inner class is tied to outer and usually 
@@ -46,6 +46,82 @@ class Outer {
     }
 }
 ```
+
+---
+
+### What is an Immutable class?
+
+In multi-threaded applications, bugs usually happen when two different threads try to 
+modify the exact same piece of data at the same time, leading to "race conditions" or 
+data corruption.
+
+Because an immutable object cannot be changed after it is created, it can be shared 
+across dozens of threads simultaneously without any synchronization, locks, or fear of 
+corruption.
+
+#### How to create an Immutable class?
+
+**Before Java 17:**
+
+1. Make the class final so it cannot be inherited / overridden.
+2. Make all fields private and final.
+3. Initialize all fields via a constructor performing a deep copy.
+4. Provide only getter methods. Do not provide setters.
+5. Return copy for mutable fields.
+
+```java
+// Rule 1: Make the class final so it cannot be inherited / overridden
+class final ImmutableUser {
+  
+  // Rule 2: Make all fields private and final
+  private final String name;
+  private final int age;
+  private final List<String> roles; // mutable object
+  
+  // Rule 3: Initialize all fields via a constructor making deep copy
+  public ImmutableUser(String name, int age, List<String> roles) {
+    this.name = name;
+    this.age = age;
+    // don't do this.roles = roles;
+    // otherwise the caller can modify the list from outside
+    this.roles = new ArrayList<>(roles);
+  }
+  
+  // Rule 4: All provide getter methods
+  public String getName() {
+    return name;
+  }
+  
+  public int getAge() {
+    return age;
+  }
+  
+  // Return a copy for mutable objects
+  public List<String> getRoles() {
+    // Prevents the caller from modifying the internal list
+    return new ArrayList<>(roles);
+  }
+  
+}
+```
+
+**After Java 17:**
+
+After Java 17:
+
+1. Introduced Record to create a type of class that is shallowly immutable by default.
+2. If your record takes a mutable collection like a List, use compact constructor to clone 
+it so the outside world can't modify your record's internal state.
+
+```java
+record ImmutableUser(String name, int age, List<String> roles) {
+    public ImmutableUser {
+        roles = List.copyOf(roles);
+    }
+}
+```
+
+**NOTE:** Think of Record as Java's version of a “Data Transfer Object” (DTO) or “Tuple”. They are perfect for scenarios where you need a simple carrier for immutable data without writing a mountain of boilerplate code.
 
 ---
 
