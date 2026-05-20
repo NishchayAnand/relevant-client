@@ -33,3 +33,79 @@ The design should be thread-safe, configurable, and easily integrable with a RES
 should expose metrics such as failure count, state transitions, and request rejections.
 
 ---
+
+### Implementation
+
+```java
+public enum CircuitState {
+    CLOSED,
+    OPEN,
+    HALF_OPEN
+}
+
+public class CircuitBreaker {
+
+    private CircuitState state = CircuitState.CLOSED;
+
+    private int failureCount = 0;
+
+    private long lastFailureTime = 0;
+
+    private final int failureThreshold = 3;
+
+    private final long retryTimeout = 10000;
+
+    public synchronized <T> T execute(
+            Supplier<T> supplier) {
+
+        if (state == CircuitState.OPEN) {
+
+            if (System.currentTimeMillis()
+                    - lastFailureTime
+                    > retryTimeout) {
+
+                state = CircuitState.HALF_OPEN;
+
+            } else {
+                throw new RuntimeException(
+                        "Circuit is OPEN");
+            }
+        }
+
+        try {
+
+            T result = supplier.get();
+
+            failureCount = 0;
+            state = CircuitState.CLOSED;
+
+            return result;
+
+        } catch(Exception ex) {
+
+            failureCount++;
+
+            if (failureCount >= failureThreshold) {
+
+                state = CircuitState.OPEN;
+                lastFailureTime =
+                        System.currentTimeMillis();
+            }
+
+            throw ex;
+        }
+    }
+
+    public static void main(String[] args) {
+        CircuitBreaker circuitBreaker =
+            new CircuitBreaker();
+
+        String response =
+                circuitBreaker.execute(() ->
+                        paymentService.processPayment());
+
+        System.out.println(response);
+    }
+
+}
+```
