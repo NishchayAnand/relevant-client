@@ -99,6 +99,26 @@ Data Replication is the solution.
 > **NOTE:** Redundancy has a cost, but a reliable system must invest in eliminating every single 
 point of failure to maintain resilience.
 
+In modern architecture, an exception doesn't always mean your app should stop or return an 
+error code. If a third-party service is down or timing out, throwing a hard exception can 
+bring down your entire user experience.
+
+Systems use patterns like **Circuit Breakers (via tools like `Resilience4j`)** to catch 
+exceptions internally and trigger a Fallback:
+
+```java
+@CircuitBreaker(name = "paymentService", fallbackMethod = "localPaymentFallback")
+public PaymentResponse processPayment(PaymentRequest request) {
+    // if this external API throws HttpClientErrorException repeatedly...
+    return externalPaymentGateway.charge(request);
+}
+
+// ...the system will automatically route traffic here instead of crashing!
+public PaymentResponse localPaymentFallback(PaymentRequest request, Throwable t) {
+    return new PaymentResponse("PENDING", "Payment queued locally. Gateway is offline.");
+}
+```
+<br/>
 ---
 
 ### What is CAP Theorem?
@@ -287,13 +307,28 @@ Examples of real world log-structured data stores: Apache HBase, Apache Cassandr
 
 ---
 
-### Event-Driven Communication
+### What is Observability?
 
+In a distributed cloud system (like microservices), an error in Service A might actually be 
+caused by a timeout in Service C. Merely printing a stack trace to a local console is useless.
 
+Modern exception handling integrates deeply with Observability Stack Tools 
+(like OpenTelemetry, Datadog, Prometheus, or the ELK stack):
 
+1. **Correlation & Trace IDs:** When an HTTP request enters the system, a unique Trace ID is 
+generated.
 
+2. **Context Enrichment:** If an exception is thrown anywhere down the line, the global 
+handler automatically attaches the Trace ID to the error log.
 
---
+3. **Log Aggregation:** The exception is pushed out of the application memory into a 
+centralized log aggregator.
+
+4. **The Client Link:** The system returns the Trace ID to the frontend user. If a user 
+sees a screen saying "Something went wrong (ID: abc-9876)", a developer can copy-paste that 
+ID into Datadog or Splunk and see the exact multi-service stack trace instantly.
+
+---
 
 
 
