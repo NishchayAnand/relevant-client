@@ -76,7 +76,7 @@ corruption.
 3. Initialize all fields via a constructor performing a deep copy.
 4. Provide only getter methods. Do not provide setters.
 5. Return copy for mutable fields.
-
+<br/>
 ```java
 // Rule 1: Make the class final so it cannot be inherited / overridden
 class final ImmutableUser {
@@ -112,15 +112,14 @@ class final ImmutableUser {
   
 }
 ```
-
+<br/>
 **After Java 17:**
-
-After Java 17:
 
 1. Introduced Record to create a type of class that is shallowly immutable by default.
 2. If your record takes a mutable collection like a List, use compact constructor to clone 
 it so the outside world can't modify your record's internal state.
 
+<br/>
 ```java
 record ImmutableUser(String name, int age, List<String> roles) {
     public ImmutableUser {
@@ -188,9 +187,65 @@ inside it so the frontend knows exactly which input fields failed validation.
 
 ### How to Define Custom Exceptions?
 
+In the past (the Java 7 and earlier eras), architects heavily favored checked exceptions 
+(extends `Exception`) for business logic because they forced developers to explicitly 
+acknowledge the error. 
+
+However, this led to massive, messy `try-catch` blocks and cluttered method signatures 
+everywhere.
+
+```java
+public void transfer() 
+      throws InsufficientFundsException, 
+              UserBlockedException, 
+              LimitExceededException {
+  ...
+}
+```
+
+Modern Java design patterns lean overwhelmingly into unchecked exceptions to keep code clean 
+and readable. The standard industry convention is to provide four specific constructors so 
+your exception mimics the behavior of Java's built-in exceptions.
+
+```java
+// 1. Extend RuntimeException to make it Unchecked
+public class ResourceNotFoundException extends RuntimeException {
+    
+    // 2. Default constructor
+    public ResourceNotFoundException() {
+        super();
+    }
+
+    // 3. Constructor that accepts a custom error message
+    public ResourceNotFoundException(String message) {
+        super(message);
+    }
+
+    // 4. Constructor that chains another exception (Preserves the root cause stack trace)
+    public ResourceNotFoundException(String message, Throwable cause) {
+        super(message, cause);
+    }
+
+    // 5. Constructor that accepts just the root cause
+    public ResourceNotFoundException(Throwable cause) {
+        super(cause);
+    }
+}
+```
+
 > **NOTE:** Instead of relying on exceptions to drive your business logic (which is slow and 
 creates messy stack traces), modern design principles dictate that you validate early and 
 reserve exceptions strictly for the "last line of defense."
+
+---
+
+### What is a Global Exception Handler?
+
+Modern systems use the Front Controller pattern or interceptors to create a 
+Global Exception Handler (often called `ControllerAdvice` in Java/Spring, `Global Filters` 
+in .NET, or `Middleware` in Node.js).
+
+Instead of catching errors inside your controllers or service layers, you intentionally let them bubble up. The framework intercepts the exception right before it reaches the client and routes it to a dedicated handler.
 
 
 
