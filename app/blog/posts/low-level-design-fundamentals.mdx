@@ -3,6 +3,14 @@ title: 'Low Level Design Fundamentals'
 publishedAt: '2025-12-01'
 ---
 
+### Role of OOP in Low-Level Design
+
+Object-Oriented Programming (OOP) is the foundation of Low-Level Design (LLD). OOP helps model 
+real-world systems into classes, objects, behaviors, and relationships. This is essential 
+for building scalable and maintainable software.
+
+> **NOTE:** LLD is essentially applying OOP principles to design maintainable software.
+
 ---
 
 ### What is an Inner Class?
@@ -13,7 +21,7 @@ represents something that makes sense within it.
 
 Types of inner classes include:
 
-**1. Non-static Inner Class (Member Inner Class)**
+#### Non-static Inner Class (Member Inner Class)
 
 A non-static inner class is tied to an instance of the outer class and can access 
 all its members.
@@ -33,7 +41,7 @@ Outer o = new Outer();
 Outer.Inner i = o.new Inner();
 ```
 
-**2. Static Nested Class**
+#### Static Nested Class
 
 A static nested class does not require an outer instance and can only access static members.
 
@@ -46,7 +54,7 @@ class Outer {
     }
 }
 ```
-
+<br/>
 ---
 
 ### What is an Immutable class?
