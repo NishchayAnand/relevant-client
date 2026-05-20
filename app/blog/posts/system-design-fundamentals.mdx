@@ -79,7 +79,336 @@ Availability refers to a system’s ability to remain operational, even in the p
 
 ### What is Consistency?
 
-#### What is Eventual Consistency?
+In a microservices architecture, the golden rule is Database-per-Service (each service owns 
+its own private database). This prevents tight coupling, but it makes handling 
+distributed transactions and complex data queries incredibly difficult.
+
+---
+
+### What is Eventual Consistency?
+
+---
+
+### What is Saga Pattern?
+
+- **Purpose:** Manages distributed transactions and maintains data consistency across 
+multiple microservices without locking databases.
+
+- **What it does:** Instead of a traditional database transaction (which locks tables across 
+networks), a Saga (1) breaks a business process into a series of local transactions. 
+Each service (2) updates its own database and (3) publishes an event.
+
+- **The Catch:** If step 3 fails, the Saga orchestrator triggers Compensating Transactions 
+(backward steps) to undo the actions of steps 1 and 2, acting like a multi-service "Ctrl+Z".
+
+- **Example:** Buying an item online requires: 1. Order Service (creates order) -> 2. Payment Service 
+(charges card) -> 3. Shipping Service (fails because out of 
+stock). The Saga then triggers a refund in the Payment Service and cancels the order in 
+the Order Service.
+
+The Saga pattern is primarily implemented in two distinct architectural styles: 
+
+#### Orchestration-based (centralized)
+
+In an Orchestration saga, you introduce a dedicated service called the Saga Orchestrator 
+(or Saga Manager). It explicitly tells every single microservice when to execute its 
+transaction and waits for a response before commanding the next service.
+
+In an orchestrated setup, the services are "dumb" workers. They don't listen to broad events,
+they just expose clean APIs (methods) for the Orchestrator to invoke. The orchestrator 
+usually communicates with individual services via standard synchronous protocols (like REST 
+or gRPC).
+
+```java
+// --- 1. ORDER SERVICE ---
+class OrderService {
+    public void createPendingOrder(String orderId) {
+        System.out.println("[Order Service] 📦 Order " + orderId + " created with status: PENDING");
+    }
+    
+    public void cancelOrder(String orderId) {
+        System.out.println("[Order Service] ❌ COMPENSATE: Order " + orderId + " updated to: CANCELLED");
+    }
+}
+
+// --- 2. PAYMENT SERVICE ---
+class PaymentService {
+    public boolean processPayment(String orderId, double amount) {
+        System.out.println("[Payment Service] 💳 Charging $" + amount + " for order " + orderId);
+        System.out.println("[Payment Service] ✅ Payment successful.");
+        return true; // Return true for success
+    }
+
+    public void refundPayment(String orderId, double amount) {
+        System.out.println("[Payment Service] ↩️ COMPENSATE: Refunded $" + amount + " for order " + orderId);
+    }
+}
+
+// --- 3. PROVISIONING SERVICE ---
+class ProvisioningService {
+    public boolean activateSubscription(String orderId) {
+        System.out.println("[Provisioning Service] 🚀 Attempting to activate premium features...");
+        
+        // Simulating an unexpected failure (e.g., target cluster down)
+        System.out.println("[Provisioning Service] 💥 ERROR: Activation failed! Server unreachable.");
+        return false; 
+    }
+}
+
+/* The Saga Orchestrator (The Central Brain)
+
+The Orchestrator contains the entire workflow logic. It executes steps sequentially and 
+maintains an internal state. If a boolean check returns false, it halts the pipeline and 
+runs the exact rollback sequence.
+
+*/
+class SubscriptionSagaOrchestrator {
+    private final OrderService orderService = new OrderService();
+    private final PaymentService paymentService = new PaymentService();
+    private final ProvisioningService provisioningService = new ProvisioningService();
+
+    public void executeSaga(String orderId, double amount) {
+        System.out.println("=== Starting Orchestrated Saga Workflow ===");
+        
+        // Step 1: Create Order
+        orderService.createPendingOrder(orderId);
+
+        // Step 2: Process Payment
+        boolean paymentSuccess = paymentService.processPayment(orderId, amount);
+        
+        if (!paymentSuccess) {
+            // If payment fails, rollback Step 1
+            rollback(orderId, amount, 1);
+            return;
+        }
+
+        // Step 3: Provision Service
+        boolean provisioningSuccess = provisioningService.activateSubscription(orderId);
+        
+        if (!provisioningSuccess) {
+            // If provisioning fails, rollback everything up to Step 2
+            rollback(orderId, amount, 2);
+            return;
+        }
+
+        System.out.println("=== 🎉 Saga Completed Successfully! ===");
+    }
+
+    // Centralized Rollback Engine
+    private void rollback(String orderId, double amount, int failedAtStep) {
+        System.out.println("\n--- 🚨 ORCHESTRATOR DETECTED FAILURE: Executing Rollback Sequence ---");
+
+        // Rollback Step 2 (Refund Payment) if we made it past Step 2
+        if (failedAtStep >= 2) {
+            paymentService.refundPayment(orderId, amount);
+        }
+
+        // Rollback Step 1 (Cancel Order) if we made it past Step 1
+        if (failedAtStep >= 1) {
+            orderService.cancelOrder(orderId);
+        }
+
+        System.out.println("--- 🛡️ System Restored to Consistent State via Orchestrator ---");
+    }
+}
+
+/* Running the Simulation */
+public class OrchestratorSagaMain {
+    public static void main(String[] args) {
+        SubscriptionSagaOrchestrator orchestrator = new SubscriptionSagaOrchestrator();
+        
+        String uniqueOrderId = "ORD-99823";
+        double subscriptionPrice = 19.99;
+
+        // Trigger the workflow
+        orchestrator.executeSaga(uniqueOrderId, subscriptionPrice);
+    }
+}
+```
+
+Output in the Console:
+
+```
+=== Starting Orchestrated Saga Workflow ===
+[Order Service] 📦 Order ORD-99823 created with status: PENDING
+[Payment Service] 💳 Charging $19.99 for order ORD-99823
+[Payment Service] ✅ Payment successful.
+[Provisioning Service] 🚀 Attempting to activate premium features...
+[Provisioning Service] 💥 ERROR: Activation failed! Server unreachable.
+
+--- 🚨 ORCHESTRATOR DETECTED FAILURE: Executing Rollback Sequence ---
+[Payment Service] ↩️ COMPENSATE: Refunded $19.99 for order ORD-99823
+[Order Service] ❌ COMPENSATE: Order ORD-99823 updated to: CANCELLED
+--- 🛡️ System Restored to Consistent State via Orchestrator ---
+```
+
+- **Advantages:** Perfect for complex, enterprise-level business workflows. The entire 
+state machine and transaction logic live in one central location, making debugging and 
+auditing incredibly straightforward. It completely avoids cyclic dependencies.
+
+- **Disadvantages:** The orchestrator can become a single point of failure if not 
+configured for high availability. It introduces slightly tighter coupling because the 
+orchestrator must explicitly know how to talk to every downstream service interface.
+
+#### Choreography-based (decentralized)
+
+In a Choreography saga, there is no central supervisor. Instead, each microservice acts 
+independently, executes its local transaction, and throws an event into a message broker 
+(like Kafka or RabbitMQ). 
+
+The next service listens for that event, does its job, and throws its own event. If a service 
+down the line fails, it throws an event that tells the previous services to run their 
+**Compensating Transactions** (the undo steps).
+
+```java
+// Events that push the transaction forward
+public record OrderCreatedEvent(String orderId, String userId, double amount) {}
+public record PaymentSuccessfulEvent(String orderId, String userId, double amount) {}
+
+// Compensation Events that rollback the transaction
+public record PaymentFailedEvent(String orderId, String userId, String reason) {}
+public record RollbackOrderEvent(String orderId, String reason) {}
+
+/* The Order Service (The Initiator & Final Rollback)
+
+The Order Service kicks off the Saga. It also listens for the ultimate rollback event 
+in case something fails later, so it can change the status from PENDING to CANCELLED.
+
+*/
+public class OrderService {
+    private final MessageBroker messageBroker = new MessageBroker();
+
+    // Step 1: Start the Saga
+    public void createOrder(String userId, double amount) {
+        String orderId = "ORD-" + java.util.UUID.randomUUID().toString().substring(0, 5);
+        System.out.println("[Order Service] Creating order " + orderId + " with status PENDING.");
+        
+        // Publish event to network to notify the Payment Service
+        OrderCreatedEvent event = new OrderCreatedEvent(orderId, userId, amount);
+        messageBroker.publish("order-created-topic", event);
+    }
+
+    // Step 6 (COMPENSATION): Undo step if things fail down the line
+    public void handleOrderRollback(RollbackOrderEvent event) {
+        System.out.println("[Order Service] ❌ ROLLING BACK: Updating order " 
+                + event.orderId() + " status to CANCELLED. Reason: " + event.reason());
+    }
+}
+
+/* The Payment Service (Success & Reversal Logic)
+
+The Payment Service listens for the order creation, deducts money, and passes the torch. 
+Crucially, it also knows how to refund the money if the next service fails.
+
+*/
+public class PaymentService {
+    private final MessageBroker messageBroker = new MessageBroker();
+
+    // Step 2: Handle successful progress
+    public void handleOrderCreated(OrderCreatedEvent event) {
+        System.out.println("[Payment Service] Charging $" + event.amount() + " to user " + event.userId());
+        System.out.println("[Payment Service] ✅ Payment successful for " + event.orderId());
+        
+        // Move to the next service
+        PaymentSuccessfulEvent nextEvent = new PaymentSuccessfulEvent(event.orderId(), event.userId(), event.amount());
+        messageBroker.publish("payment-success-topic", nextEvent);
+    }
+
+    // Step 5 (COMPENSATION): Refund money if the downstream service crashed
+    public void reversePayment(PaymentFailedEvent event) {
+        System.out.println("[Payment Service] ↩️ REVERSING TRANSACTION: Refunding user for order " + event.orderId());
+        
+        // Trigger the final rollback event for the Order Service
+        messageBroker.publish("order-rollback-topic", new RollbackOrderEvent(event.orderId(), event.reason()));
+    }
+}
+
+/* The Provisioning Service (The Failure Point)
+
+This service is responsible for activating the user's account. In our dummy scenario, an 
+error happens here (e.g., the server hosting the premium feature is completely offline).
+
+*/
+public class ProvisioningService {
+    private final MessageBroker messageBroker = new MessageBroker();
+
+    // Step 3: Try to finalize the transaction
+    public void handlePaymentSuccess(PaymentSuccessfulEvent event) {
+        System.out.println("[Provisioning Service] Attempting to grant premium access for order: " + event.orderId());
+        
+        // Simulating a critical failure (e.g., integration server down)
+        boolean deploymentFailed = true; 
+
+        if (deploymentFailed) {
+            System.out.println("[Provisioning Service] ❌ CRITICAL ERROR: Cannot provision features!");
+            
+            // Step 4: Fire the warning flare to start the chain of reversals!
+            PaymentFailedEvent rollbackEvent = new PaymentFailedEvent(event.orderId(), event.userId(), "Feature Provisioning Server Offline");
+            messageBroker.publish("payment-failed-topic", rollbackEvent);
+        } else {
+            System.out.println("[Provisioning Service] 🎉 Saga Complete! Features activated successfully.");
+        }
+    }
+}
+
+/* Simulating the Execution Flow
+
+Here is how the entire distributed architecture reacts when we run the code:
+
+*/
+public class SagaSimulation {
+    public static void main(String[] args) {
+        // Instantiate our isolated microservices
+        OrderService orderService = new OrderService();
+        PaymentService paymentService = new PaymentService();
+        ProvisioningService provisioningService = new ProvisioningService();
+
+        System.out.println("--- Starting Saga Transaction Flow ---");
+        orderService.createOrder("user-99", 49.99);
+        
+        System.out.println("\n--- Simulated Network Triggers Event Interception ---");
+        // 1. Order Service fires event -> Payment Service catches it
+        paymentService.handleOrderCreated(new OrderCreatedEvent("ORD-XYZ12", "user-99", 49.99));
+        
+        // 2. Payment Service fires success event -> Provisioning Service catches it and fails!
+        provisioningService.handlePaymentSuccess(new PaymentSuccessfulEvent("ORD-XYZ12", "user-99", 49.99));
+        
+        // 3. Provisioning Service fires failure event -> Payment Service catches it to execute refund
+        paymentService.reversePayment(new PaymentFailedEvent("ORD-XYZ12", "user-99", "Server Offline"));
+        
+        // 4. Payment Service finishes refund -> Order Service catches it to cancel order
+        orderService.handleOrderRollback(new RollbackOrderEvent("ORD-XYZ12", "Server Offline"));
+        
+        System.out.println("\n--- Saga Completed Safely (System Restored to Consistent State) ---");
+    }
+}
+```
+
+Output in Console:
+
+```
+--- Starting Saga Transaction Flow ---
+[Order Service] Creating order ORD-a7e32 with status PENDING.
+
+--- Simulated Network Triggers Event Interception ---
+[Payment Service] Charging $49.99 to user user-99
+[Payment Service] ✅ Payment successful for ORD-XYZ12
+[Provisioning Service] Attempting to grant premium access for order: ORD-XYZ12
+[Provisioning Service] ❌ CRITICAL ERROR: Cannot provision features!
+[Payment Service] ↩️ REVERSING TRANSACTION: Refunding user for order ORD-XYZ12
+[Order Service] ❌ ROLLING BACK: Updating order ORD-XYZ12 status to CANCELLED. Reason: Server Offline
+
+--- Saga Completed Safely (System Restored to Consistent State) ---
+```
+
+- **Advantages:** Very simple to set up for small workflows (2 to 3 steps). Services are 
+loosely coupled because they only talk via an asynchronous message broker. There is no 
+single point of failure.
+
+- **Disadvantages:** It quickly becomes a nightmare to maintain when you have 5+ services. 
+It's incredibly hard to track the overall "state" of a transaction because the logic is 
+scattered across different codebases. You can easily create cyclic dependencies 
+(Service A triggers B, which triggers C, which accidentally triggers A again).
 
 ---
 
@@ -107,15 +436,144 @@ Systems use patterns like **Circuit Breakers (via tools like `Resilience4j`)** t
 exceptions internally and trigger a Fallback:
 
 ```java
-@CircuitBreaker(name = "paymentService", fallbackMethod = "localPaymentFallback")
-public PaymentResponse processPayment(PaymentRequest request) {
-    // if this external API throws HttpClientErrorException repeatedly...
-    return externalPaymentGateway.charge(request);
+// Define the circuit breaker configuration
+CircuitBreakerConfig config = CircuitBreakerConfig.custom()
+    .failureRateThreshold(50)          // Trip if 50% of last 100 calls fail
+    .waitDurationInOpenState(Duration.ofMinutes(1)) // Wait 1 minute before testing recovery
+    .slidingWindowSize(100)            // Monitor the last 100 requests
+    .build();
+
+// Applying it to a method via annotations
+@CircuitBreaker(name = "recommendationService", fallbackMethod = "getTrendingBackup")
+public List<Product> getPersonalizedRecommendations(User user) {
+    // If this remote API call starts failing, the circuit trips OPEN!
+    return externalRecommendationApi.getForUser(user.getId());
 }
 
-// ...the system will automatically route traffic here instead of crashing!
-public PaymentResponse localPaymentFallback(PaymentRequest request, Throwable t) {
-    return new PaymentResponse("PENDING", "Payment queued locally. Gateway is offline.");
+// The Fallback: Executed instantly when the circuit is OPEN
+public List<Product> getTrendingBackup(User user, Throwable t) {
+    // Return a generic list from local cache instead of crashing
+    return cacheRepository.getTopTrendingProducts();
+}
+```
+<br/>
+---
+
+### What is a Circuit Breaker?
+
+A circuit breaker operates as a state machine with three main states: `CLOSED`, `OPEN`, 
+and `HALF-OPEN`. 
+
+#### 1. CLOSED State (Normal Operation)
+
+When everything is healthy, the circuit is `CLOSED`.
+
+- Traffic flows normally from your application to the downstream service.
+
+- The circuit breaker continuously monitors the responses (successes, failures, and timeouts).
+
+- As long as the error rate stays below a certain threshold (e.g., lower than 50% failure rate), 
+it remains `CLOSED`.
+
+#### 2. OPEN State (Failing Fast)
+
+If the downstream service starts failing or timing out repeatedly, and the error rate 
+crosses your configured threshold, the circuit breaker trips and flips to `OPEN`.
+
+- **Traffic is completely cut off**. Any new requests from your application to that service are 
+blocked instantly at the local level.
+
+- Instead of waiting for a network timeout, the circuit breaker immediately executes a 
+Fallback mechanism (like returning cached data or a friendly "Service temporarily 
+unavailable" message).
+
+- This gives the struggling downstream service breathing room to recover or restart without 
+being blasted by traffic.
+
+#### 3. HALF-OPEN State (Testing the Waters)
+
+After a configured period of time (the "sleep window," usually a few seconds or minutes), 
+the circuit breaker automatically switches to `HALF-OPEN`.
+
+- It permits a **limited number of trial requests** to pass through to the downstream service.
+
+- **If the trial requests succeed:** The circuit breaker assumes the service has recovered, 
+resets its error counters, and flips back to `CLOSED` (normal operation).
+
+- **If any trial requests fail:** The circuit breaker assumes the service is still broken, 
+resets the timer, and immediately flips back to `OPEN` to block traffic again.
+
+```java
+public enum CircuitState {
+    CLOSED,
+    OPEN,
+    HALF_OPEN
+}
+
+public class CircuitBreaker {
+
+    private CircuitState state = CircuitState.CLOSED;
+
+    private int failureCount = 0;
+
+    private long lastFailureTime = 0;
+
+    private final int failureThreshold = 3;
+
+    private final long retryTimeout = 10000;
+
+    public synchronized <T> T execute(
+            Supplier<T> supplier) {
+
+        if (state == CircuitState.OPEN) {
+
+            if (System.currentTimeMillis()
+                    - lastFailureTime
+                    > retryTimeout) {
+
+                state = CircuitState.HALF_OPEN;
+
+            } else {
+                throw new RuntimeException(
+                        "Circuit is OPEN");
+            }
+        }
+
+        try {
+
+            T result = supplier.get();
+
+            failureCount = 0;
+            state = CircuitState.CLOSED;
+
+            return result;
+
+        } catch(Exception ex) {
+
+            failureCount++;
+
+            if (failureCount >= failureThreshold) {
+
+                state = CircuitState.OPEN;
+                lastFailureTime =
+                        System.currentTimeMillis();
+            }
+
+            throw ex;
+        }
+    }
+
+    public static void main(String[] args) {
+        CircuitBreaker circuitBreaker =
+            new CircuitBreaker();
+
+        String response =
+                circuitBreaker.execute(() ->
+                        paymentService.processPayment());
+
+        System.out.println(response);
+    }
+
 }
 ```
 <br/>
