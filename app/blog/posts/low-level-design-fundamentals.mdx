@@ -146,6 +146,52 @@ dynamically.
 
 ---
 
+### What is Exception Handling?
+
+
+---
+
+### When to Define Custom Exceptions?
+
+Only define a custom exception when your situation meets at least one of these three criteria:
+
+#### The Standard Java Exceptions Don't Make Sense in Business Terms
+
+If a user tries to transfer money but their account is frozen, throwing an 
+`IllegalStateException` is technically accurate for the JVM, but it is completely 
+meaningless to a business developer.
+
+Instead, create: `AccountFrozenException`. It instantly communicates the business context of 
+the failure.
+
+#### You Need to Route the Error to a Specific HTTP Status Code or UI Message
+
+If an error happens deep in your code, your Global Exception Handler needs a precise way to 
+know what kind of response to send to the client.
+
+If you throw a generic `RuntimeException`, your global handler can only guess and return a 
+`500 Internal Server Error`.
+
+If you throw a custom `UserNotFoundException`, your global handler can explicitly catch it 
+and map it to a clean `404 Not Found` response.
+
+#### You Need to Attach Custom Data (State) to the Error
+
+Standard exceptions only hold a string message. If your error handler needs specific data to 
+resolve the problem or format a rich error message, you need a custom exception to hold 
+that data.
+
+For example, an `OrderValidationException` that carries a `List<ValidationError>` object 
+inside it so the frontend knows exactly which input fields failed validation.
+
+---
+
+### How to Define Custom Exceptions?
+
+> **NOTE:** Instead of relying on exceptions to drive your business logic (which is slow and 
+creates messy stack traces), modern design principles dictate that you validate early and 
+reserve exceptions strictly for the "last line of defense."
+
 
 
 
