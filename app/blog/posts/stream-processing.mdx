@@ -1,0 +1,80 @@
+---
+title: 'System Design: What is Stream Processing?'
+publishedAt: '2026-01-08'
+---
+
+Stream Processing is a data architecture designed to handle unbounded data streams 
+(information that is generated continuously and never truely ends).
+
+![stream-processing](/stream-processing/stream-processing.png)
+
+---
+
+### The Fundamental Problem: Batch vs. Reality
+
+Traditional batch processing treats data as a fixed, finite set. Because batch systems need 
+to know when a task is finished, they must wait for the entire dataset to be ready before 
+they can process it (for example, sorting all records to find the lowest one).
+
+To handle continuous data in a batch model, we have to artificially slice it into time 
+chunks (e.g., "processing an hour’s worth of data at the end of every hour"). This 
+creates two major issues:
+
+- **Stale Data**: Information is only updated when the next batch runs, which is often too 
+slow for modern, "impatient" users.
+
+- **Inefficiency**: Constantly polling a database for new data creates significant overhead 
+and wasted resources.
+
+#### Visualization
+
+<BatchVsRealityVisualizer />
+
+---
+
+The Stream Processing Solution
+Stream processing abandons these artificial time slices in favor of a continuous flow. Instead of waiting for a batch to finish, the system processes each event the moment it is generated.
+
+Real-Time Insights: Because there is no "wait time," data is reflected in the system almost immediately after it occurs.
+
+Event-Driven: Rather than a system asking the database "Are there any new updates?" (polling), the system is designed to be notified the instant an event happens (pushing).
+
+Continuous Evolution: The system treats the world as a constant, evolving stream of events, allowing it to maintain a live, up-to-date state rather than a series of disconnected snapshots.
+
+### Understanding Common Use Cases
+
+Here are a few common real-world use cases for stream processing:
+
+1. **Fraud Detection and Security**: Financial systems need to analyze transaction 
+patterns (location, spending velocity, device ID) in real-time. If a card is used in 
+Delhi and then in New York 10 minutes later, the stream processor triggers an 
+instant decline.
+
+2. 
+
+
+
+
+Provides an easy-to-use message queue interface on top of its append-only log-structured 
+storage medium.
+
+### Data Streaming
+
+In computing, a stream is typically thought of as a potentially unbounded sequence. Data 
+Streams consist of a potentially endless stream of immutable data.
+
+Stream Processing acts on potentially endless and constantly evolving immutable data 
+contained in data streams.
+
+#### Log-structured streaming
+
+Log-structured streams build upon the concept of append-only logs.
+
+Common characteristics of all log-structured storage systems are that they simply append 
+data to log files on disk. These log files may store data indefinitely, for a specific time 
+period, or until a specific size is reached.
+
+There are typically many log files on disk, and these log files are merged and compacted 
+(data from one or more files is deleted) occasionally.
+
+Examples of real world log-structured data stores: Apache HBase, Apache Cassandra, Apache Kafka.
