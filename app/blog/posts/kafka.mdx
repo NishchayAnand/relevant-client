@@ -3,8 +3,34 @@ title: 'System Design: Distributed Message Queue (Kafka)'
 publishedAt: '2026-01-09'
 ---
 
+Design a message queue that allows producers to send messages and consumers to retrieve 
+and acknowledge them asynchronously.
+
+![message-queue](/message-queue/message-queue.png)
+
 Provides an easy-to-use message queue interface on top of its append-only log-structured 
 storage medium.
+
+### Data Streaming
+
+In computing, a stream is typically thought of as a potentially unbounded sequence. Data 
+Streams consist of a potentially endless stream of immutable data.
+
+Stream Processing acts on potentially endless and constantly evolving immutable data 
+contained in data streams.
+
+#### Log-structured streaming
+
+Log-structured streams build upon the concept of append-only logs.
+
+Common characteristics of all log-structured storage systems are that they simply append 
+data to log files on disk. These log files may store data indefinitely, for a specific time 
+period, or until a specific size is reached.
+
+There are typically many log files on disk, and these log files are merged and compacted 
+(data from one or more files is deleted) occasionally.
+
+Examples of real world log-structured data stores: Apache HBase, Apache Cassandra, Apache Kafka.
 
 ---
 
@@ -65,12 +91,6 @@ more than one partition, Kafka provides no guarantees that the messages will be 
 the order they were produced. 
 
 ---
-
-
-Design a message queue that allows producers to send messages and consumers to retrieve 
-and acknowledge them asynchronously.
-
-![message-queue](/message-queue/message-queue.png)
 
 ---
 
