@@ -74,6 +74,8 @@ Stream processing operates using a message-oriented architecture that continuous
 data from producers to consumers in real time, without waiting for the data to be stored in 
 traditional databases or files first. 
 
+#### Point-to-Point Messaging
+
 At its simplest level, this communication could be implemented using a direct TCP 
 connection between a producer and a consumer. In this model, the producer sends data 
 directly to the consumer over a persistent network connection.
@@ -120,6 +122,8 @@ logic. There is no "buffer" to hold data until the consumer is ready.
 
 3. **Scalability Limits**: Managing thousands of persistent, individual TCP connections 
 is resource-intensive for a server (consuming memory and file descriptors).  
+
+#### Message Queues
 
 To solve these issues, message queues like `RabbitMQ` were introduced. Instead of producers 
 communicating directly with consumers, messages were first sent to a centralized broker. 
@@ -187,6 +191,8 @@ class Consumer {
 Traditional queues were designed around the idea of “consume and remove,” meaning messages 
 disappear once acknowledged. But modern event-driven systems needed immutable event logs 
 where data could be retained and replayed multiple times.
+
+#### Distributed Streaming Platforms
 
 This led to the rise of distributed streaming platforms like Kafka. Instead of treating 
 messages as temporary tasks inside a queue, Kafka treats them as persistent ordered event 
