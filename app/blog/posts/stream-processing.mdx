@@ -130,34 +130,67 @@ storage, retries, acknowledgments, load balancing, and routing.
 
 
 ```java
+class Message {
+    String id;
+    String payload;
+    long createdAt;
+    int retryCount;
+}
 
+class MessageQueue {
+    Deque<Message> queue;          // main storage
+    Map<String, Message> inFlight; // messages being processed
+
+    public synchronized void enqueue(Message message) {
+        queue.offerLast(message);
+    }
+
+    public synchronized Message poll() {
+        Message msg = queue.pollFirst();
+        if (msg != null) {
+            inFlight.put(msg.id, msg);
+        }
+        return msg;
+    }
+
+    public synchronized void ack(String messageId) {
+        inFlight.remove(messageId);
+    }
+
+    public synchronized void retryUnacked() {
+        for (Message msg : inFlight.values()) {
+            if (shouldRetry(msg)) {
+                msg.retryCount++;
+                queue.offerLast(msg);
+            }
+        }
+        inFlight.clear();
+    }
+
+}
+
+class Producer {
+    void publish(MessageQueue queue, Message message) {
+        queue.enqueue(message);
+    }
+}
+
+class Consumer {
+    void consume(MessageQueue queue) {
+        Message msg = queue.poll();
+        process(msg);
+        queue.ack(msg.id);
+    }
+}
 ```
 
-We can use use a queue to keep track of messages. Once a consumer acknowledges a message, 
-the broker simply deletes it from the queue.
+Traditional queues were designed around the idea of “consume and remove,” meaning messages 
+disappear once acknowledged. But modern event-driven systems needed immutable event logs 
+where data could be retained and replayed multiple times.
 
-This is a simple and efficient way to move data between producers and consumers where the 
-application developer does not need to worry about 
-handlding retries, buffering, and routing.
-
-4. **Lack of "Many-to-Many" Support**: If you want one producer to send the same update to 
-ten different consumers, a raw TCP approach forces the producer to manage ten separate 
-outgoing streams and replicate the data ten times.
-
-We can use log-structured streaming to implement a messaging system.
+This led to the rise of distributed streaming platforms like Kafka. Instead of treating 
+messages as temporary tasks inside a queue, Kafka treats them as persistent ordered event 
+logs stored across distributed partitions. Consumers maintain their own offsets and decide 
+how fast or from where they want to read the stream.
 
 
-
-
-#### Log-structured streaming
-
-Log-structured streams build upon the concept of append-only logs.
-
-Common characteristics of all log-structured storage systems are that they simply append 
-data to log files on disk. These log files may store data indefinitely, for a specific time 
-period, or until a specific size is reached.
-
-There are typically many log files on disk, and these log files are merged and compacted 
-(data from one or more files is deleted) occasionally.
-
-Examples of real world log-structured data stores: Apache HBase, Apache Cassandra, Apache Kafka.
