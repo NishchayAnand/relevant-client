@@ -70,38 +70,78 @@ specific service spikes, the stream processor sends an alert immediately.
 
 ### How Stream Processing Works?
 
-Stream processing operates by utilizing a message-oriented architecture to move data from 
-producers to consumers without the latency of traditional databases. Instead of forcing data 
-to rest in a file or table, a messaging system acts as a high-speed transit network, where 
-events are published and consumed as they arrive.
+Stream processing operates using a message-oriented architecture that continuously moves 
+data from producers to consumers in real time, without waiting for the data to be stored in 
+traditional databases or files first. 
 
----
+At its simplest level, this communication could be implemented using a direct TCP 
+connection between a producer and a consumer. In this model, the producer sends data 
+directly to the consumer over a persistent network connection.
 
-#### Ways to Implement a Messaging System
+```java
+public class Consumer {
+    public static void main(String[] args) {
+        try(ServerSocket serverSocket = new ServerSocket(8080)) { // This creates a TCP server listening on 8080.
+            System.out.println("Waiting for connection...");
+            Socket client = serverSocket.accept(); // blocks the thread and waits until a client connects
+            BufferedReader in = new BufferedReader(new InputStreamReader(client.getInputStream()));
+            String message = in.readLine();
+            System.out.println(message);
+        } catch (IOException ex) {
+            System.out.println("IOException while reading data from port 8080: " + ex.getMessage());
+        }
+    }
+}
 
-A direct communication channel like a TCP connection between producer and consumer would be 
-a simple way of implementing a messaging system. 
+public class Producer {
+    public static void main(String[] args) {
+        // The producer acts as a TCP client.
+        // If a server is listening on port 8080, connection succeeds.
+        try(Socket socket = new Socket("localhost", 8080)) {
+            PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
+            out.println("Order Created");
+        } catch (IOException ex) {
+            System.out.println("IOException while sending data to port 8080: " + ex.getMessage());
+        }
+    }
+}
+```
+
+While this approach demonstrates the basic idea of streaming data between systems, it has 
+several limitations.
+
+1. **Tight Coupling**: With TCP, the producer and consumer must know each other's IP 
+addresses and port numbers. If either side restarts or changes its network location, the 
+connection breaks.
+
+2. **Synchronous Dependency**: If the consumer is offline or crashes, the data sent over a 
+direct TCP connection is often lost unless the producer has complex, custom-built retry 
+logic. There is no "buffer" to hold data until the consumer is ready.
+
+3. **Scalability Limits**: Managing thousands of persistent, individual TCP connections 
+is resource-intensive for a server (consuming memory and file descriptors).  
+
+To solve these issues, message queues like `RabbitMQ` were introduced. Instead of producers 
+communicating directly with consumers, messages were first sent to a centralized broker. 
+
+Consumers could then process messages asynchronously at their own pace. This decoupled 
+producers from consumers and introduced important capabilities such as durable message 
+storage, retries, acknowledgments, load balancing, and routing.
 
 ```java
 
 ```
-
-
-However, it is fundamentally a low level 
-"point-to-point" data transfer mechanism that requires both ends to be active at the same 
-time and leaves almost all the "intelligence" such as retries, buffering, and routing to the 
-application developers.
 
 We can use use a queue to keep track of messages. Once a consumer acknowledges a message, 
-the broker simply deletes it from the queue. 
+the broker simply deletes it from the queue.
 
-```java
-
-```
-
-This is a simple and efficient way to move data 
-between producers and consumers where the application developer does not need to worry about 
+This is a simple and efficient way to move data between producers and consumers where the 
+application developer does not need to worry about 
 handlding retries, buffering, and routing.
+
+4. **Lack of "Many-to-Many" Support**: If you want one producer to send the same update to 
+ten different consumers, a raw TCP approach forces the producer to manage ten separate 
+outgoing streams and replicate the data ten times.
 
 We can use log-structured streaming to implement a messaging system.
 
