@@ -70,26 +70,22 @@ Since consumers may not process messages immediately, the broker must buffer mes
 temporarily until consumers are ready to consume them. This buffering enables 
 asynchronous communication and decouples producers from consumers.
 
-The simplest way to implement the broker is to maintain:
-
-1. `Map<String, List<MessageQueue>> bindings`: A mapping of routing keys to message queues. 
-Each routing key represents a topic or category of messages and can be associated with one 
-or more queues depending on the routing requirements.
-
-2. `Map<String, List<Consumer>> subscriptions`: A mapping of queue names to consumers 
-subscribed to those queues. 
+The simplest way to implement the broker is to maintain a mapping of routing keys to 
+message queues. Each routing key represents a topic or category of messages and can be 
+associated with one or more queues depending on the routing requirements. 
 
 ```java
 public class InMemoryMessageBroker implements MessageBroker {
 
-    // Supports one-to-many message routing (fan-out)
+    // routingKey -> queues: Supports one-to-many message routing (fan-out)
     private final Map<String, List<MessageQueue>> bindings = new ConcurrentHashMap<>();
 
-    // Tracks consumers listening to queues
-    private final Map<String, List<Consumer>> subscriptions = new ConcurrentHashMap<>();
+    // queueName -> queue: fast lookup
+    private final Map<String, MessageQueue> queues = new ConcurrentHashMap<>();
 
     // Bind queue to routing key
     public void bind(String routingKey, MessageQueue queue) {
+        queues.put(queue.getName(),queue);
         bindings.computeIfAbsent(routingKey, k -> new CopyOnWriteArrayList<>()).add(queue);
     }
 
@@ -113,10 +109,26 @@ public class InMemoryMessageBroker implements MessageBroker {
     // Subscribe consumer to queue
     @Override
     public void subscribe(String queueName, Consumer consumer) {
-        subscriptions.computeIfAbsent(queueName, k -> new CopyOnWriteArrayList<>()).add(consumer);
+        MessageQueue queue = queues.get(queueName);
+        queue.subscribe(consumer);
         System.out.println("[BROKER] Consumer subscribed to : " + queueName);
     }
 }
+```
+
+Currently, `publish()` is a loop that just fires messages into queues. If a specific queue 
+is full or a consumer is failing, the Broker has no mechanism to pause the producer or 
+implement a "Retry" policy.
+
+
+
+In the current design, the message broker is handling and the routing logic. However, ...
+
+
+#### Message Queue
+
+```java
+
 ```
 
 ---
