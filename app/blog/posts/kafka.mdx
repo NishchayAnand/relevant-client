@@ -1,18 +1,103 @@
 ---
-title: 'System Design: Distributed Message Queue (Kafka)'
+title: 'System Design: Distributed Message Broker (Kafka)'
 publishedAt: '2026-01-09'
 ---
 
-Design a message queue that allows producers to send messages and consumers to retrieve 
-and acknowledge them asynchronously.
+Design a message broker that allows producers to send messages and consumers to retrieve them 
+asynchronously.
 
 ![message-queue](/message-queue/message-queue.png)
 
 ---
 
+### Functional Requirements
+
+1. **Producers Should Publish Messages**: A producer should be able to send messages to the broker.
+
+2. **Messages Must Be Stored Temporarily**: Consumers may not process messages immediately.
+
+3. **Messages Must Be Routed**: Different messages may go to different consumers. One message can fan out to multiple queues.
+
+
+1. Ensure each message is processed once.
+
+2. Support acknowledgment from consumers after successful processing of a message.
+
+3. Should retry message delivery if a message is not acknowledged.
+
+4. Support multiple consumers consuming messages from the same queue.
+
+---
+
+### Non-Functional Requirements
+
+1. **Multiple Consumers Should Process Messages Concurrently**: We want horizontal scalability.
+
+2. **Messages Must Be Processed Reliably**: If consumer crashes, messages should not disappear.
+
+
+---
+
+### Design Rationale
+
+Consumers may not process messages immediately. Therefore, broker needs buffering. We use queues.
+
 
 ```java
+class BrokerQueue {
+
+    BlockingQueue<Message> queue;
+}
 ```
+
+because it provides:
+
+thread safety
+producer-consumer coordination
+internal locking
+blocking reads
+
+This avoids manual synchronization.
+
+We want horizontal scalability. Multiple Consumers Should Process Messages Concurrently.
+We use multiple consumer threads    
+
+```java
+class ConsumerWorker implements Runnable
+```
+
+Different messages may go to different consumers. Design Choice: Exchange Layer
+
+Instead of producers sending directly to queues, We introduced routing abstraction.
+
+```java
+interface Exchange {
+
+    void route(
+        Message message,
+        String routingKey
+    );
+}
+
+```
+
+Without exchanges, producer must know queue names. This tightly couples producers to queue 
+topology. With exchanges, Producer only knows routing key. The exchange decides where message 
+should go
+
+`Map<String, List<BrokerQueue>> bindings;` - This supports one-to-many routing. One message can fan out to multiple queues.
+
+```
+order.created
+   ↓
+-------------------
+| Payment Queue   |
+| Notification Q  |
+| Analytics Queue |
+-------------------
+```
+
+Messages Must Be Processed Reliably. If consumer crashes messages should not disappear.
 
 A consequence of queueing is also that consumers are generally asynchronous. When
 a producer sends a message, it normally only waits for the broker to confirm that it
@@ -62,23 +147,6 @@ HTTP or RPC request to push messages to the consumer. This is the idea behind we
 pattern in which a callback URL of one service is registered with another service,
 and it makes a request to that URL whenever an event occurs.
 
-### Functional Requirements
-
-1. Ensure each message is processed once.
-
-2. Support acknowledgment from consumers after successful processing of a message.
-
-3. Should retry message delivery if a message is not acknowledged.
-
-4. Support multiple consumers consuming messages from the same queue.
-
----
-
-### Non-Functional Requirements
-
-1. Ensure thread-safe operations for concurrent producers and consumers.
-<br/>
----
 
 ```java
 class Message {
