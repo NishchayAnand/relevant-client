@@ -48,54 +48,34 @@ result in message loss.
 
 ---
 
-using fan-out or publish-subscribe patterns
-
-such as push-based delivery or 
-blocking subscriptions
-
-2. **Reliable Message Delivery**: Messages should not be lost before successful processing. 
-The broker should use mechanisms such as acknowledgements, persistence, and retries to 
-ensure messages are delivered reliably even when failures occur in the system.
-
-### Non-Functional Requirements
-
-1. **Multiple Consumers Should Process Messages Concurrently**: We want horizontal scalability.
-
-2. **Messages Must Be Processed Reliably**: If consumer crashes, messages should not disappear.
-
-3. **Consumers May Fail**: Processing failures are inevitable.
-
----
-
 ### Design Rationale
 
-Consumers may not process messages immediately. Therefore, broker needs buffering. We use queues.
+Lets discuss the design choices to support each functional requirement.
+
+#### Message Publishing by Producers
+
+Producers will desgined as abstract interfaces.
+
+message broker will maintain multiple message queues.
+
+#### Temporary and Durable Message Storage
+
+Consumers may not process messages immediately. Therefore, broker needs buffering. 
+We use queues.
+
+Considering, the message queue .... because it provides thread safety, producer-consumer 
+coordination, internal locking, and blocking reads. This avoids manual synchronization.
 
 
 ```java
-class BrokerQueue {
+class MessageQueue {
 
     BlockingQueue<Message> queue;
 }
 ```
 
-because it provides:
+#### Intelligent Message Routing and Fan-Out
 
-thread safety
-producer-consumer coordination
-internal locking
-blocking reads
-
-This avoids manual synchronization.
-
-We want horizontal scalability. Multiple Consumers Should Process Messages Concurrently.
-We use multiple consumer threads    
-
-```java
-class ConsumerWorker implements Runnable
-```
-
-Different messages may go to different consumers. Design Choice: Exchange Layer
 
 Instead of producers sending directly to queues, We introduced routing abstraction.
 
@@ -109,6 +89,9 @@ interface Exchange {
 }
 
 ```
+
+Different messages may go to different consumers. Design Choice: Exchange Layer
+
 
 Without exchanges, producer must know queue names. This tightly couples producers to queue 
 topology. With exchanges, Producer only knows routing key. The exchange decides where message 
@@ -125,6 +108,26 @@ order.created
 | Analytics Queue |
 -------------------
 ```
+
+
+#### Efficient Consumer Waiting Mechanism
+
+
+
+
+We want horizontal scalability. Multiple Consumers Should Process Messages Concurrently.
+We use multiple consumer threads    
+
+```java
+class ConsumerWorker implements Runnable
+```
+<br/>
+---
+
+using fan-out or publish-subscribe patterns
+
+such as push-based delivery or 
+blocking subscriptions
 
 
 
