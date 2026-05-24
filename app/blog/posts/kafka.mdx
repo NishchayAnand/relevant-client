@@ -48,43 +48,134 @@ result in message loss.
 
 ---
 
-### Design Rationale
+### Core Domain Models
 
-Consumers may not process messages immediately. Therefore, broker needs buffering. 
-We use queues.
+Let's discuss the key design choices made to satisfy the functional requirements of a 
+message broker system and understand why each component exists in the architecture.
 
-Multiple Producers can publish messages to the broker. We need concurrency handling. Hence, 
-can use BlockingQueue. 
+#### Message Broker
 
-message broker will maintain multiple message queues to support ...
+The Message Broker acts as the central coordinator, allowing multiple producers to 
+concurrently publish messages and multiple consumers to subscribe and asynchronously 
+process messages. 
 
 ```java
-public class MessageBroker {
+interface MessageBroker {
+    void publish(String routingKey, Message message);
+    void subscribe(String queueName, Consumer consumer);
+}
+```
 
-    private final Map<String, List<MessageQueue>> bindings = new HashMap<>();
+Since consumers may not process messages immediately, the broker must buffer messages 
+temporarily until consumers are ready to consume them. This buffering enables 
+asynchronous communication and decouples producers from consumers.
 
+The simplest way to implement the broker is to maintain:
+
+1. `Map<String, List<MessageQueue>> bindings`: A mapping of routing keys to message queues. 
+Each routing key represents a topic or category of messages and can be associated with one 
+or more queues depending on the routing requirements.
+
+2. `Map<String, List<Consumer>> subscriptions`: A mapping of queue names to consumers 
+subscribed to those queues. 
+
+```java
+public class InMemoryMessageBroker implements MessageBroker {
+
+    // Supports one-to-many message routing (fan-out)
+    private final Map<String, List<MessageQueue>> bindings = new ConcurrentHashMap<>();
+
+    // Tracks consumers listening to queues
+    private final Map<String, List<Consumer>> subscriptions = new ConcurrentHashMap<>();
+
+    // Bind queue to routing key
     public void bind(String routingKey, MessageQueue queue) {
-        bindings.computeIfAbsent(routingKey, k -> new ArrayList<>()).add(queue);
+        bindings.computeIfAbsent(routingKey, k -> new CopyOnWriteArrayList<>()).add(queue);
     }
 
+    // Publish message
+    @Override
     public void publish(String routingKey, Message message) {
-        System.out.println( "[BROKER] Publishing: " + message.getPayload() );
+        System.out.println("[BROKER] Publishing message : " + message.getPayload());
         
         List<MessageQueue> queues = bindings.get(routingKey);
-        if(queues == null) return;
+        if(queues == null || queues.isEmpty()) {
+            System.out.println("[BROKER] No queues bound for routing key : " + routingKey);
+            return;
+        }
 
+        // Fan-out message to all bound queues
         for(MessageQueue queue : queues) {
             queue.enqueue(message);
         }
     }
 
+    // Subscribe consumer to queue
+    @Override
+    public void subscribe(String queueName, Consumer consumer) {
+        subscriptions.computeIfAbsent(queueName, k -> new CopyOnWriteArrayList<>()).add(consumer);
+        System.out.println("[BROKER] Consumer subscribed to : " + queueName);
+    }
 }
 ```
 
+---
+
 Instead of producers sending directly to queues, We introduced routing abstraction.
 
-Let's discuss the key design choices made to satisfy the functional requirements of a 
-message broker system and understand why each component exists in the architecture.
+
+```java
+
+dispatch(queue.getName(), message);
+
+// Dispatch message to subscribed consumers
+    private void dispatch(String queueName, Message message) {
+
+        List<Consumer> consumers = subscriptions.get(queueName);
+
+        if(consumers == null || consumers.isEmpty()) {
+            System.out.println("[BROKER] No consumers subscribed to : " + queueName);
+            return;
+        }
+
+        /*
+         ----------------------------------------------------
+         Simple round-robin dispatch
+         ----------------------------------------------------
+        */
+        Consumer consumer = consumers.remove(0);
+
+        consumers.add(consumer);
+
+        /*
+         ----------------------------------------------------
+         Async processing
+         ----------------------------------------------------
+        */
+        CompletableFuture.runAsync(() -> {
+
+            try {
+
+                consumer.onMessage(message);
+
+                System.out.println(
+                        "[ACK] Message processed : "
+                        + message.getId()
+                );
+
+            } catch(Exception ex) {
+
+                System.out.println(
+                        "[ERROR] Failed to process : "
+                        + message.getPayload()
+                );
+
+                ex.printStackTrace();
+            }
+        });
+
+    }
+```
 
 #### Message Publishing by Producers
 
