@@ -3,8 +3,9 @@ title: 'System Design: Distributed Message Broker (Kafka)'
 publishedAt: '2026-01-09'
 ---
 
-Design a message broker that allows producers to send messages and consumers to retrieve them 
-asynchronously.
+Design a distributed message broker system that allows multiple 
+producers to send messages concurrently while enabling consumers to retrieve and process 
+them asynchronously.
 
 ![message-queue](/message-queue/message-queue.png)
 
@@ -12,22 +13,49 @@ asynchronously.
 
 ### Functional Requirements
 
-1. **Producers Should Publish Messages**: A producer should be able to send messages to the broker.
+1. **Message Publishing by Producers**: The system should allow multiple producers to send 
+messages to the broker independently and concurrently. Producers should not need to know 
+which consumers will process the messages, helping services remain loosely coupled and 
+scalable.
 
-2. **Messages Must Be Stored Temporarily**: Consumers may not process messages immediately.
+2. **Temporary and Durable Message Storage**: Consumers may not process messages immediately, 
+so the broker must temporarily store messages until they are consumed. This storage layer acts 
+as a buffer between producers and consumers, allowing the system to handle traffic spikes, 
+slow consumers, and temporary failures without losing data.
 
-3. **Messages Must Be Routed**: Different messages may go to different consumers. One message can fan out to multiple queues.
+3. **Intelligent Message Routing and Fan-Out**: The broker should route messages to the 
+correct queues or consumers based on routing rules. Some messages may be processed by only 
+one consumer, while others may need to be delivered to multiple services simultaneously.
 
-
-1. Ensure each message is processed once.
-
-2. Support acknowledgment from consumers after successful processing of a message.
-
-3. Should retry message delivery if a message is not acknowledged.
-
-4. Support multiple consumers consuming messages from the same queue.
+4. **Efficient Consumer Waiting Mechanism**: Consumers should not continuously poll the 
+broker for new messages because constant polling wastes CPU and network resources. 
+Instead, the broker should support efficient mechanisms so consumers can wait efficiently 
+and process messages immediately when they arrive.
 
 ---
+
+### Non-Functional Requirements
+
+1. **Concurrent Message Processing and Horizontal Scalability**: The system should support 
+multiple consumers processing messages in parallel to increase throughput and improve 
+scalability. As traffic grows, additional consumers should be added easily to distribute the 
+workload across multiple machines or instances.
+
+2. **Fault Tolerance Against Consumer Failures**: Consumer failures are common in 
+distributed systems due to crashes, timeouts, or processing errors. The broker should 
+detect failed consumers and safely re-deliver unprocessed messages so that failures do not 
+result in message loss.
+
+---
+
+using fan-out or publish-subscribe patterns
+
+such as push-based delivery or 
+blocking subscriptions
+
+2. **Reliable Message Delivery**: Messages should not be lost before successful processing. 
+The broker should use mechanisms such as acknowledgements, persistence, and retries to 
+ensure messages are delivered reliably even when failures occur in the system.
 
 ### Non-Functional Requirements
 
@@ -35,6 +63,7 @@ asynchronously.
 
 2. **Messages Must Be Processed Reliably**: If consumer crashes, messages should not disappear.
 
+3. **Consumers May Fail**: Processing failures are inevitable.
 
 ---
 
@@ -96,6 +125,8 @@ order.created
 | Analytics Queue |
 -------------------
 ```
+
+
 
 Messages Must Be Processed Reliably. If consumer crashes messages should not disappear.
 
