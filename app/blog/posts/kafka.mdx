@@ -10,6 +10,58 @@ and acknowledge them asynchronously.
 
 ---
 
+
+```java
+```
+
+A consequence of queueing is also that consumers are generally asynchronous. When
+a producer sends a message, it normally only waits for the broker to confirm that it
+has buffered the message and does not wait for the message to be processed by consumers. 
+The delivery to consumers will happen at some undetermined future point in time, often 
+within a fraction of a second, but sometimes significantly later if there is a queue backlog.
+
+
+Some message brokers only keep messages in memory,
+while others (depending on configuration) write them to disk so that they are not lost
+in case of a broker crash. Faced with slow consumers, they generally allow unboun‐
+ded queueing (as opposed to dropping messages or backpressure), although this
+choice may also depend on the configuration.
+
+
+
+
+
+To solve the issues with directTCP communication, message queues (like `RabbitMQ`) were 
+introduced. Instead of producers communicating directly with consumers, messages were first 
+sent to a centralized broker. 
+
+Consumers could then process messages asynchronously at their own pace. This decoupled 
+producers from consumers and introduced important capabilities such as durable message 
+storage, retries, acknowledgments, load balancing, and routing.
+
+
+```java
+
+```
+
+Traditional queues were designed around the idea of “consume and remove,” meaning messages 
+disappear once acknowledged. But modern event-driven systems needed immutable event logs 
+where data could be retained and replayed multiple times.
+
+#### Distributed Streaming Platforms
+
+This led to the rise of distributed streaming platforms like Kafka. Instead of treating 
+messages as temporary tasks inside a queue, Kafka treats them as persistent ordered event 
+logs stored across distributed partitions. Consumers maintain their own offsets and decide 
+how fast or from where they want to read the stream.
+
+#### Extra
+
+If the consumer exposes a service on the network, producers can make a direct
+HTTP or RPC request to push messages to the consumer. This is the idea behind webhooks, a
+pattern in which a callback URL of one service is registered with another service,
+and it makes a request to that URL whenever an event occurs.
+
 ### Functional Requirements
 
 1. Ensure each message is processed once.
@@ -27,6 +79,61 @@ and acknowledge them asynchronously.
 1. Ensure thread-safe operations for concurrent producers and consumers.
 <br/>
 ---
+
+```java
+class Message {
+    String id;
+    String payload;
+    long createdAt;
+    int retryCount;
+}
+
+class MessageQueue {
+    Deque<Message> queue;          // main storage
+    Map<String, Message> inFlight; // messages being processed
+
+    public synchronized void enqueue(Message message) {
+        queue.offerLast(message);
+    }
+
+    public synchronized Message poll() {
+        Message msg = queue.pollFirst();
+        if (msg != null) {
+            inFlight.put(msg.id, msg);
+        }
+        return msg;
+    }
+
+    public synchronized void ack(String messageId) {
+        inFlight.remove(messageId);
+    }
+
+    public synchronized void retryUnacked() {
+        for (Message msg : inFlight.values()) {
+            if (shouldRetry(msg)) {
+                msg.retryCount++;
+                queue.offerLast(msg);
+            }
+        }
+        inFlight.clear();
+    }
+
+}
+
+class Producer {
+    void publish(MessageQueue queue, Message message) {
+        queue.enqueue(message);
+    }
+}
+
+class Consumer {
+    void consume(MessageQueue queue) {
+        Message msg = queue.poll();
+        process(msg);
+        queue.ack(msg.id);
+    }
+}
+```
 
 ### Extra
 
