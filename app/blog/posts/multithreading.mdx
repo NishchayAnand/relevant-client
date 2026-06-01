@@ -1,0 +1,197 @@
+---
+title: 'Low Level Design: Multi-threading and Concurrency'
+publishedAt: '2025-12-24'
+---
+
+
+
+---
+
+### What are Threads? 
+
+internal impementation of the Thread class 
+
+You must call `start()` to actually begin the thread. If you call `run()` directly, it will 
+just execute the code in the current thread rather than starting a new one.
+
+When you create a thread, Java asks the operating system to create a real OS thread.
+
+#### Method 1: Extending the Thread Class
+
+```java
+class WorkerThread extends Thread {
+    @Override
+    public void run() {
+        System.out.println("Thread is running!");
+    }
+}
+
+class Main {
+    public static void main(String[] args) {
+       Thread thread = new WorkerThread();
+       thread.start(); 
+    }
+}
+```
+
+This approach is simpler but does not allow you to extend other classes.
+
+#### Method 2: Implementing the Runnable Interface
+
+```java
+class MyTask implements Runnable {
+    @Override
+    public void run() {
+        System.out.println("Thread is running!");
+    }
+}
+
+class Main {
+    public static void main(String[] args) {
+       MyTask task = new MyTask();
+       Thread thread = new Thread(task);
+       thread.start(); 
+    }
+}
+```
+
+Implementing `Runnable` separates the task being performed from the execution mechanism 
+(the `Thread` object).
+
+#### Method 3: Using an ExecutorService
+
+Managing raw threads can be dangerous. If you create too many, you risk running out of 
+memory or causing high CPU contention due to context switching.
+
+`ExecutorService` addresses these issues by:
+
+- **Thread Pooling**: It maintains a pool of worker threads. When a task is completed, the 
+thread is not destroyed, it is reused to perform the next task.
+
+- **Task Queueing**: If all threads are busy, new tasks are placed in an internal queue 
+until a thread becomes available.
+
+- **Lifecycle Management**: It provides methods to gracefully shut down the service, cancel 
+tasks, or wait for tasks to finish.
+
+To create an `ExecutorService`, you primarily use the factory methods provided by the 
+`java.util.concurrent.Executors` class. Each method is designed for a specific workload 
+pattern.
+
+##### Fixed Thread Pool: `Executors.newFixedThreadPool(int n)`
+
+This is the most common choice. It creates a pool with a set number of threads. If all threads 
+are busy and new tasks arrive, they are placed in an unbounded queue until a thread becomes 
+available.
+
+```java
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
+public class Main {
+    public static void main(String[] args) {
+        // 1. Create a pool with a fixed number of threads
+        ExecutorService executor = Executors.newFixedThreadPool(3);
+
+        // 2. Submit tasks (using a Runnable)
+        executor.submit(() -> System.out.println("Task 1 running"));
+        executor.submit(() -> System.out.println("Task 2 running"));
+        executor.submit(() -> System.out.println("Task 3 running"));
+        executor.submit(() -> System.out.println("Task 4 running"));
+
+        // 3. Always shut down the executor when finished
+        executor.shutdown();
+    }
+}
+```
+
+Best for: Tasks that are somewhat predictable in volume or when you need to strictly limit 
+resource usage (e.g., database connection limits).
+
+##### Cached Thread Pool: `Executors.newCachedThreadPool()`
+
+This creates a thread pool that grows as needed. It will reuse previously constructed threads 
+when they are available. If no thread is available, a new one is created. Threads that have 
+not been used for 60 seconds are terminated and removed from the cache.
+
+```java
+
+```
+
+Best for: Applications with many short-lived, asynchronous tasks.
+
+Warning: It can create a massive number of threads if tasks arrive faster than they can be 
+processed, potentially leading to OutOfMemoryError.
+
+##### Single Thread Executor: `Executors.newSingleThreadExecutor()`
+
+This creates an `ExecutorService` that uses exactly one worker thread. If the thread dies due 
+to a failure during execution, a new one will take its place. This guarantees that all 
+tasks are executed sequentially in the order they were submitted.
+
+```java
+```
+
+Best for: Scenarios requiring strict ordering or tasks that must not run concurrently (like 
+writing to a single file).
+
+##### Scheduled Thread Pool: `Executors.newScheduledThreadPool(int n)`
+
+This is used when you need to execute tasks after a delay or periodically.
+
+```java
+```
+
+Best for: Recurring background tasks, such as clearing a cache every 10 minutes or running a 
+heartbeat check every 5 seconds.
+
+##### Work-Stealing Pool (Java 8+): `Executors.newWorkStealingPool()`
+
+This creates a thread pool that uses the ForkJoinPool architecture. Unlike the others, it uses multiple queues to reduce contention. If one thread finishes its queue, it can "steal" work from the queue of another busy thread.
+
+```java
+```
+
+Best for: Highly parallel, recursive, or "divide-and-conquer" tasks.
+
+---
+
+### How does Executor Service work?
+
+`ExecutorService` is a Java framework component that manages and executes threads for you.
+
+Inside each worker thread is a run() loop that looks roughly like this:
+
+```java
+while (true) {
+    // 1. Wait for a task to be placed in the queue
+    Runnable task = taskQueue.take(); 
+    
+    // 2. Execute the task
+    task.run(); 
+    
+    // 3. DO NOT terminate. Loop back to step 1.
+}
+```
+
+---
+
+### What are Virtual Threads? 
+
+---
+
+### Volatile Keyword
+
+
+---
+
+### Atomic Operations
+
+### Concurrent Collections
+
+#### ConcurrentHashMap
+
+#### CopyOnWriteArrayList
+
+---
+
