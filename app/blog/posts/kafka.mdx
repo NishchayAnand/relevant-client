@@ -332,7 +332,7 @@ result in message loss.
 
 ---
 
-### Design Rationale
+### Bottlenecks and Scaling Issues
 
 The basic design requires one queue per consumer. While this is simple and easy to understand, 
 it does not scale well in real-world distributed systems.
@@ -402,19 +402,68 @@ typically use "Consistent Hashing" exchanges to ensure all messages for a specif
 always go to the same consumer.
 
 With all this, the broker becomes heavily stateful, managing acknowledgments, delivery state,
-retries, and subscriptions. As consumers scale, coordination complexity increases and 
-throughput bottlenecks appear.
+retries, and subscriptions. As message volume grows to millions of events per second, these 
+operations become bottlenecks.
 
-#### Design Shift: Kafka Architecture
+---
 
-Kafka fundamentally changes the architecture. 
+### Design Shift: Kafka Architecture
 
-Instead of broker pushing messages to consumers, Kafka treats messages as immutable 
-distributed logs.
+Kafka fundamentally changes the architecture. Here are the primary inefficiencies Kafka 
+resolved:
+
+#### The "Delete-on-Consumption" Bottleneck
+
+- **The Inefficiency**: Traditional brokers typically treat messages as transient tasks. Once a consumer acknowledges 
+a message, the broker deletes it. This makes it impossible to re-read or "replay" the data 
+if a downstream service fails or if you need to perform historical analysis.
+
+- **Kafka's Solution**: Kafka treats data as an immutable, persistent log. Messages are not deleted upon consumption. 
+They are retained for a configurable period. This allows multiple, independent consumer 
+groups to process the same data at their own pace and enables data replayability for 
+debugging or reprocessing.
+
+#### High Overhead of Broker-Managed State 
+
+- **The Inefficiency**: In traditional brokers, the broker must track the delivery status 
+and acknowledgment (ACK) of every single message for every consumer. 
+As the number of consumers and messages grows, the broker's metadata and memory overhead 
+balloon, eventually degrading performance.
+
+- **Kafka's Solution**: Kafka offloads this state to the client. Consumers track their own 
+"offset" (their position in the log). The broker is essentially a dumb, high-performance 
+storage layer that doesn't need to know or track individual delivery states, which allows it 
+to remain lightweight and handle millions of messages per second.
+
+#### Vertical Scalability Limits
+
+- **The Inefficiency**: Traditional brokers are often designed to be highly "smart" 
+(handling complex routing, message filtering, and delivery guarantees). This makes it 
+difficult to scale them horizontally. Performance often degrades as you add more consumers to 
+a destination.
+
+- **Kafka's Solution**: Kafka scales horizontally. By partitioning topics, Kafka distributes 
+the data across a cluster of brokers. Because the storage is partitioned, you can increase 
+throughput linearly simply by adding more brokers and partitions to the cluster.
+
+#### Throughput Degradation with Multiple Consumers
+
+- **The Inefficiency**: In many message buses, performance suffers when multiple consumers 
+subscribe to the same queue, as the broker must perform more complex coordination and 
+message state tracking for each consumer.
+
+- **Kafka's Solution**: Kafka's log-based design allows consumers to read from the log 
+independently. Reading from the log is a sequential disk I/O operation, which is highly 
+efficient. Because there is no complex routing logic performed at the broker level for 
+every message, adding more consumers does not cause the broker's performance to degrade in 
+the same way it does for traditional brokers.
 
 ---
 
 ### Extra
+
+Instead of broker pushing messages to consumers, Kafka treats messages as immutable 
+distributed logs.
 
 Currently, `publish()` is a loop that just fires messages into queues. If a specific queue 
 is full or a consumer is failing, the Broker has no mechanism to pause the producer or 
