@@ -353,9 +353,9 @@ Exchange
 -------------------------
 ```
 
-Additionally, adding or removing consumers requires provisioning or deleting queues, which 
-becomes an infrastructure management problem. As the number of consumers grows dynamically, 
-managing queues becomes increasingly difficult.
+We can have multiple queue - consumer pairs. However, adding more queue - consumer pairs 
+requires provisioning additional queues, which becomes an infrastructure management problem. 
+As the number of consumers grows dynamically, managing queues becomes increasingly difficult.
 
 #### Better Design: Competing Consumers
 
@@ -394,6 +394,23 @@ private void dispatch() {
     CompletableFuture.runAsync(() -> selected.onMessage(message));
 }
 ```
+
+By moving to this model, you lose ordering guarantees (if that matters for your use case). 
+Because multiple consumers are processing messages in parallel, Message A might finish after 
+Message B even if Message A was processed first. If strict ordering is required, you would 
+typically use "Consistent Hashing" exchanges to ensure all messages for a specific order ID 
+always go to the same consumer.
+
+With all this, the broker becomes heavily stateful, managing acknowledgments, delivery state,
+retries, and subscriptions. As consumers scale, coordination complexity increases and 
+throughput bottlenecks appear.
+
+#### Design Shift: Kafka Architecture
+
+Kafka fundamentally changes the architecture. 
+
+Instead of broker pushing messages to consumers, Kafka treats messages as immutable 
+distributed logs.
 
 ---
 
