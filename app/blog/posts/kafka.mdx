@@ -34,20 +34,6 @@ and process messages immediately when they arrive.
 
 ---
 
-### Non-Functional Requirements
-
-1. **Concurrent Message Processing and Horizontal Scalability**: The system should support 
-multiple consumers processing messages in parallel to increase throughput and improve 
-scalability. As traffic grows, additional consumers should be added easily to distribute the 
-workload across multiple machines or instances.
-
-2. **Fault Tolerance Against Consumer Failures**: Consumer failures are common in 
-distributed systems due to crashes, timeouts, or processing errors. The broker should 
-detect failed consumers and safely re-deliver unprocessed messages so that failures do not 
-result in message loss.
-
----
-
 ### Core Domain Models
 
 Let's discuss the key design choices made to satisfy the functional requirements of a 
@@ -57,25 +43,26 @@ message broker system and understand why each component exists in the architectu
 
 The Message Broker acts as the central coordinator, allowing multiple producers to 
 concurrently publish messages and multiple consumers to subscribe and asynchronously 
-process messages. 
-
-```java
-interface MessageBroker {
-    void publish(String routingKey, Message message);
-    void subscribe(String queueName, Consumer consumer);
-}
-```
+process those messages.
 
 Since consumers may not process messages immediately, the broker must buffer messages 
 temporarily until consumers are ready to consume them. This buffering enables 
 asynchronous communication and decouples producers from consumers.
 
-The simplest way to implement the broker is to maintain a mapping of routing keys to 
-message queues. Each routing key represents a topic or category of messages and can be 
-associated with one or more queues depending on the routing requirements. 
+The simplest way to implement the broker is to maintain a mapping of routing keys to message 
+queues. Each routing key represents a topic or category of messages and can be associated 
+with one or more queues, allowing multiple consumers or services to independently process the 
+same event without interfering with each other.
+
+![simple-message-broker](/message-broker/simple-message-broker.png)
+
+When a producer publishes a message using a routing key, the broker looks up all queues 
+bound to that routing key and pushes a copy of the message into each queue.
+Each consumer continuously processes messages from its subscribed queue and removes 
+messages after successful processing.
 
 ```java
-public class InMemoryMessageBroker implements MessageBroker {
+public class MessageBroker {
 
     // routingKey -> queues: Supports one-to-many message routing (fan-out)
     private final Map<String, List<MessageQueue>> bindings = new ConcurrentHashMap<>();
@@ -116,14 +103,49 @@ public class InMemoryMessageBroker implements MessageBroker {
 }
 ```
 
-Currently, `publish()` is a loop that just fires messages into queues. If a specific queue 
-is full or a consumer is failing, the Broker has no mechanism to pause the producer or 
-implement a "Retry" policy.
+To keep the broker's code clean, move the mapping logic into an **Exchange** component. 
+The broker's only job should be to receive a message and hand it to the exchange. The 
+exchange decides which queues get it. This allows you to swap out strategies (e.g., 
+`DirectExchange` vs. `TopicExchange` with wildcard support like `order.*`) without changing 
+your broker code.
 
+```java
+public class MessageBroker {
 
+    // queueName -> queue: fast lookup
+    private final Map<String, MessageQueue> queues = new ConcurrentHashMap<>();
 
-In the current design, the message broker is handling and the routing logic. However, ...
+    private final Exchange exchange;
 
+    public MessageBroker(Exchange exchange) {
+        this.exchange = exchange;
+    }
+
+    // Publish message
+    @Override
+    public void publish(String routingKey, Message message) {
+        exchange.route(routingKey, message);
+    }
+
+    // Subscribe consumer to queue
+    @Override
+    public void subscribe(String queueName, Consumer consumer) {
+        MessageQueue queue = queues.get(queueName);
+        queue.subscribe(consumer);
+        System.out.println("[BROKER] Consumer subscribed to : " + queueName);
+    }
+    
+}
+```
+
+#### Exchange
+
+```java
+interface Exchange {
+    void bind(String routingKey, MessageQueue queue);
+    void route(String routingKey, Message message);
+}
+```
 
 #### Message Queue
 
@@ -133,7 +155,41 @@ In the current design, the message broker is handling and the routing logic. How
 
 ---
 
+### Non-Functional Requirements
+
+1. **Concurrent Message Processing and Horizontal Scalability**: The system should support 
+multiple consumers processing messages in parallel to increase throughput and improve 
+scalability. As traffic grows, additional consumers should be added easily to distribute the 
+workload across multiple machines or instances.
+
+2. **Fault Tolerance Against Consumer Failures**: Consumer failures are common in 
+distributed systems due to crashes, timeouts, or processing errors. The broker should 
+detect failed consumers and safely re-deliver unprocessed messages so that failures do not 
+result in message loss.
+
+---
+
+### Extra
+
+Currently, `publish()` is a loop that just fires messages into queues. If a specific queue 
+is full or a consumer is failing, the Broker has no mechanism to pause the producer or 
+implement a "Retry" policy.
+
+To make it a robust system, you will eventually need to layer in:
+
+Acknowledgments (ACKs): Ensuring a message is only removed from the queue after the consumer successfully processes it.
+
+Backpressure: Preventing producers from overwhelming consumers by limiting queue sizes and signaling when to slow down.
+
+Dead Letter Queues (DLQ): A place for messages that repeatedly fail processing so they don't block the main flow.
+
+
+
+
+
 Instead of producers sending directly to queues, We introduced routing abstraction.
+
+
 
 
 ```java
