@@ -54,7 +54,7 @@ queues. Each routing key represents a topic or category of messages and can be a
 with one or more queues, allowing multiple consumers or services to independently process the 
 same event without interfering with each other.
 
-![simple-message-broker](/message-broker/simple-message-broker.png)
+![simple-message-broker](/message-queue/simple-message-broker.png)
 
 When a producer publishes a message using a routing key, the broker looks up all queues 
 bound to that routing key and pushes a copy of the message into each queue.
