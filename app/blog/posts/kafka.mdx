@@ -140,6 +140,9 @@ public class MessageBroker {
 
 #### Exchange
 
+The Exchange is responsible for binding queues to routing keys and routing messages to the 
+correct queues based on the routing key.
+
 ```java
 interface Exchange {
     void bind(String routingKey, MessageQueue queue);
@@ -147,11 +150,171 @@ interface Exchange {
 }
 ```
 
-#### Message Queue
+Since the broker delegates routing responsibility to the Exchange abstraction, different 
+routing behaviors can be introduced without modifying the broker itself.
+
+For example, a `DirectExchange` performs exact routing key matching and routes messages only 
+to queues explicitly bound to that routing key.
 
 ```java
+public class DirectExchange implements Exchange {
 
+     // routingKey -> queues
+    private final Map<String, List<MessageQueue>> bindings = new ConcurrentHashMap<>();
+
+    // Bind queue to routing key
+    @Override
+    public void bind(String routingKey, MessageQueue queue) {
+
+        bindings
+                .computeIfAbsent(
+                        routingKey,
+                        k -> new CopyOnWriteArrayList<>()
+                )
+                .add(queue);
+
+        System.out.println(
+                "[DIRECT-EXCHANGE] Bound queue '"
+                + queue.getName()
+                + "' to routing key '"
+                + routingKey
+                + "'"
+        );
+
+    }
+
+
+    // Route message to queues
+    @Override
+    public void route(String routingKey, Message message) {
+
+        List<MessageQueue> queues = bindings.get(routingKey);
+
+        if(queues == null || queues.isEmpty()) {
+
+            System.out.println(
+                    "[DIRECT-EXCHANGE] No queues found for : "
+                    + routingKey
+            );
+
+            return;
+        }
+
+        // Route only to exact matching queues
+        for(MessageQueue queue : queues) {
+            queue.enqueue(message);
+        }
+
+    }
+}
 ```
+
+This strategy is useful when messages should be delivered to very specific consumers.
+
+A `TopicExchange` supports wildcard-based routing and allows queues to subscribe to 
+patterns instead of exact routing keys.
+
+```java
+public class TopicExchange implements Exchange {
+
+    /*
+     --------------------------------------------------------
+     pattern -> queues
+     Example:
+     order.* -> [Queue1, Queue2]
+     --------------------------------------------------------
+    */
+    private final Map<String, List<MessageQueue>> bindings = new ConcurrentHashMap<>();
+
+    
+    // Bind queue to pattern
+    @Override
+    public void bind(String pattern, MessageQueue queue) {
+
+        bindings
+                .computeIfAbsent(
+                        pattern,
+                        k -> new CopyOnWriteArrayList<>()
+                )
+                .add(queue);
+
+        System.out.println(
+                "[TOPIC-EXCHANGE] Bound queue '"
+                + queue.getName()
+                + "' to pattern '"
+                + pattern
+                + "'"
+        );
+
+    }
+
+    // Route message to queues
+    @Override
+    public void route(String routingKey, Message message) {
+
+        for(Map.Entry<String, List<MessageQueue>> entry : bindings.entrySet()) {
+
+            String pattern = entry.getKey();
+
+            if(matches(pattern, routingKey)) {
+
+                List<MessageQueue> queues = entry.getValue();
+
+                for(MessageQueue queue : queues) {
+                    queue.enqueue(message);
+                }
+
+            }
+            
+        }
+
+    }
+
+    // Pattern matching
+    private boolean matches(String pattern, String routingKey) {
+
+        /*
+         ----------------------------------------------------
+         Convert topic pattern to regex
+         *  -> one word
+         #  -> zero or more words
+         ----------------------------------------------------
+        */
+
+        String regex = pattern
+                .replace(".", "\\.")
+                .replace("*", "[^.]+")
+                .replace("#", ".*");
+
+        return routingKey.matches(regex);
+    }
+    
+
+    // Sample Usage
+    public static void main(String[] args) {
+
+        Exchange exchange = new TopicExchange();
+
+        exchange.bind("order.*", paymentQueue);
+        exchange.bind("*.created", analyticsQueue);
+        exchange.bind("order.#", auditQueue);
+
+        exchange.route("order.created", new Message("Order Created"));
+        exchange.route("order.updated", new Message("Order Updated"));
+        exchange.route("payment.created", new Message("Payment Created"));
+
+    }
+
+}
+```
+
+This strategy allows you to build complex subscription models where consumers can subscribe 
+to categories of events (e.g., "give me all order-related events" using `order.#`) without 
+needing to know the specific routing keys ahead of time.
+
+#### Message Queue
+
+one consumer per queue.
 
 ---
 
@@ -166,6 +329,71 @@ workload across multiple machines or instances.
 distributed systems due to crashes, timeouts, or processing errors. The broker should 
 detect failed consumers and safely re-deliver unprocessed messages so that failures do not 
 result in message loss.
+
+---
+
+### Design Rationale
+
+The basic design requires one queue per consumer. While this is simple and easy to understand, 
+it does not scale well in real-world distributed systems.
+
+If a particular consumer becomes slow, messages will accumulate continuously in its 
+dedicated queue, causing the queue size to grow indefinitely. Since each consumer owns its 
+own queue, the system cannot automatically redistribute load across other consumers.
+
+```
+Producer
+   ↓
+Exchange
+   ↓
+-------------------------
+| Queue-A → Consumer-A  |
+| Queue-B → Consumer-B  |
+| Queue-C → Consumer-C  |
+-------------------------
+```
+
+Additionally, adding or removing consumers requires provisioning or deleting queues, which 
+becomes an infrastructure management problem. As the number of consumers grows dynamically, 
+managing queues becomes increasingly difficult.
+
+#### Better Design: Competing Consumers
+
+To resolve the scalability and infrastructure overhead issues, we can transition 
+from Dedicated Queues to the Competing Consumers Pattern.
+
+Instead of creating a new queue for every new consumer instance, you create one shared queue 
+(e.g., `orders_queue`) and allow multiple consumer instances to subscribe to it. To support 
+this, you need to update your `MessageQueue` class so it doesn't just hold one list of 
+subscribers, but manages the dispatching logic so that each message is delivered to only 
+one available consumer.
+
+- **Round-Robin Dispatching**: The queue maintains a pointer to the next consumer in its 
+subscriber list. When a message arrives, it sends it to that consumer and moves the pointer.
+
+- **Acknowledgment (Ack) Mechanism**: This is the most critical missing piece for production 
+stability. A message should not be "removed" from the queue the moment it is dispatched. It 
+should stay in a "pending/unacknowledged" state. Only when the consumer sends an ACK back 
+to the queue should the message be deleted. If a consumer crashes, the message can be requeued.
+
+```java
+// Inside MessageQueue.java
+private final AtomicInteger nextConsumer = new AtomicInteger(0);
+
+private void dispatch() {
+    if (subscribers.isEmpty()) return;
+
+    Message message = queue.poll();
+    if (message == null) return;
+
+    // Pick one consumer (Round Robin)
+    int index = nextConsumer.getAndIncrement() % subscribers.size();
+    Consumer selected = subscribers.get(index);
+    
+    // Dispatch to the specific consumer
+    CompletableFuture.runAsync(() -> selected.onMessage(message));
+}
+```
 
 ---
 
