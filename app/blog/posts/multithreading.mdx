@@ -173,7 +173,7 @@ while (true) {
     // 3. DO NOT terminate. Loop back to step 1.
 }
 ```
-
+<br/>
 ---
 
 ### What are Virtual Threads? 
@@ -182,10 +182,61 @@ while (true) {
 
 ### Volatile Keyword
 
+#### The Problem: Visibility
+
+In a multithreaded environment, each thread can cache variables in its local CPU cache for 
+performance reasons. This means that if one thread updates the value of a variable, other 
+threads might not immediately see that update, continuing to work with the stale value 
+cached in their own local memory.
+
+#### The Solution: volatile
+
+When you declare a variable as volatile, you are telling the JVM and the compiler two things:
+
+1. **Main Memory Access**: The variable will never be cached in a thread's local CPU cache. 
+Every read and write will happen directly from main memory.
+
+2. **Instruction Reordering**: The JVM is prevented from reordering instructions involving a 
+volatile variable, which helps maintain predictable behavior in concurrent code.
+
+#### Important Distinction: Visibility vs. Atomicity
+
+It is a common misconception that `volatile` makes an operation "thread-safe." `volatile` only 
+guarantees visibility. It ensures that threads see the most up-to-date value.
+
+It does NOT guarantee atomicity. For example, an operation like `count++` consists of three 
+steps: (1) read the value, (2) increment it, and (3) write it back. Even with `volatile`, 
+another thread could intervene between steps 1 and 3, leading to lost updates.
+
+For operations that require atomicity (like counters or complex state updates), you should 
+use synchronized blocks, locks, or the classes found in the `java.util.concurrent.atomic` 
+package (such as `AtomicInteger`).
 
 ---
 
-### Atomic Operations
+### Atomic Variables
+
+Atomic variables are classes from the `java.util.concurrent.atomic` package that provide a 
+way to perform thread-safe operations on single variables without needing explicit 
+synchronized blocks or heavy locks.
+
+#### How they work: Compare-And-Swap (CAS)
+
+Unlike standard synchronization, which blocks other threads, atomic variables use a 
+CPU-level operation called Compare-And-Swap (CAS).
+
+1. **Read**: The thread reads the current value.
+
+2. **Calculate**: It calculates the new value.
+
+3. **Compare-and-Swap**: It asks the CPU to update the variable only if the value hasn't 
+changed since it was read. If the value did change (because another thread got there first), 
+the operation fails, and the loop retries.
+
+This makes them lock-free and generally much faster than using the `synchronized` keyword for 
+simple variables.
+
+---
 
 ### Concurrent Collections
 
