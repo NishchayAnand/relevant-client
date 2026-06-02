@@ -409,19 +409,150 @@ operations become bottlenecks.
 
 ### Design Shift: Kafka Architecture
 
-Kafka fundamentally changes the architecture. Here are the primary inefficiencies Kafka 
-resolved:
+Kafka fundamentally changed the architecture. 
 
-#### The "Delete-on-Consumption" Bottleneck
+why logs? why not queues?
 
-- **The Inefficiency**: Traditional brokers typically treat messages as transient tasks. Once a consumer acknowledges 
-a message, the broker deletes it. This makes it impossible to re-read or "replay" the data 
-if a downstream service fails or if you need to perform historical analysis.
+```
+                 PRODUCERS
+                      ↓
+              +----------------+
+              |     TOPIC      |
+              +----------------+
+               /      |       \
+              /       |        \
+             ↓        ↓         ↓
+       Partition-1 Partition-2 Partition-3
+             ↓        ↓         ↓
+          Broker-A Broker-B Broker-C
+             ↓        ↓         ↓
+                CONSUMER GROUPS
+```
 
-- **Kafka's Solution**: Kafka treats data as an immutable, persistent log. Messages are not deleted upon consumption. 
-They are retained for a configurable period. This allows multiple, independent consumer 
-groups to process the same data at their own pace and enables data replayability for 
-debugging or reprocessing.
+#### Topic 
+
+Kafka's most fundamental unit of organization is the topic, which is something like 
+a table in a relational database.
+
+A topic is a log of events. Traditional enterprise messaging systems have topics and queues, 
+which store messages temporarily to buffer them between the source and destination.
+
+Since Kafka topics are logs, there is nothing inherently temporary about the data in them. The
+logs that underlie Kafka topics are files stored on disk. When you write an event to a topic,
+it is as durable as it would be if it were stored in a database.
+
+The simplicity of logs and the immutability of the contents in it are key to Kafka's success
+as a critical component in modern distrbuted systems.
+
+>**NOTE**: Topics themselves do not store data directly. Instead topics are divided into 
+partitions.
+
+#### Partition
+
+Kafka gives us the ability to partition topics. Partitioning takes a single topic log and 
+breaks it into multiple logs, each of which can live on a separate node in the Kafka cluster.
+
+Each partition is append-only, ordered, and immutable log.
+
+```
+class Partition {
+
+    List<Message> log;
+}
+```
+
+Having broken a topic up into partitions, we need a way of deciding which messages to write 
+to which partitions. 
+
+- Typically, if a message has no key, subsequent messages will be distributed round-robin 
+among all the topic's partitions. In this case, all partitions get an even share of the data, 
+but we don't preserve any kind of ordering of the input messages. 
+
+- If the message does have a key, then the destination partition will be computed from a 
+hash of the key. This allows Kafka to guarantee that messages having the same key always 
+land in the same partition, and therefore are always in order.
+
+For example, if you are producing events that are all associated with the same customer, 
+using the customer ID as the key guarantees that all of the events from a given customer 
+will always arrive in order. This creates the possibility that a very active key will create 
+a larger and more active partition, but this risk is small in practice and is manageable 
+when it presents itself.
+
+#### Offset
+
+Traditional brokers track ACK state. Kafka instead lets consumers track offsets themselves.
+
+#### Broker
+
+From a physical infrastructure standpoint, Kafka is composed of a network of machines called 
+brokers. 
+
+In a contemporary deployment, these may not be separate physical servers but containers 
+running on pods running on virtualized servers running on actual processors in a physical 
+data center somewhere.
+
+Each broker hosts some sets of partitions and handles requests to write new events to those 
+partitions or read events from them. 
+
+```java
+class Broker {
+
+    Map<TopicPartition, Partition> partitions;
+}
+```
+
+> **NOTE**: Brokers also handle replication of partitions between each other. However, this 
+is not usually a process you have to think about as a developer building systems on Kafka. 
+All you really need to know as a developer is that your data is safe, and that if one node 
+in the cluster dies, another will take over its role.
+
+#### Producer
+
+A producer publishes events into Kafka topics. It decides which partition receives message.
+
+```java
+interface Producer {
+
+    void send(String topic,Message message);
+}
+```
+
+To help the producer do this all Kafka nodes can answer a request for metadata about which 
+servers are alive and where the leaders for the partitions of a topic are at any given time 
+to allow the producer to appropriately direct its requests.
+
+In Java, there is a class called `KafkaProducer` that you use to connect to the 
+cluster. You give this class a map of configuration parameters, including the address of some
+brokers in the cluster, any appropriate security configuration, and other settings that 
+determine the network behavior of the producer.
+
+Under the covers, the library is managing connection pools, network buffering, waiting for 
+brokers to acknowledge messages, retransmitting messages when necessary, and a host of 
+other details which no application developer needs to worry about.
+
+#### Consumer
+
+Consumers read events from partitions.
+
+```java
+interface Consumer {
+
+    void poll();
+}
+```
+
+In Java, there is a class called `KafkaConsumer` that you use to connect to the cluster. Then 
+use that connection to subscribe to one or more topics.
+
+```java
+
+```
+
+Also, consumers need to be able to handle the scenario in which the rate of message consumption from a topic combined with the computational cost of processing a single message are together too high for a single instance of the application to keep up. That is, consumers need to scale. In Kafka, scaling consumer groups is more or less automatic.
+
+---
+
+Here are the primary inefficiencies Kafka resolved:
 
 #### High Overhead of Broker-Managed State 
 
@@ -457,6 +588,18 @@ independently. Reading from the log is a sequential disk I/O operation, which is
 efficient. Because there is no complex routing logic performed at the broker level for 
 every message, adding more consumers does not cause the broker's performance to degrade in 
 the same way it does for traditional brokers.
+
+#### The "Delete-on-Consumption" Bottleneck
+
+- **The Inefficiency**: Traditional brokers typically treat messages as transient tasks. Once 
+a consumer acknowledges a message, the broker deletes it. This makes it impossible to re-read 
+or "replay" the data if a downstream service fails or if you need to perform historical 
+analysis.
+
+- **Kafka's Solution**: Kafka treats data as an immutable, persistent log. Messages are not 
+deleted upon consumption. They are retained for a configurable period. This allows multiple, 
+independent consumer groups to process the same data at their own pace and enables data 
+replayability for debugging or reprocessing.
 
 ---
 
@@ -760,7 +903,7 @@ messages as temporary tasks inside a queue, Kafka treats them as persistent orde
 logs stored across distributed partitions. Consumers maintain their own offsets and decide 
 how fast or from where they want to read the stream.
 
-#### Extra
+---
 
 If the consumer exposes a service on the network, producers can make a direct
 HTTP or RPC request to push messages to the consumer. This is the idea behind webhooks, a
@@ -823,7 +966,7 @@ class Consumer {
 }
 ```
 
-### Extra
+---
 
 Publishers A and B are producing messages to Topic X. Subscribers C and D are subscribed to 
 Topic X.
