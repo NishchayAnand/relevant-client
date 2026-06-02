@@ -3,11 +3,30 @@ title: 'System Design: Distributed Streaming Platform (Kafka)'
 publishedAt: '2026-01-11'
 ---
 
-### Design Shift: Kafka Architecture
+Traditional queues were designed around the idea of “consume and remove,” meaning messages 
+disappear once acknowledged. But modern event-driven systems needed immutable event logs 
+where data could be retained and replayed multiple times.
+
+This led to the rise of distributed streaming platforms like Kafka. Instead of treating 
+messages as temporary tasks inside a queue, Kafka treats them as persistent ordered event 
+logs stored across distributed partitions. Consumers maintain their own offsets and decide 
+how fast or from where they want to read the stream.
+
+---
+
+### Kafka Architecture
 
 Kafka fundamentally changed the architecture. 
 
-why logs? why not queues?
+Kafka chose logs instead of traditional queues because queues fundamentally become a 
+bottleneck for scalability, replayability, durability, and independent consumption at 
+large scale.
+
+The core problem with queues is that they are designed around the idea of temporary work 
+distribution. This works well for task processing systems where a message is processed once 
+and then discarded. However, modern distributed systems increasingly treat events as 
+long-lived facts that multiple systems may need to process independently, replay later, or 
+analyze historically.
 
 ```
                  PRODUCERS
@@ -148,18 +167,9 @@ Also, consumers need to be able to handle the scenario in which the rate of mess
 
 ---
 
-Traditional queues were designed around the idea of “consume and remove,” meaning messages 
-disappear once acknowledged. But modern event-driven systems needed immutable event logs 
-where data could be retained and replayed multiple times.
+
 
 #### Distributed Streaming Platforms
-
-This led to the rise of distributed streaming platforms like Kafka. Instead of treating 
-messages as temporary tasks inside a queue, Kafka treats them as persistent ordered event 
-logs stored across distributed partitions. Consumers maintain their own offsets and decide 
-how fast or from where they want to read the stream.
-
----
 
 If the consumer exposes a service on the network, producers can make a direct
 HTTP or RPC request to push messages to the consumer. This is the idea behind webhooks, a
