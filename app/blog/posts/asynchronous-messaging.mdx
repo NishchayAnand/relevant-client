@@ -1,0 +1,85 @@
+---
+title: 'System Design: What is Asynchronous Messaging?'
+publishedAt: '2026-01-08'
+---
+
+
+Let's explore the different ways to implement a messaging system.
+
+#### TCP Messaging
+
+At its simplest level, a messaging system could be implemented using a direct TCP 
+connection between a producer and a consumer. In this model, the producer sends data 
+directly to the consumer over a persistent network connection.
+
+```java
+public class Consumer {
+    public static void main(String[] args) {
+        try(ServerSocket serverSocket = new ServerSocket(8080)) { // This creates a TCP server listening on 8080.
+            System.out.println("Waiting for connection...");
+            Socket client = serverSocket.accept(); // blocks the thread and waits until a client connects
+            BufferedReader in = new BufferedReader(new InputStreamReader(client.getInputStream()));
+            String message = in.readLine();
+            System.out.println(message);
+        } catch (IOException ex) {
+            System.out.println("IOException while reading data from port 8080: " + ex.getMessage());
+        }
+    }
+}
+
+public class Producer {
+    public static void main(String[] args) {
+        // The producer acts as a TCP client.
+        // If a server is listening on port 8080, connection succeeds.
+        try(Socket socket = new Socket("localhost", 8080)) {
+            PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
+            out.println("Order Created");
+        } catch (IOException ex) {
+            System.out.println("IOException while sending data to port 8080: " + ex.getMessage());
+        }
+    }
+}
+```
+
+While this approach demonstrates the basic idea of streaming data between systems, it has 
+several limitations.
+
+1. **Tight Coupling**: With TCP, the producer and consumer must know each other's IP 
+addresses and port numbers. If either side restarts or changes its network location, the 
+connection breaks.
+
+2. **Synchronous Dependency**: If the consumer is offline or crashes, the data sent over a 
+direct TCP connection is often lost unless the producer has complex, custom-built retry 
+logic. There is no "buffer" to hold data until the consumer is ready.
+
+3. **Scalability Limits**: Managing thousands of persistent, individual TCP connections 
+is resource-intensive for a server (consuming memory and file descriptors).  
+
+4. **Lack of "Many-to-Many" Support**: If you want one producer to send the same update to 
+ten different consumers, a raw TCP approach forces the producer to manage ten separate 
+outgoing streams and replicate the data ten times.
+
+#### Message Brokers
+
+A widely used alternative is to send messages via a message broker (also known as a
+message queue). It runs as a server, with producers and consumers connecting to it as clients. 
+Producers write messages to the broker, and consumers receive them by reading them from the 
+broker.
+
+By sitting in the middle, the messaging system acts as a decoupling layer.  
+
+1. **Independent Lifecycles**: A producer can publish messages 24/7, even if all consumers 
+are currently down for maintenance. The messages wait in the queue. 
+
+2. **Backpressure Management**: If a producer generates data faster than a consumer can 
+process it, the broker holds the overflow. The consumer can then "pull" at its own 
+maximum speed without crashing or losing data.  
+
+3. **Standardized Operations**: Instead of every service team writing their own 
+"TCP retry logic" or "connection management," they use the broker's API. The broker 
+handles the "heavy lifting" of message durability, security, and distribution, 
+allowing developers to focus on the application logic.
+
+---
+
+
