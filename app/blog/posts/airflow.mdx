@@ -1,0 +1,157 @@
+---
+title: 'System Design: Distributed Job Scheduler (Airflow)'
+publishedAt: '2026-01-12'
+---
+
+Design a dependency DAG visualizer and a reactive state-sync layer, which is the core engine 
+that makes tools like Airflow feel so fast and responsive.
+
+```
+dag-monitoring-system/
+
+├── producer-service
+│   └── publishes job events
+│
+├── dag-service
+│   ├── kafka consumer
+│   ├── mongodb
+│   └── rest apis
+│
+├── dashboard-ui
+│   └── react
+│
+└── docker-compose
+```
+
+
+#### Tidal Producer
+
+Recommended JSON structure for your Kafka events:
+
+```json
+{
+  "eventId": "uuid-1234",
+  "timestamp": "2026-06-06T14:30:00Z",
+  "type": "DEPENDENCY_ADDED",
+  "jobId": "job-101",
+  "payload": {
+    "parentId": "job-99",
+    "childId": "job-101"
+  }
+}
+```
+<br/>
+```java
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class JobEvent {
+
+    private String jobId;
+
+    private String jobName;
+
+    private EventType eventType;
+
+    private JobStatus status;
+
+    private List<String> dependencies;
+
+    private Instant timestamp;
+}
+```
+<br/>
+```java
+producer.publish(
+        JobEvent.builder()
+                .jobId("ERCOT_001")
+                .jobName("ERCOT Outages")
+                .eventType(EventType.JOB_CREATED)
+                .status(JobStatus.PENDING)
+                .dependencies(List.of("LOAD_DATA"))
+                .timestamp(Instant.now())
+                .build()
+);
+```
+
+#### Kafka Cluster
+
+**Crucial Design Choice:** Use `jobId` as the Kafka Partition Key. This ensures that all 
+events for a specific job land in the same partition, guaranteeing the order of dependency 
+updates is preserved.
+
+#### Backend Consumer
+
+Your consumer service shouldn't just "process" messages, it should maintain an in-memory or 
+persistent state (like a Graph DB or a simple Cache/SQL table).
+
+- **Ingestion:** The consumer listens to the tidal-events topic.
+
+- **State Update:** When a `DEPENDENCY_ADDED` event arrives, the consumer performs an upsert 
+in your database (add edge from `parentId` to `childId`).
+
+- **API Response:** When a user queries your API for a job's DAG, the service performs a 
+fast read from your local database/cache (the "Collated State") rather than hitting Tidal.
+
+```java
+@Component
+@RequiredArgsConstructor
+public class JobEventConsumer {
+
+    private final JobRepository repository;
+
+    @KafkaListener(
+            topics = "job-events",
+            groupId = "dag-service"
+    )
+    public void consume(JobEvent event) {
+
+        switch (event.getEventType()) {
+
+            case JOB_CREATED ->
+                    createJob(event);
+
+            case JOB_STATUS_CHANGED ->
+                    updateStatus(event);
+
+            case DEPENDENCY_UPDATED ->
+                    updateDependencies(event);
+        }
+    }
+
+    private void createJob(JobEvent event) {
+
+        JobNode node = new JobNode();
+
+        node.setJobId(event.getJobId());
+        node.setJobName(event.getJobName());
+        node.setStatus(event.getStatus());
+        node.setDependencies(event.getDependencies());
+
+        repository.save(node);
+    }
+
+    private void updateStatus(JobEvent event) {
+
+        repository.findById(event.getJobId())
+                .ifPresent(job -> {
+
+                    job.setStatus(event.getStatus());
+
+                    repository.save(job);
+                });
+    }
+
+    private void updateDependencies(JobEvent event) {
+
+        repository.findById(event.getJobId())
+                .ifPresent(job -> {
+
+                    job.setDependencies(event.getDependencies());
+
+                    repository.save(job);
+                });
+    }
+}
+```
