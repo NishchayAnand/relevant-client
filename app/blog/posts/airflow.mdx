@@ -6,6 +6,25 @@ publishedAt: '2026-01-12'
 Design a dependency DAG visualizer and a reactive state-sync layer, which is the core engine 
 that makes tools like Airflow feel so fast and responsive.
 
+The key challenge is:
+
+How do you instantly update thousands of dependent jobs on a UI when one job changes state?
+
+```
+{
+  "jobId": "A",
+  "children": ["B", "C"],
+  "parents": []
+}
+
+{
+  "jobId": "D",
+  "children": [],
+  "parents": ["B","C"]
+}
+```
+<br/>
+
 ```
 dag-monitoring-system/
 
