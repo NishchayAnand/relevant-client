@@ -160,20 +160,92 @@ Best for: Highly parallel, recursive, or "divide-and-conquer" tasks.
 
 `ExecutorService` is a Java framework component that manages and executes threads for you.
 
-Inside each worker thread is a run() loop that looks roughly like this:
+When you submit a `Callable`task to an `ExecutorService`, it immediately returns a 
+`Future` object, allowing your program to continue with other work while the task runs in 
+the background.
 
 ```java
-while (true) {
-    // 1. Wait for a task to be placed in the queue
-    Runnable task = taskQueue.take(); 
-    
-    // 2. Execute the task
-    task.run(); 
-    
-    // 3. DO NOT terminate. Loop back to step 1.
+package com.example.demo;
+
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+
+public class ExecutorServiceDemo {
+
+    public static void main(String[] args) {
+
+        try(ExecutorService executorService = Executors.newSingleThreadExecutor()) {
+            // Defining a callable task
+            Callable<String> task = () -> {
+                Thread.sleep(1000);
+                return "hello world";
+            };
+
+            // Submitting the task
+            Future<String> future = executorService.submit(task);
+
+            // other work can be done here
+            System.out.println("Working on something else...");
+
+            // Retrieving the result (blocks until the result is ready)
+            System.out.println(future.get());
+
+            executorService.shutdown();
+        } catch (Exception ex) {
+            System.out.println("ExecutorServiceDemo Exception");
+        }
+
+    }
 }
 ```
-<br/>
+
+---
+
+### What is CompletableFuture?
+
+While a traditional `Future` represents the result of an asynchronous computation, it is 
+limited. You generally have to call `.get()` to retrieve the result, which causes the 
+calling thread to block (pause and wait) until the task is complete.
+
+`CompletableFuture` solves this by allowing you to define what happens next once a task 
+completes, without stopping your program to wait for it. Instead of waiting (blocking) for 
+the result, you provide callbacks (`thenApply`, `thenAccept`) that trigger automatically 
+when the task finishes.
+
+```java
+import java.util.concurrent.CompletableFuture;
+
+public class Main {
+    public static void main(String[] args) {
+        
+        // 1. Start an asynchronous task (e.g., fetching data from a database)
+        CompletableFuture<String> future = CompletableFuture.supplyAsync(() -> {
+            simulateDelay(2000); // Simulating 2 seconds of work
+            return "User Data";
+        });
+
+        // 2. Define what happens when the task finishes (Non-blocking)
+        future.thenAccept(data -> {
+            System.out.println("Processing: " + data);
+        });
+
+        // 3. The main thread is free to do other things immediately
+        System.out.println("Main thread is not blocked!");
+
+        // Keeping main alive long enough to see the output
+        simulateDelay(3000); 
+    }
+
+    private static void simulateDelay(int ms) {
+        try { Thread.sleep(ms); } catch (InterruptedException e) { e.printStackTrace(); }
+    }
+}
+```
+
+
+
 ---
 
 ### What are Virtual Threads? 
