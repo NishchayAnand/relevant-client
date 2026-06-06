@@ -1,6 +1,6 @@
 ---
 title: 'System Design: Distributed Job Scheduler (Airflow)'
-publishedAt: '2026-01-12'
+publishedAt: '2026-01-08'
 ---
 
 Design a dependency DAG visualizer and a reactive state-sync layer, which is the core engine 
@@ -11,6 +11,16 @@ that makes tools like Airflow feel so fast and responsive.
 ---
 
 ### Functional Requirements
+
+The UI needs to answer questions like:
+
+Which jobs are ready to run?
+Which jobs are blocked?
+Which jobs became runnable just now?
+Which downstream jobs are affected by a failure?
+
+Instead of recalculating the entire workflow every few seconds, the propagation algorithm 
+incrementally updates only the impacted portion of the graph.
 
 The key challenge is:
 
@@ -35,6 +45,140 @@ dag-monitoring-system/
 
 ---
 
+### Non-Functional Requirements
+
+
+---
+
+### Sequence Flow
+
+#### State Propagation Algorithm
+
+
+Current DAG
+
+```
+        A
+      /   \
+     B     C
+      \   /
+        D
+
+A = RUNNING
+B = WAITING
+C = WAITING
+D = WAITING
+```
+
+When node A state changes, the algorithm traverses only the descendants and check 
+
+```
+{
+  "jobId":"A",
+  "status":"SUCCESS"
+}
+
+- Can B now run? - `allParentsSuccessful(B)?` - Yes
+- Can C now run? - `allParentsSuccessful(C)?` - Yes
+- Can D now run? - `allParentsSuccessful(D)?` - No
+```
+
+#### Dependency Resolution Engine
+
+#### Incremental DAG Updates
+
+Suppose dependency changes.
+
+Old:
+
+```
+A → B
+```
+
+New:
+
+```
+A → C
+```
+
+Instead of rebuilding graph: Publish event.
+
+```json
+{
+  "type":"DEPENDENCY_UPDATED",
+  "source":"A",
+  "target":"C"
+}
+```
+
+State Sync Service updates:
+
+```
+graph.get(A).children.add(C);
+graph.get(C).parents.add(A);
+```
+
+and broadcasts delta.
+
+#### Delta-Based Synchronization
+
+Never send full DAG.
+
+Bad:
+
+```json
+{
+  "5000 nodes..."
+}
+```
+
+Good:
+
+```json
+{
+   "type":"NODE_UPDATED",
+   "jobId":"A",
+   "status":"SUCCESS"
+}
+```
+
+or
+
+```json
+{
+   "type":"EDGE_ADDED",
+   "source":"A",
+   "target":"C"
+}
+```
+
+UI updates only changed pieces.
+
+#### WebSocket Push Layer
+
+When state changes:
+
+```json
+webSocket.send(
+    DAGDeltaEvent
+)
+```
+
+Example:
+
+```json
+{
+  "type":"NODE_UPDATED",
+  "id":"A",
+  "status":"SUCCESS"
+}
+```
+
+No polling. UI updates instantly.
+
+---
+
+
 ### Design Rationale
 
 The most important design choice is keeping the DAG in memory (and/or Redis) and propagating 
@@ -58,34 +202,6 @@ is exactly how modern orchestration dashboards remain responsive at scale.
 ```
 
 Why store both both children and parent array.
-
-#### Example Workflow:
-
-Current DAG
-
-```
-        A
-      /   \
-     B     C
-      \   /
-        D
-```
-
-A completes. Event arrives:
-
-```
-{
-  "jobId":"A",
-  "status":"SUCCESS"
-}
-```
-
-**State Sync Service:** `onEvent(event)` updates node A and and evaluates: [B, C, D] to 
-determine if they became runnable.
-
----
-
-### Dependency Resolution Engine
 
 ---
 
