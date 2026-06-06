@@ -6,24 +6,15 @@ publishedAt: '2026-01-12'
 Design a dependency DAG visualizer and a reactive state-sync layer, which is the core engine 
 that makes tools like Airflow feel so fast and responsive.
 
+![airflow](/airflow/airflow.png)
+
+---
+
+### Functional Requirements
+
 The key challenge is:
 
 How do you instantly update thousands of dependent jobs on a UI when one job changes state?
-
-```
-{
-  "jobId": "A",
-  "children": ["B", "C"],
-  "parents": []
-}
-
-{
-  "jobId": "D",
-  "children": [],
-  "parents": ["B","C"]
-}
-```
-<br/>
 
 ```
 dag-monitoring-system/
@@ -42,8 +33,63 @@ dag-monitoring-system/
 └── docker-compose
 ```
 
+---
 
-#### Tidal Producer
+### Design Rationale
+
+The most important design choice is keeping the DAG in memory (and/or Redis) and propagating 
+only deltas through Kafka and WebSockets. That turns a potentially expensive "reload the 
+entire workflow graph" operation into a few milliseconds of incremental state updates, which 
+is exactly how modern orchestration dashboards remain responsive at scale.
+
+
+```
+{
+  "jobId": "A",
+  "children": ["B", "C"],
+  "parents": []
+}
+
+{
+  "jobId": "D",
+  "children": [],
+  "parents": ["B","C"]
+}
+```
+
+Why store both both children and parent array.
+
+#### Example Workflow:
+
+Current DAG
+
+```
+        A
+      /   \
+     B     C
+      \   /
+        D
+```
+
+A completes. Event arrives:
+
+```
+{
+  "jobId":"A",
+  "status":"SUCCESS"
+}
+```
+
+**State Sync Service:** `onEvent(event)` updates node A and and evaluates: [B, C, D] to 
+determine if they became runnable.
+
+---
+
+### Dependency Resolution Engine
+
+---
+
+### Tidal Producer
 
 Recommended JSON structure for your Kafka events:
 
