@@ -12,6 +12,28 @@ messages as temporary tasks inside a queue, Kafka treats them as persistent orde
 logs stored across distributed partitions. Consumers maintain their own offsets and decide 
 how fast or from where they want to read the stream.
 
+![kafka](/kafka/kafka.png)
+
+---
+
+### Functional Requirements
+
+1. Long Data Retention: Assume data retention is 2 weeks.
+
+2. Repeated Consumption of Messages:
+
+3. **Ordering Guarantees**: Messages should be consumed in the same order they were produced.
+
+--- 
+
+### Non-Functional Requirements
+
+1. The system should be distributed in nature. It should support a sudden surge in message 
+volume.
+
+2. **Fault Tolerance**: Data should be persisted on disk and must be replicated across 
+multiple nodes.
+
 ---
 
 ### Kafka Architecture
@@ -258,3 +280,7 @@ more than one partition, Kafka provides no guarantees that the messages will be 
 the order they were produced. 
 
 ---
+
+### Extra
+
+
