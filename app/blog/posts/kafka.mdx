@@ -119,6 +119,8 @@ when it presents itself.
 
 Traditional brokers track ACK state. Kafka instead lets consumers track offsets themselves.
 
+The position of a message in a partition is called an offset.
+
 #### Broker
 
 From a physical infrastructure standpoint, Kafka is composed of a network of machines called 
@@ -154,6 +156,8 @@ interface Producer {
 }
 ```
 
+**If a producer wants to send messages to a parition, which broker should it connect to?**
+
 To help the producer do this all Kafka nodes can answer a request for metadata about which 
 servers are alive and where the leaders for the partitions of a topic are at any given time 
 to allow the producer to appropriately direct its requests.
@@ -187,9 +191,71 @@ use that connection to subscribe to one or more topics.
 
 Also, consumers need to be able to handle the scenario in which the rate of message consumption from a topic combined with the computational cost of processing a single message are together too high for a single instance of the application to keep up. That is, consumers need to scale. In Kafka, scaling consumer groups is more or less automatic.
 
+> **NOTE**: To handle high scale, we need to add more consumers.
+
+#### ConsumerGroup
+
+A consumer group is a set of consumers working together to consume messages from one or more 
+topics.
+
+> **NOTE**: A single partition can only be consumed by one consumer in the same group. If the
+number of consumers in a group is greater than the number of partitions, some consumers will 
+not get data from this topic.
+
+#### Message
+
+When a message is sent by a producer, it is actually sent to one of the partitions for the 
+topic. 
+
+Each message has an optional message key (for example, a user ID), and all the messages
+for the same key are sent to the same partition. If the message key is not provided, the 
+message is sent to a partition chosen at random.
+
+```
+class Message  {
+    byte[] key;
+    byte[] value;
+    String topic;
+    Integer partition;
+    Long offset;
+    Long timestamp;
+    Integer size;
+    Integer crc;
+}
+```
+
+
 ---
 
+### Data Storage
 
+Explore options to persist messages
+
+#### Option 1: Database 
+
+We can use a relation database where each topic will act as a table and each message will 
+act as a row. It will provide write performance and durability.
+
+Another option is to use a document database where each topic will act as a collection and 
+each message will act as a document. It will provide read performance.
+
+However, a single database cannot provide both write and read performance.
+
+#### Option 2: File System (Write-Ahead Log - WAL)
+
+WAL is just a file where new entries are appended to the end of the file with a monotonically 
+increasing offset. The easiest option is to use the line number of the log file as the offset.
+
+However, a file cannot grow indefinitely. We can divide the file into segments.
+
+> **NOTE**: WAL is used in many systems like redo logs in MySQL and the WAL in Zookeeper.
+
+
+
+
+
+
+---
 
 #### Distributed Streaming Platforms
 
