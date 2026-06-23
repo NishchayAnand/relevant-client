@@ -307,8 +307,82 @@ closest ISRs.
 
 ### Changing the Number of Partitions
 
+When the number of partitions is changed, the producer will be notified after it communicates
+with any broker, and the consumer will trigger consumer rebalancing.
 
+If the number of partitions are decreased, the decommissioned partition cannot be removed 
+immediately because data might be consumed by consumers for a certain amount of time. Only 
+after the configured retention period, data can be truncated and storage space is freed up.
 
+---
 
+### Data Delivery Semantics
 
+#### At-Most-Once
+
+With At-Most-Once, the producer will not receive any acknowledgement from the leader. This 
+means that the message is not guaranteed to be delivered. If message delivery fails, there is 
+no retry.
+
+Consumer fetches the message and commits the offset before the data is processed. If the 
+consumer crashes after offset commit, the message will not be reconsumed.
+
+It is suitable for use cases like monitoring metrics, where small amount of data loss is 
+acceptable.
+
+#### At-Least-Once
+
+Producer sends a message synchronously or asynchronously with a response callback, setting 
+ACK = 1 or ACK = all, to make sure messages are delivered to the broker. If the message 
+delivery fails or timeouts, the producer will retry until the message is delivered.
+
+Consumer fetches the message and commits the offset after the data is processed. If the consumer 
+fails to process the message, it will re-consume the message so there won't be data loss. On 
+the other hand, if a consumer processes the message but fails to commit the offset to the 
+broker, the message will be re-consumed when the consumer restarts, resulting in 
+duplicates.
+
+> **NOTE**: A message might be delivered more than once to the broker and the consumer. It is
+usually acceptable for use cases where data duplication is not a problem or deduplication is 
+possible on the consumer side.
+
+#### Exactly-Once
+
+Exactly once is the most difficult delivery semantic to implement. 
+
+Finance related use cases like payment, trading, accounting, etc. require exactly once delivery
+but it has a high cost for the system's performance and complexity.
+
+> **NOTE**: Exactly once delivery is especially important when duplication is not acceptable
+and the downstream service or third party doesn't support idempotency.
+
+---
+
+### Important Notes
+
+An ordering system sends all the activities about the order to a topic, but the payment system
+only cares about messages related to checkout and refund.
+
+One option is to build a dedicated topic for the payment system and another topic for the 
+ordering system. This method is simple but raise some concerns:
+
+- What if other systems ask for different subtypes of messages? Do we need  build dedicated 
+topics for every single consumer request?
+
+- It is a waste of resource to save the same messages on different topics.
+
+- The producer needs to change every time a new requirement comes as the producer and consumer
+are now tightly coupled.
+
+Another naive approach for this is to use simple filtering where the consumer fetches the full
+set of messages and filters out unncessary messages during processing time. But this 
+introduces unnecessary traffic and processing overhead.
+
+A better solution is to handle filtering at the broker level. However, implementing this 
+requires some careful consideration. If message contains sensitive data, they should not 
+be readable in the message queue. The filtering logic in the broker should not extract 
+the message payload. It is better to put data used for filtering into the metadata of the 
+message, which can be efficiently read by the broker.
+
+---
 
