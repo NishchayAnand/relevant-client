@@ -198,6 +198,11 @@ Also, consumers need to be able to handle the scenario in which the rate of mess
 A consumer group is a set of consumers working together to consume messages from one or more 
 topics.
 
+#### Consumer Rebalancing
+
+Inside a consumer group, the rebalancing algorithm helps to handle the cases where a consumer
+gets added or removed, or when it crashes. 
+
 > **NOTE**: A single partition can only be consumed by one consumer in the same group. If the
 number of consumers in a group is greater than the number of partitions, some consumers will 
 not get data from this topic.
@@ -223,8 +228,7 @@ class Message  {
     Integer crc;
 }
 ```
-
-
+<br/>
 ---
 
 ### Data Storage
@@ -250,103 +254,61 @@ However, a file cannot grow indefinitely. We can divide the file into segments.
 
 > **NOTE**: WAL is used in many systems like redo logs in MySQL and the WAL in Zookeeper.
 
+---
 
+### Replica Distribution Plan
 
+The distribution of replicas for each partition is called a replica distribution plan.
 
+#### Who makes the replica distribution plan?
 
+With the help of the coordination service, one of the broker nodes is elected as the leader. 
+It generates the replica distribution plan and persists the plan in metadata storage. 
+
+All the brokers work according to the plan.
 
 ---
 
-#### Distributed Streaming Platforms
+### Acknowledgment (Ack) Mechanism
 
-If the consumer exposes a service on the network, producers can make a direct
-HTTP or RPC request to push messages to the consumer. This is the idea behind webhooks, a
-pattern in which a callback URL of one service is registered with another service,
-and it makes a request to that URL whenever an event occurs.
+If producers don't want to lose any messages, the safest way to do that is to make sure all 
+replicas are in sync before sending an acknowledgement.
 
+Producers can choose to receive acknowledgements until the k number of ISR (In-Sync Replicas) 
+have received the message, where k is configurable.
 
----
+#### ACK = all
 
-Publishers A and B are producing messages to Topic X. Subscribers C and D are subscribed to 
-Topic X.
+With ACK = all, the producer gets an acknowledgement when all ISRs have received the message.
+This means it takes longer to send a message because we need to wait for the slowest ISR, but 
+it gives strongest message durability.
 
-Publishers A, B, and C are producing messages concurrently to the same topic. The system 
-should ensure that there are no race conditions, and each message is safely enqueued in the 
-correct order.
+#### ACK = 1
 
-Design a thread-safe, topic-based message broker that supports publish-subscribe semantics.
-The broker should allow multiple publishers and subscribers to operate concurrently and
-enable subscribers to replay messages by resetting their offset.
+With ACK = 1, the producer gets an acknowledgement when the leader has received the message.
+The latency is improved because we don't have to wait for data synchronization. However, if
+the leader fails immediately after sending the acknowledgement and the message is not replicated
+to the follower nodes, the message will be lost.
 
-Maintain a separate queue for each topic.
-Publishers can publish a message to a specific topic.
-Subscribers can subscribe to one or more topics and should receive every message published to those topics after they subscribe.
-When a message is published to a topic, all active subscribers of that topic must receive the message.
-Each subscriber tracks its own offset per topic; the broker must provide an operation to reset a subscriber’s offset to any previous position so the subscriber can re‑read messages.
-The system must handle concurrent publish and subscribe operations safely, ensuring no race conditions or data corruption.
-Subscribers should be able to consume messages in parallel without blocking each other.
-Assume messages are simple strings; persistence, replication, and fault tolerance are out of scope.
+This setting is suitable for low latency systems where occasional data loss is acceptable.
 
----
+#### ACK = 0
 
-### Kafka Architecture
+The producer keeps sending messages to the leader without waiting for any acknowledgements, 
+and it never retries. This setting might be good for use cases like collecting metrics or 
+logging data since data volume is high and occasional data loss is acceptable.
 
-1. Kafka runs on the Java Virtual Machine (JVM).
-
-2. Kafka servers are referred to as brokers.
-
-3. All of the brokers that work together are referred to as a cluster. Clusters may 
-consist of just one broker, or thousands of brokers
-
-4. Apache Zookeeper is used by Kafka brokers to determine which broker is the leader of a 
-given partition and topic. Zookeeper keeps track of which brokers are part of the Kafka 
-cluster.
-
-5. Zookeeper stores configuration for topics and permissions (Access Control Lists - ACLs)
-ACLs are Permissions associated with an object. In Kafka, this typically refers to a user's 
-permissions with respect to production and consumption, and/or the topics themselves.
-
-6. Kafka nodes may gracefully join and leave the cluster.
+> **NOTE**: In some scenarios, reading from the leader replica is not the best option. For 
+example, if a consumer is located in a different data center from the leader replica, the 
+read performance suffers. In this case, it is better to enable consumers to read from the 
+closest ISRs.
 
 ---
 
-### How Kafka Stores Data?
-
-It has a data directory on a disk where it stores logs of data and text files. 
-`/var/lib/kafka/data` is a directory where Kafta sorts data in your workspace and in many 
-Kafka productions systems.
-
-Each topic receives its own sub-directory with the associated name of the topic. Kafka may 
-store more than one log file for a given topic.
-
----
-
-### Data Partitioning
-
-All Kafka topics consist of one or more partitions. Every partition has a single leader 
-broker. 
-
-Partitions are the basic unit of parallelism in Kafka. The “right” number of partitions 
-is highly dependent on the scenario.
-
-The most important number to understand is desired throughput. 
-How many MB/s do you need to achieve to hit your goal?
-
-Determine the number of partitions you need by dividing the overall throughput you want by 
-the throughput per single consumer partition or the throughput per single producer partition. 
-Pick the larger of these two numbers to determine the needed number of partitions.
-
-```
-Partitions = Max(Overall Throughput/Producer Throughput, Overall Throughput/Consumer Throughput)
-```
+### Changing the Number of Partitions
 
 
-> **NOTE:** Message ordering is only guaranteed within a partition in Kafka. If your topic has 
-more than one partition, Kafka provides no guarantees that the messages will be consumed in 
-the order they were produced. 
 
----
 
-### Extra
 
 
