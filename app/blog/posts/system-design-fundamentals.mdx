@@ -80,9 +80,42 @@ In a microservices architecture, the golden rule is Database-per-Service (each s
 its own private database). This prevents tight coupling, but it makes handling 
 distributed transactions and complex data queries incredibly difficult.
 
+
+#### Strong Consistency
+
+#### Eventual Consistency
+
 ---
 
-### What is Eventual Consistency?
+### Data Partitioning
+
+There are two challenges when partitioning data:
+
+1. Distribute data across multiple servers evenly.
+2. Minimize data movement when nodes are added or removed.
+
+Consistent Hashing is a solution to these challenges.
+
+#### Consistent Hashing
+
+It's a foundational algorithm in distributed systems that is used to distribute data across a 
+cluster of servers.
+
+In most traditional hash tables, a change in the number of array slots causes nearly all keys 
+to be remapped. In contrast, consistent hashing is a special type of hashing such that when a 
+hash table is resized, only `k/n` keys need to be remapped on average, where `k` is the number 
+of keys and `n` is the number of slots.
+
+The basic steps to implement consistent hashing are:
+
+1. Map servers and keys on to the ring using a distributed hash function.
+
+2. To find out which server a key is mapped to, go clockwise from the key position until
+the first server on the ring is found.
+
+
+
+
 
 ---
 
@@ -613,6 +646,8 @@ sees a screen saying "Something went wrong (ID: abc-9876)", a developer can copy
 ID into Datadog or Splunk and see the exact multi-service stack trace instantly.
 
 ---
+
+
 
 
 

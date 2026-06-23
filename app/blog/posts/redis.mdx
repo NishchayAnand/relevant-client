@@ -37,15 +37,6 @@ pair at the end of the cache, which represents the item that has not been access
 
 ---
 
-### Non-Functional Requirements
-
-- The `get` and `put` operations must execute in `O(1)` average time complexity, ensuring 
-constant-time performance regardless of the number of elements in the cache. 
-This requirement is critical to support high-performance use cases where frequent reads and 
-writes are expected.
-<br/>
----
-
 ### Key Observations
 
 - A `HashMap` can be used to store `(key, value)` mappings, allowing both `put` and `get` 
@@ -219,6 +210,22 @@ private Node removeTail() {
 ```
 <br/>
 ---
+
+### Non-Functional Requirements
+
+- The `get` and `put` operations must execute in `O(1)` average time complexity, ensuring 
+constant-time performance regardless of the number of elements in the cache. 
+This requirement is critical to support high-performance use cases where frequent reads and 
+writes are expected.
+<br/>
+---
+
+### High-Level Design
+
+When new servers are added or existing servers are removed, most keys are redistributed, not just 
+the ones originally stored on the server that is being removed.
+
+
 
 
 
