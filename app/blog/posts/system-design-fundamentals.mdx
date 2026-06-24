@@ -70,7 +70,7 @@ Data sharding helps achieve scalability.
 
 ### What is Availability?
 
-Availability refers to a system’s ability to remain operational, even in the presence of failures.
+Availability refers to a system's ability to remain operational, even in the presence of failures.
 
 ---
 
@@ -102,16 +102,13 @@ It's a foundational algorithm in distributed systems that is used to distribute 
 cluster of servers.
 
 In most traditional hash tables, a change in the number of array slots causes nearly all keys 
-to be remapped. In contrast, consistent hashing is a special type of hashing such that when a 
+to be remapped.
+
+In contrast, consistent hashing is a special type of hashing such that when a 
 hash table is resized, only `k/n` keys need to be remapped on average, where `k` is the number 
 of keys and `n` is the number of slots.
 
-The basic steps to implement consistent hashing are:
-
-1. Map servers and keys on to the ring using a distributed hash function.
-
-2. To find out which server a key is mapped to, go clockwise from the key position until
-the first server on the ring is found.
+The core idea is to map servers and keys on to the ring using a distributed hash function.
 
 <ConsistentHashingVisualizer />
 
@@ -121,6 +118,8 @@ The exact implementation varies, but the design goal is the same: stable ownersh
 controlled movement.
 
 ---
+
+### What are Distributed Transactions?
 
 ### What is Saga Pattern?
 
@@ -445,7 +444,7 @@ scattered across different codebases. You can easily create cyclic dependencies
 
 ---
 
-### What is Partition Tolerance?
+### What is Fault Tolerance?
 
 Fault tolerance is a design choice to handle hardware/software failures effectively.
 
