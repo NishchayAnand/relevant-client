@@ -1,0 +1,22 @@
+---
+title: 'System Design: What is Consistent Hashing?'
+publishedAt: '2026-06-04'
+---
+
+A very naive way to implement this is by allocating an array of size equal to the Hash Space 
+and putting files and storage node literally in the array on the hashed location. In order to 
+get association we iterate from the item's hashed location towards the right and find the 
+first Storage Node. If we reach the end of the array and do not find any Storage Node we 
+circle back to index 0 and continue the search. 
+
+The approach is very easy to implement but suffers from the following limitations:
+
+- Requires huge memory to hold such a large array finding association by iterating every time 
+to the right is `O(hash_space)`.
+
+- A better way of implementing this is by using two arrays: one to hold the Storage Nodes, 
+called nodes and another one to hold the positions of the Storage Nodes in the hash space, 
+called keys. There is a one-to-one correspondence between the two arrays 
+
+- The Storage Node `nodes[i]` is present at position `keys[i]` in the hash space. Both the 
+arrays are kept sorted as per the keys array.

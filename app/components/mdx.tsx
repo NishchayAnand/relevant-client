@@ -67,6 +67,7 @@ import MinSwapsSlidingWindowVisualizer from './min-swaps-sliding-window-visualiz
 import MissingNumberNestedVisualizer from './missing-number-nested-visualizer';
 import BatchVsRealityVisualizer from './batch-vs-reality-visualizer';
 import StreamProcessingVisualizer from './stream-processing-visualizer';
+import ConsistentHashingVisualizer from './consistent-hashing-visualizer';
 
 hljs.registerLanguage('javascript', javascript);
 
@@ -273,6 +274,7 @@ let components = {
   MissingNumberNestedVisualizer: MissingNumberNestedVisualizer,
   BatchVsRealityVisualizer: BatchVsRealityVisualizer,
   StreamProcessingVisualizer: StreamProcessingVisualizer,
+  ConsistentHashingVisualizer: ConsistentHashingVisualizer,
   Image: RoundedImage,
   a: CustomLink,
   code: Code,
