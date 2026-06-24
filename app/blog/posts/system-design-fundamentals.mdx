@@ -74,16 +74,45 @@ Availability refers to a system's ability to remain operational, even in the pre
 
 ---
 
+### Data Replication
+
+To achieve high availability and reliability, we need to replicate data across multiple 
+servers.
+
+---
+
 ### What is Consistency?
 
 In a microservices architecture, the golden rule is Database-per-Service (each service owns 
 its own private database). This prevents tight coupling, but it makes handling 
 distributed transactions and complex data queries incredibly difficult.
 
+Consistency models define the degree of data consistency. Wide range if consistency models 
+exists:
 
 #### Strong Consistency
 
+Any read operation returns the value corresponding to the result of the most updated write 
+data item. A client never sees out-of-date data.
+
+Usually achieved by forcing a replica not to accept new reads/writes until every replica
+has agreed on current write. This approach is not ideal for highly available systems because
+it could block new operations.
+
+#### Weak Consistency
+
+Subsequent read operations may not see the most updated value.
+
 #### Eventual Consistency
+
+This is a specific form of weak consistency. Given enough time, all updates are 
+propagated, and all replicas are consistent.
+
+---
+
+### Quorum Consensus
+
+W + R > N ensures strong consistency - how??
 
 ---
 

@@ -217,13 +217,20 @@ private Node removeTail() {
 constant-time performance regardless of the number of elements in the cache. 
 This requirement is critical to support high-performance use cases where frequent reads and 
 writes are expected.
+
+- Need high availability and reliability.
+
+- Eventual consistency is acceptable.
+
 <br/>
 ---
 
 ### High-Level Design
 
-When new servers are added or existing servers are removed, most keys are redistributed, not just 
-the ones originally stored on the server that is being removed.
+When new servers are added or existing servers are removed, most keys are redistributed, not 
+just the ones originally stored on the server that is being removed. 
+
+
 
 
 
