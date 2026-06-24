@@ -20,29 +20,183 @@ the first server on the ring is found.
 
 #### Brute Force Approach
 
-A very naive way to implement consistent hashing is by allocating an array of size equal to 
-the hash space and putting keys and servers literally in the array on the hashed location. 
+A naive way to implement consistent hashing is by allocating an array of size equal to 
+the hash space (e.g., `2^32` if a 32-bit hash function) and putting keys and servers directly at 
+their hashed locations. 
 
-In order to get association we iterate from the item's hashed location towards the right and 
-find the first server. If we reach the end of the array and do not find any server we 
-circle back to index 0 and continue the search. 
+To find the server responsible for a key, we first hash the key and then start scanning right 
+from its hashed position until we encounter the first server. If we reach the end of the 
+array without finding a server, we wrap around to index `0` and continue searching.
 
 The approach is very easy to implement but it requires huge memory to hold such a large 
-array finding association by iterating every time to the right is `O(hash_space)`.
+array. For `2^32` hash space, it requires `4 Billion * 8 bytes ~ 32 GB` of memory. Additionally,
+most of these slots would remain empty because the number of servers is usually in the 
+hundreds or thousands.
+
+To locate the owner of a key, we may need to scan a large portion of the hash space before 
+finding the next server. In the worst case, the lookup complexity becomes `O(hash_space)`.
 
 #### Optimized Approach
 
-A better way of implementing this is by using two arrays: one to hold the servers, 
-called nodes and another one to hold the positions of the servers in the hash space, 
-called keys. 
+A better way of implementing this is by using two arrays, one to hold the servers, 
+called `nodes` and another one to hold the positions of the servers in the hash space, 
+called `keys`.
 
 There is a one-to-one correspondence between the two arrays. The server 
 `nodes[i]` is present at position `keys[i]` in the hash space. Both the arrays are kept 
 sorted as per the keys array.
 
+```
+keys  = [100, 500, 1000]
+nodes = [ A,   B,    C ]
+```
+
+Because the keys array is sorted, we can efficiently locate the next server using binary 
+search. Instead of scanning the ring sequentially, we repeatedly halve the search space until 
+we find the smallest position greater than or equal to the key's hash. This reduces the 
+lookup complexity from `O(hash_space)` to `O(log N)`, where `N` is the number of servers.
+
 ---
 
 ### Low-Level Design
+
+The key idea is:
+
+```
+keys[i]  -> Hash position on the ring
+nodes[i] -> Server at that position
+```
+
+Both arrays remain sorted according to keys.
+
+#### Node 
+
+```java
+public class Node {
+
+    private final String id;
+    private final String host;
+
+    public Node(String id, String host) {
+        this.id = id;
+        this.host = host;
+    }
+
+    public String getId() {
+        return id;
+    }
+
+    public String getHost() {
+        return host;
+    }
+
+    @Override
+    public String toString() {
+        return id;
+    }
+}
+```
+
+#### Hash function
+
+```java
+public interface HashFunction {
+    long hash(String key);
+}
+
+public class DefaultHashFunction implements HashFunction {
+
+    @Override
+    public long hash(String key) {
+        return Integer.toUnsignedLong(key.hashCode());
+    }
+}
+```
+
+#### Consistent Hash Ring
+
+```java
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+public class ConsistentHashRing {
+
+    private final HashFunction hashFunction;
+
+    private final List<Long> keys;
+
+    private final List<Node> nodes;
+
+    public ConsistentHashRing(HashFunction hashFunction) {
+        this.hashFunction = hashFunction;
+        this.keys = new ArrayList<>();
+        this.nodes = new ArrayList<>();
+    }
+
+    public void addNode(Node node) {
+
+        long hash = hashFunction.hash(node.getId());
+
+        int idx = Collections.binarySearch(keys, hash);
+
+        // if hash is not found, insert at the position where it would be inserted to keep the array sorted
+        // java returns (-(insertionPoint) - 1) if the hash is not found
+        if (idx < 0) {
+            idx = -(idx + 1);
+        }
+
+        keys.add(idx, hash);
+        nodes.add(idx, node);
+    }
+
+    public void removeNode(Node node) {
+
+        long hash = hashFunction.hash(node.getId());
+
+        int idx = Collections.binarySearch(keys, hash);
+
+        if (idx >= 0) {
+            keys.remove(idx);
+            nodes.remove(idx);
+        }
+    }
+
+    public Node getNode(String key) {
+
+        if (keys.isEmpty()) {
+            return null;
+        }
+
+        long hash = hashFunction.hash(key);
+
+        int idx = Collections.binarySearch(keys, hash);
+
+        if (idx < 0) {
+            idx = -(idx + 1);
+        }
+
+        // wrap around
+        if (idx == keys.size()) {
+            idx = 0;
+        }
+
+        return nodes.get(idx);
+    }
+
+    public void printRing() {
+
+        System.out.println("Hash Ring:");
+
+        for (int i = 0; i < keys.size(); i++) {
+            System.out.println(
+                    keys.get(i) + " -> " + nodes.get(i));
+        }
+    }
+}
+```
+<br/>
+---
 
 
 
