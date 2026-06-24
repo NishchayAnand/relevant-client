@@ -3,7 +3,8 @@ title: 'System Design: What is Consistent Hashing?'
 publishedAt: '2026-06-04'
 ---
 
-Consistent hashing is a distributed partitioning algorithm
+Consistent hashing is a distributed partitioning algorithm used to distribute data or 
+requests across a cluster of servers
 
 ![consistent-hashing](/consistent-hashing/consistent-hashing.png)
 
@@ -108,6 +109,7 @@ public class DefaultHashFunction implements HashFunction {
 
     @Override
     public long hash(String key) {
+        // keep all hash values in the expected range: [0, 2^32) instead of [-2^31, 2^31)
         return Integer.toUnsignedLong(key.hashCode());
     }
 }
@@ -162,6 +164,12 @@ public class ConsistentHashRing {
         }
     }
 
+    /*
+        1. Hash the key.
+        2. Find its position on the ring.
+        3. Move clockwise.
+        4. Return the first server encountered.
+     */
     public Node getNode(String key) {
 
         if (keys.isEmpty()) {
@@ -170,13 +178,56 @@ public class ConsistentHashRing {
 
         long hash = hashFunction.hash(key);
 
+        /*
+        * Find the position of the key in the sorted server hash list.
+        *
+        * If the exact hash exists, binarySearch returns its index.
+        *
+        * Example:
+        * keys = [100, 500, 1000]
+        * hash = 500
+        *
+        * Returns:
+        * idx = 1
+        */
         int idx = Collections.binarySearch(keys, hash);
 
+        /*
+        * If the key hash does not exactly match a server position,
+        * binarySearch returns:
+        *
+        *    -(insertionPoint) - 1
+        *
+        * Example:
+        * keys = [100, 500, 1000]
+        * hash = 700
+        *
+        * insertionPoint = 2
+        * binarySearch returns -3
+        *
+        * Recover the insertion point:
+        *
+        * idx = -(-3 + 1) = 2
+        *
+        * This gives us the index of the first server
+        * clockwise from the key.
+        */
         if (idx < 0) {
             idx = -(idx + 1);
         }
 
-        // wrap around
+        /*
+        * Handle ring wrap-around.
+        *
+        * Example:
+        * keys = [100, 500, 1000]
+        * hash = 1500
+        *
+        * insertionPoint = 3
+        *
+        * There is no server after 1500, so we wrap
+        * around to the first server in the ring.
+        */
         if (idx == keys.size()) {
             idx = 0;
         }
@@ -192,6 +243,41 @@ public class ConsistentHashRing {
             System.out.println(
                     keys.get(i) + " -> " + nodes.get(i));
         }
+    }
+}
+```
+
+#### Sample Usage
+
+```java
+public class Main {
+
+    public static void main(String[] args) {
+
+        HashFunction hashFunction =
+                new DefaultHashFunction();
+
+        ConsistentHashRing ring =
+                new ConsistentHashRing(hashFunction);
+
+        ring.addNode(
+                new Node("A", "10.0.0.1"));
+
+        ring.addNode(
+                new Node("B", "10.0.0.2"));
+
+        ring.addNode(
+                new Node("C", "10.0.0.3"));
+
+        ring.printRing();
+
+        System.out.println(
+                "user123 -> "
+                        + ring.getNode("user123"));
+
+        System.out.println(
+                "user456 -> "
+                        + ring.getNode("user456"));
     }
 }
 ```
