@@ -229,41 +229,6 @@ writes are expected.
 - Each node has its own LRU cache.
 - Consistent hashing to handle data partitioning.
 
-<br/>
-```
-                    Client
-                       |
-                       v
-              +------------------+
-              | DistributedCache |
-              +------------------+
-                       |
-                       v
-             +-------------------+
-             | PartitionManager  |
-             +-------------------+
-                       |
-                Consistent Hash
-                       |
-      ---------------------------------
-      |               |               |
-      v               v               v
-  Partition1      Partition2      Partition3
-      |               |               |
-      v               v               v
-  Primary A       Primary B       Primary C
-   /      \         /      \         /      \
- R1        R2     R1        R2     R1        R2
-```
-<br/>
-
----
-
-### High-Level Design
-
-When new servers are added or existing servers are removed, most keys are redistributed, not 
-just the ones originally stored on the server that is being removed. 
-
 #### DistributedCache (Coordinator)
 
 This class coordinates all cache nodes.
@@ -279,9 +244,6 @@ class DistributedCache {
 
     // 3. Monitor node health
     private FailureDetector failureDetector;
-
-    // 4. Retry failed replications
-    private RetryService retryService;
 
         /**
      * Write request.
@@ -303,6 +265,8 @@ class DistributedCache {
                         + partition.getPartitionId());
 
         // ReplicationService will be called here later.
+        replicationService.replicate(partition, key, value); // request immediately returns to the client, no waiting
+        // TODO: should pass replication event to the service, including version number to prevent data loss
     }
 
     /**
@@ -320,7 +284,9 @@ class DistributedCache {
 }
 ```
 
-#### PartitionManager
+---
+
+### How to Handle Data Partitioning?
 
 `PartitionManager` depends on an abstraction like PartitionStrategy. This follows the 
 **Strategy Pattern** and lets you swap partitioning algorithms without changing the rest of 
@@ -437,7 +403,7 @@ public class Partition {
 }
 ```
 
-### ReplicaNode
+#### ReplicaNode
 
 A replica is simply a wrapper around an LRU cache.
 
@@ -505,6 +471,53 @@ public class ReplicaNode {
     }
 }
 ```
+
+---
+
+### How to Handle Data Replication?
+
+This service is responsible for replicating data to all replicas of a partition.
+
+```java
+
+public class ReplicationEvent {
+    private final Partition partition;
+    private final int key;
+    private final int value;
+    private final long version;
+    ...
+}
+
+public interface ReplicationService {
+
+    void replicate(ReplicationEvent event);
+}
+
+public class AsyncReplicationService
+        implements ReplicationService {
+
+    private final BlockingQueue<ReplicationEvent> queue =
+            new LinkedBlockingQueue<>();
+
+    @Override
+    public void replicate(
+            ReplicationEvent event) {
+
+        queue.offer(event);
+    }
+}
+```
+
+> **NOTE:** The service doesn't replicate. It merely accepts events.
+
+---
+
+### How to Handle Node Failure?
+
+
+---
+
+
 
 
 
