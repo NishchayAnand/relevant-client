@@ -37,7 +37,7 @@ pair at the end of the cache, which represents the item that has not been access
 
 ---
 
-### Key Observations
+### Design Rationale
 
 - A `HashMap` can be used to store `(key, value)` mappings, allowing both `put` and `get` 
 operations to run in `O(1)` time. However, a `HashMap` cannot maintain the order of usage, 
@@ -99,7 +99,7 @@ class LRUCache {
 }   
 ```
 
-Let’s implement each of the core public functionalities step by step.
+Let's implement each of the core public functionalities step by step.
 
 #### LRUCache(int capacity)
 
@@ -222,13 +222,290 @@ writes are expected.
 
 - Eventual consistency is acceptable.
 
+---
+
+### Design Rationale
+
+- Each node has its own LRU cache.
+- Consistent hashing to handle data partitioning.
+
 <br/>
+```
+                    Client
+                       |
+                       v
+              +------------------+
+              | DistributedCache |
+              +------------------+
+                       |
+                       v
+             +-------------------+
+             | PartitionManager  |
+             +-------------------+
+                       |
+                Consistent Hash
+                       |
+      ---------------------------------
+      |               |               |
+      v               v               v
+  Partition1      Partition2      Partition3
+      |               |               |
+      v               v               v
+  Primary A       Primary B       Primary C
+   /      \         /      \         /      \
+ R1        R2     R1        R2     R1        R2
+```
+<br/>
+
 ---
 
 ### High-Level Design
 
 When new servers are added or existing servers are removed, most keys are redistributed, not 
 just the ones originally stored on the server that is being removed. 
+
+#### DistributedCache (Coordinator)
+
+This class coordinates all cache nodes.
+
+```java
+class DistributedCache {
+
+    // 1. Locate the partition
+    private PartitionManager partitionManager;
+
+    // 2. Route writes
+    private ReplicationService replicationService;
+
+    // 3. Monitor node health
+    private FailureDetector failureDetector;
+
+    // 4. Retry failed replications
+    private RetryService retryService;
+
+        /**
+     * Write request.
+     */
+    public void put(int key,
+                    int value) {
+
+        Partition partition =
+                partitionManager.getPartition(key);
+
+        partition
+                .getPrimary()
+                .put(key, value);
+
+        System.out.println(
+                "Stored key "
+                        + key
+                        + " in Partition "
+                        + partition.getPartitionId());
+
+        // ReplicationService will be called here later.
+    }
+
+    /**
+     * Read from primary.
+     */
+    public int get(int key) {
+
+        Partition partition =
+                partitionManager.getPartition(key);
+
+        return partition
+                .getPrimary()
+                .get(key);
+    }
+}
+```
+
+#### PartitionManager
+
+`PartitionManager` depends on an abstraction like PartitionStrategy. This follows the 
+**Strategy Pattern** and lets you swap partitioning algorithms without changing the rest of 
+the system.
+
+```java
+public interface PartitionStrategy {
+
+    Partition getPartition(int key);
+
+    void addPartition(Partition partition);
+
+    void removePartition(int partitionId);
+}
+
+public class PartitionManager {
+
+    private final PartitionStrategy strategy;
+
+    public PartitionManager(PartitionStrategy strategy) {
+        this.strategy = strategy;
+    }
+
+    public Partition getPartition(int key) {
+        return strategy.getPartition(key);
+    }
+
+    public void addPartition(Partition partition) {
+        strategy.addPartition(partition);
+    }
+
+    public void removePartition(int partitionId) {
+        strategy.removePartition(partitionId);
+    }
+}
+```
+
+#### ConsistentHashRing
+
+```java
+public class ConsistentHashRing implements PartitionStrategy {
+
+    private final TreeMap<Integer, Partition> ring = new TreeMap<>();
+
+    @Override
+    public Partition getPartition(int key) {
+        int hash = hash(String.valueOf(key));
+
+        Map.Entry<Integer, Partition> entry =
+                ring.ceilingEntry(hash);
+
+        if (entry == null) {
+            entry = ring.firstEntry();
+        }
+
+        return entry.getValue();
+    }
+
+    @Override
+    public void addPartition(Partition partition) {
+        // Add virtual nodes
+    }
+
+    @Override
+    public void removePartition(int partitionId) {
+        // Remove virtual nodes
+    }
+
+    private int hash(String value) {
+        return Math.abs(value.hashCode());
+    }
+}
+```
+
+> **NOTE:** If you want to make the design even more extensible, separate the hash algorithm 
+from the partitioning strategy. This lets you change the hashing algorithm without modifying 
+the core implementation.
+
+#### Partition
+
+A partition represents one shard of the cache.
+
+```java
+import java.util.List;
+
+public class Partition {
+
+    private final int partitionId;
+
+    private final ReplicaNode primary;
+
+    private final List<ReplicaNode> replicas;
+
+    public Partition(int partitionId,
+                     ReplicaNode primary,
+                     List<ReplicaNode> replicas) {
+
+        this.partitionId = partitionId;
+        this.primary = primary;
+        this.replicas = replicas;
+    }
+
+    public int getPartitionId() {
+        return partitionId;
+    }
+
+    public ReplicaNode getPrimary() {
+        return primary;
+    }
+
+    public List<ReplicaNode> getReplicas() {
+        return replicas;
+    }
+}
+```
+
+### ReplicaNode
+
+A replica is simply a wrapper around an LRU cache.
+
+```java
+public class ReplicaNode {
+
+    private final String nodeId;
+
+    private final LRUCache cache;
+
+    private volatile boolean alive = true;
+
+    public ReplicaNode(String nodeId, int capacity) {
+        this.nodeId = nodeId;
+        this.cache = new LRUCache(capacity);
+    }
+
+    /**
+     * Store key-value pair in this node.
+     */
+    public void put(int key, int value) {
+
+        if (!alive) {
+            throw new RuntimeException(nodeId + " is DOWN");
+        }
+
+        cache.put(key, value);
+    }
+
+    /**
+     * Read value from this node.
+     */
+    public int get(int key) {
+
+        if (!alive) {
+            throw new RuntimeException(nodeId + " is DOWN");
+        }
+
+        return cache.get(key);
+    }
+
+    public String getNodeId() {
+        return nodeId;
+    }
+
+    /**
+     * Simulate node failure.
+     */
+    public void shutdown() {
+        alive = false;
+    }
+
+    /**
+     * Simulate node recovery.
+     */
+    public void recover() {
+        alive = true;
+    }
+
+    /**
+     * Used by heartbeat service.
+     */
+    public boolean heartbeat() {
+        return alive;
+    }
+}
+```
+
 
 
 
