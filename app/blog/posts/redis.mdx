@@ -22,6 +22,12 @@ writes are expected.
 
 ---
 
+### Sequence Flow 
+
+
+
+---
+
 ### Design Rationale
 
 - Each node has its own LRU cache.
@@ -34,14 +40,11 @@ This class coordinates all cache nodes.
 ```java
 class DistributedCache {
 
-    // 1. Locate the partition
+    // 1. Locate the partition, elect leader for the partition
     private PartitionManager partitionManager;
 
     // 2. Route writes
     private ReplicationService replicationService;
-
-    // 3. Monitor node health
-    private FailureDetector failureDetector;
 
         /**
      * Write request.
@@ -93,31 +96,107 @@ the system.
 ```java
 public interface PartitionStrategy {
 
-    Partition getPartition(int key);
+    int getPartitionId(int key);
 
-    void addPartition(Partition partition);
+    void addPartition(int partitionId);
 
     void removePartition(int partitionId);
 }
 
+```java
+import java.util.Map;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+
 public class PartitionManager {
+
+    private static final int HEALTH_CHECK_INTERVAL = 5;
 
     private final PartitionStrategy strategy;
 
-    public PartitionManager(PartitionStrategy strategy) {
+    private final Map<Integer, Partition> partitions;
+
+    private final ScheduledExecutorService scheduler =
+            Executors.newSingleThreadScheduledExecutor();
+
+    public PartitionManager(
+            PartitionStrategy strategy,
+            Map<Integer, Partition> partitions) {
+
         this.strategy = strategy;
+        this.partitions = partitions;
     }
 
+    /**
+     * Start periodic health monitoring.
+     */
+    public void start() {
+
+        scheduler.scheduleAtFixedRate(
+                this::checkPartitionHealth,
+                0,
+                HEALTH_CHECK_INTERVAL,
+                TimeUnit.SECONDS);
+    }
+
+    /**
+     * Stop monitoring.
+     */
+    public void shutdown() {
+        scheduler.shutdownNow();
+    }
+
+    /**
+     * Route a key to its partition.
+     */
     public Partition getPartition(int key) {
-        return strategy.getPartition(key);
+
+        int partitionId =
+                strategy.getPartitionId(key);
+
+        return partitions.get(partitionId);
     }
 
-    public void addPartition(Partition partition) {
-        strategy.addPartition(partition);
+    /**
+     * Periodically checks every partition's leader.
+     */
+    private void checkPartitionHealth() {
+
+        for (Partition partition : partitions.values()) {
+
+            ReplicaNode primary = partition.getPrimary();
+
+            if (!primary.isHealthy()) {
+
+                promoteLeader(partition);
+            }
+        }
     }
 
-    public void removePartition(int partitionId) {
-        strategy.removePartition(partitionId);
+    /**
+     * Promote the first healthy replica.
+     */
+    private void promoteLeader(Partition partition) {
+
+        for (ReplicaNode replica : partition.getReplicas()) {
+
+            if (replica.isHealthy()) {
+
+                partition.setPrimary(replica);
+
+                System.out.println(
+                        replica.getNodeId()
+                        + " promoted as PRIMARY for Partition "
+                        + partition.getPartitionId());
+
+                return;
+            }
+        }
+
+        System.out.println(
+                "No healthy replicas available for Partition "
+                + partition.getPartitionId());
     }
 }
 ```
@@ -127,13 +206,13 @@ public class PartitionManager {
 ```java
 public class ConsistentHashRing implements PartitionStrategy {
 
-    private final TreeMap<Integer, Partition> ring = new TreeMap<>();
+    private final TreeMap<Integer, Integer> ring = new TreeMap<>();
 
     @Override
     public Partition getPartition(int key) {
         int hash = hash(String.valueOf(key));
 
-        Map.Entry<Integer, Partition> entry =
+        Map.Entry<Integer, Integer> entry =
                 ring.ceilingEntry(hash);
 
         if (entry == null) {
@@ -144,7 +223,7 @@ public class ConsistentHashRing implements PartitionStrategy {
     }
 
     @Override
-    public void addPartition(Partition partition) {
+    public void addPartition(int partitionId) {
         // Add virtual nodes
     }
 
@@ -294,25 +373,84 @@ public interface ReplicationService {
 public class AsyncReplicationService
         implements ReplicationService {
 
-    private final BlockingQueue<ReplicationEvent> queue =
+    private final BlockingQueue<ReplicationEvent> replicationQueue =
             new LinkedBlockingQueue<>();
 
-    @Override
-    public void replicate(
-            ReplicationEvent event) {
+    private final BlockingQueue<RetryTask> retryQueue =
+            new LinkedBlockingQueue<>();
 
-        queue.offer(event);
+    public void replicate(ReplicationEvent event) {
+        replicationQueue.offer(event);
+    }
+
+    public BlockingQueue<ReplicationEvent> getReplicationQueue() {
+        return replicationQueue;
+    }
+
+    public BlockingQueue<RetryTask> getRetryQueue() {
+        return retryQueue;
     }
 }
 ```
 
 > **NOTE:** The service doesn't replicate. It merely accepts events.
 
----
+#### ReplicationWorker
 
-### How to Handle Node Failure?
+```java
+public class ReplicationWorker implements Runnable {
 
+    private final AsyncReplicationService replicationService;
 
+    public ReplicationWorker(
+            AsyncReplicationService replicationService) {
+
+        this.replicationService = replicationService;
+    }
+
+    @Override
+    public void run() {
+
+        while (!Thread.currentThread().isInterrupted()) {
+
+            try {
+
+                ReplicationEvent event =
+                        replicationService
+                                .getReplicationQueue()
+                                .take();
+
+                replicate(event);
+
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }
+    }
+
+    private void replicate(ReplicationEvent event) {
+
+        for (ReplicaNode replica :
+                event.getPartition().getReplicas()) {
+
+            try {
+
+                replica.put(
+                        event.getKey(),
+                        event.getEntry());
+
+            } catch (Exception ex) {
+
+                replicationService
+                        .getRetryQueue()
+                        .offer(new RetryTask(
+                                replica,
+                                event));
+            }
+        }
+    }
+}
+```
 ---
 
 
