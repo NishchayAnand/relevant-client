@@ -1,6 +1,6 @@
 ---
 title: 'System Design: Distributed Rate Limiter'
-publishedAt: '2026-06-03'
+publishedAt: '2026-06-13'
 ---
 
 ---
@@ -57,6 +57,88 @@ useless without centralized state.
 We can use something like Redis. Redis is a fast, in-memory data store that all our gateway 
 instances can access. Redis can become our central source of truth for all token bucket 
 state. When any gateway needs to check or update a user's rate limit, it talks to Redis.
+
+#### How do we scale to handle 1M requests/second?
+
+Rate limiters demonstrate classic scaling writes challenges with millions of counter updates 
+per second. Each rate limit check requires atomic read-modify-write operations to update 
+token buckets or request counters across distributed Redis shards.
+
+At 1M requests/second, we need to distribute the Redis load across multiple instances. But 
+this isn't quite as simple as just spinning up more Redis servers because we need a way to 
+partition the rate limiting data so each request knows which Redis instance to talk to.
+
+The sharding strategy depends on our rate limiting rules. Remember we identified multiple 
+client types earlier - user IDs for authenticated users, IP addresses for anonymous users, 
+and API keys for developer access. We need to shard consistently so that all of a client's 
+requests always hit the same Redis instance. If user "alice" sometimes hits Redis shard 1 
+and sometimes hits shard 2, her rate limiting state gets split and becomes useless.
+
+We need a distribution algorithm like consistent hashing to solve this. For authenticated 
+users, we hash their user ID to determine which Redis shard stores their rate limit data. For 
+anonymous users, we hash their IP address. For API key requests, we hash the API key. This 
+ensures each client's rate limiting state lives on exactly one shard, while distributing the 
+load evenly across all shards.
+
+Each API gateway needs routing logic to determine which Redis shard to query. When a request 
+arrives, the gateway extracts the appropriate identifier (user ID, IP, or API key), applies 
+the distribution algorithm, and routes the rate limit check to the correct Redis instance. 
+
+The Token Bucket algorithm remains exactly the same, we're just talking to different Redis 
+instances instead of one. With 10 Redis shards, each handling ~100k operations/second, we 
+should be able to handle our 1M request/second target.
+
+> **NOTE:** In production, you'd likely use Redis Cluster rather than managing individual Redis 
+instances yourself. Redis Cluster automatically handles the data sharding we just described 
+by dividing keys across 16,384 hash slots and distributing those slots across multiple Redis 
+nodes. When you store a rate limit key like alice:bucket, Redis Cluster automatically 
+determines which node should store it based on the key's hash slot. This way instead of 
+building custom consistent hashing logic in your API gateways, you just connect to the 
+Redis Cluster and it handles routing automatically.
+
+#### How do we ensure high availability and fault tolerance?
+
+Now that we've scaled to multiple Redis shards, each shard becomes a critical component in 
+our system. If any Redis shard goes down, all users whose rate limiting data lives on that 
+shard lose their rate limiting functionality. This creates availability issues and can lead 
+to cascading failures if users start retrying aggressively when they can't get proper rate 
+limit responses.
+
+When a Redis shard becomes unavailable, we face a fundamental decision about our failure mode. 
+We have two options:
+
+##### **Option 1:** Fail Closed
+
+When the rate limiter can't reach Redis, reject all requests with HTTP 503 "Service 
+Unavailable" or HTTP 429 responses. This is the most restrictive option. No requests get 
+through that we can't verify are within limits.
+
+This will effectively take your API offline during Redis outages. Users see failed requests 
+even if your backend services are healthy. In practice, this often creates worse problems 
+than the original issue rate limiting was meant to solve. Users may retry aggressively when 
+they see 503 errors, creating even more load on your systems.
+
+However, fail-closed does have legitimate use cases. Financial systems processing payments 
+might prefer to reject transactions rather than risk processing them without rate limits. 
+High-security environments where uncontrolled access is worse than downtime might also 
+choose this approach.
+
+##### **Option 2:** Fail Open
+
+When the rate limiter can't reach Redis, allow all requests to proceed as if rate limiting 
+was disabled. The API gateway skips rate limit checks and forwards requests directly to 
+backend services. This keeps your API available even when the rate limiting infrastructure 
+has issues.
+
+The obvious downside is temporarily losing rate limit protection. During Redis outages, 
+malicious users could potentially overwhelm your backend services with requests. More 
+critically, this can cause cascade failures - if Redis failed because you're already under 
+heavy load, failing open sends ALL that traffic downstream, potentially causing total 
+system collapse.
+
+For social media platforms, this is especially dangerous during viral events when traffic 
+spikes are already stressing the system. Failing open could turn a rate limiter outage 
+into a complete platform failure.
 
 ---
 
