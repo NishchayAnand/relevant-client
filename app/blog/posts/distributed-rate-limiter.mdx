@@ -5,6 +5,26 @@ publishedAt: '2026-06-03'
 
 ---
 
+### Functional Requirements
+
+1. The system should identify clients by user ID, IP address, or API key to apply 
+appropriate limits.
+
+2. The system should limit HTTP requests based on configurable rules (e.g., 100 API requests 
+per minute per user).
+
+3. When limits are exceeded, the system should reject requests with **HTTP 429** and include 
+helpful headers (rate limit remaining, reset time).
+
+---
+
+### Non-Functional Requirements
+
+Assume we're designing for a substantial but realistic load: 1 million requests per second 
+across 100 million daily active users.
+
+---
+
 ### Design Rationale
 
 At the high level, we need a counter to keep track of how many requests are sent from the 
@@ -13,6 +33,8 @@ disallowed.
 
 Using a database to store counter is not a good idea due to slowness of disk access. 
 In-memory cache is chosen because it is fast and support time-based expiration strategy.
+
+---
 
 ### Sequence Flow
 

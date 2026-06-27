@@ -842,14 +842,72 @@ the excess calls.
 
 HTTP 429 suggests a user has sent too many requests.
 
-Rate limiting is usually implemented within a component called API gateway.
+#### Where should we place the rate limiter?
 
-#### Types of Rate Limiting
+This determines what information we have access to and how it integrates with the rest of our 
+system. 
 
-Throttle API calls based on the client's IP address.
-Throttle API calls based on the client's user id.
-Throttle API calls based on the client's API key.
+##### **Approach 1:** 
 
+Each application server or microservice has rate limiting built directly into the application 
+code. When a request comes in, the server checks its local in-memory counters, 
+updates them, and decides whether to allow or reject the request. This is really fast since 
+everything happens in memory, no network calls, no external dependencies.
+
+The main problem is that each server only knows about its own traffic, not the global picture. 
+Say you want to limit users to 100 requests per minute. If you have 5 application servers 
+behind a load balancer, and requests get distributed evenly, each server might see 20 requests 
+per minute from a user and think "that's fine, well under 100." But globally, the user is 
+actually making 100 requests per minute across all servers.
+
+Even worse, if the load balancer changes how it routes traffic, or if one server gets more 
+load than others, your limits become completely unpredictable. A user might get 100 requests 
+through one server and 100 through another, for 200 total.
+
+This approach only works if you have a single application server or if you're okay with 
+approximate limits that can be off by a factor equal to your server count.
+
+##### **Approach 2:** 
+
+The rate limiter becomes its own microservice that sits between your clients and application 
+servers. The rate limiting service maintains global state, so it can enforce precise limits 
+across all your application servers. If you want 100 requests per minute globally, you get 
+exactly that regardless of how many servers you have.
+
+The biggest downside is latency. Every single request to your system now requires an 
+additional network round trip before it can be processed. Even if the rate limiter is fast 
+(say 10ms), that's still 10ms added to every request. At scale, this adds up.
+
+You've also introduced another point of failure. If your rate limiting service goes down, you 
+need to decide: do you fail open (allow all requests through, risking overload) or fail 
+closed (reject all requests, essentially taking your API offline)? Neither option is great.
+
+There's operational complexity too. You now have another service to deploy, monitor, scale, 
+and maintain. The rate limiting service itself needs to be highly available, which means you 
+need redundancy, health checks, and probably some form of data replication.
+
+Finally, you need to handle network issues gracefully. What if the rate limiter is slow to 
+respond? Do you wait (adding more latency) or timeout and make a guess? What if there are 
+network partitions between your app servers and the rate limiter?
+
+##### **Approach 3:** 
+
+The rate limiter runs at the very edge of your system, integrated into your API gateway or 
+load balancer. Every incoming request hits the rate limiter first, before it reaches any of 
+your application servers. The rate limiter examines the request (checking IP address, user 
+authentication headers, API keys), applies the appropriate limits, and either forwards the 
+request downstream or immediately returns an HTTP 429 response.
+
+It's the most common pattern and gives us centralized control without adding extra network 
+calls to every request.
+
+> **NOTE:** Since we chose the API Gateway approach, our rate limiter only has access to 
+information in the HTTP request itself. This includes the request URL/path, all HTTP headers 
+(`Authorization`, `User-Agent`, `X-API-Key`, etc.), query parameters, and the client's 
+IP address. While we can technically make external calls to databases or other services, it 
+adds latency we want to avoid so we'll stick to the request itself.
+
+#### How do we identify different clients so we can apply the right limits to the right users?
 
 
 ---
