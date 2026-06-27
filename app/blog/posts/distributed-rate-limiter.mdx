@@ -2,3 +2,27 @@
 title: 'System Design: Distributed Rate Limiter'
 publishedAt: '2026-06-03'
 ---
+
+---
+
+### Design Rationale
+
+At the high level, we need a counter to keep track of how many requests are sent from the 
+same user, IP address, etc. If the counter is larger than the limit, the request is 
+disallowed.
+
+Using a database to store counter is not a good idea due to slowness of disk access. 
+In-memory cache is chosen because it is fast and support time-based expiration strategy.
+
+### Sequence Flow
+
+The client sends a request to rate-limiting middleware. Rate limiting middleware fetches 
+the counter from the corresponding bucket in Redis, and checks if the limit is reached or not. 
+
+- If the limit is reached, the request is rejected. 
+- If the limit isn't reached, the request is sent to API servers. 
+
+Meanwhile, the system increments the counter and saves it back to Redis.
+
+---
+

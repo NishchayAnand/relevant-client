@@ -24,3 +24,26 @@ should be printed in the given timestamp, otherwise returns `false`.
 <br/>
 ---
 
+### Low-Level Design
+
+The basic idea of rate limiting algorithms is simple. At the high level, we need a counter 
+to keep track of how many requests are sent from the same user, IP address, etc. If the 
+counter is larger than the limit, the request is disallowed.
+
+#### Token Bucket
+
+It is usually necessary to have different buckets for different API endpoints. For instance, 
+if a user is allowed to make 1 post per second, add 150 friends per day, and like 5 posts per 
+second, three buckets are required for each user.
+
+If you need to throttle requests based on IP addresses, each IP address requires a bucket.
+
+#### Leaking Bucket
+
+#### Fixed Window Counter
+
+#### Sliding Window Log
+
+#### Sliding Window Counter
+
+---
