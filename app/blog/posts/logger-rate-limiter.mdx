@@ -30,6 +30,47 @@ The basic idea of rate limiting algorithms is simple. At the high level, we need
 to keep track of how many requests are sent from the same user, IP address, etc. If the 
 counter is larger than the limit, the request is disallowed.
 
+#### Fixed Window Counter
+
+Divide time into fixed windows (like 1-minute buckets) and counts requests in each window. 
+For each user, we'd maintain a counter that resets to zero at the start of each new window. 
+If the counter exceeds the limit during a window, reject new requests until the window 
+resets.
+
+This is really simple to implement. It's just a hash table mapping client IDs to (counter, 
+window_start_time) pairs. The main challenges are boundary effects: a user could make 
+100 requests at 12:00:59, then immediately make another 100 requests at 12:01:00, 
+effectively getting 200 requests in 2 seconds. There's also potential for "starvation" if 
+a user hits their limit early in a window.
+
+#### Sliding Window Log
+
+This algorithm keeps a log of individual request timestamps for each user. When a new request 
+arrives, you remove all timestamps older than your window (e.g., older than 1 minute ago), 
+then check if the remaining count exceeds your limit.
+
+This gives you perfect accuracy. You're always looking at exactly the last N minutes of 
+requests, regardless of when the current request arrives. No boundary effects, no unfair 
+bursts allowed.
+
+The downside is memory usage. For a user making 1000 requests per minute, you need to store 
+1000 timestamps. Scale this to millions of users and you quickly run into memory problems. 
+There's also computational overhead scanning through timestamp logs for each request.
+
+#### Sliding Window Counter
+
+This is a clever hybrid that approximates sliding windows using fixed windows with some math. 
+You maintain counters for the current window and the previous window. When a request arrives, 
+you estimate how many requests the user "should have" made in a true sliding window by 
+weighing the previous and current windows based on how far you are into the current window.
+
+For example, if you're 30% through the current minute, you count 70% of the previous minute's 
+requests plus 100% of the current minute's requests.
+
+This gives you much better accuracy than fixed windows while using minimal memory. It's just 
+two counters per client. The trade-off is that it's an approximation that assumes traffic is 
+evenly distributed within windows, and the math can be tricky to implement correctly.
+
 #### Token Bucket
 
 It is usually necessary to have different buckets for different API endpoints. For instance, 
@@ -37,13 +78,3 @@ if a user is allowed to make 1 post per second, add 150 friends per day, and lik
 second, three buckets are required for each user.
 
 If you need to throttle requests based on IP addresses, each IP address requires a bucket.
-
-#### Leaking Bucket
-
-#### Fixed Window Counter
-
-#### Sliding Window Log
-
-#### Sliding Window Counter
-
----

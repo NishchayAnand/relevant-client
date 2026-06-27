@@ -31,8 +31,32 @@ At the high level, we need a counter to keep track of how many requests are sent
 same user, IP address, etc. If the counter is larger than the limit, the request is 
 disallowed.
 
+For our system, we'll go with the Token Bucket algorithm. It strikes the best balance between 
+simplicity, memory efficiency, and handling real-world traffic patterns. Companies like 
+Stripe use this approach because it naturally accommodates the bursty nature of API traffic 
+while still enforcing overall rate limits.
+
 Using a database to store counter is not a good idea due to slowness of disk access. 
 In-memory cache is chosen because it is fast and support time-based expiration strategy.
+
+Now we have a new problem. We know how the Token Bucket algorithm works conceptually, but 
+where and how do we actually store each user's bucket? Each bucket needs to track two pieces 
+of data: the current token count and the last refill timestamp. This state needs to be shared 
+across all our API gateway instances.
+
+If we store the buckets in memory within each gateway instance, we're back to the same 
+coordination problem we discussed with in-process rate limiting. User requests get 
+distributed across multiple gateways by the load balancer. Each gateway would maintain its 
+own version of a user's token bucket, seeing only a fraction of their total traffic.
+
+For example, if Alice makes 50 requests that go to Gateway A and 50 requests that go to 
+Gateway B, each gateway thinks Alice has only made 50 requests and allows them all. But 
+globally, Alice has made 100 requests and should be rate limited. Our algorithm becomes 
+useless without centralized state.
+
+We can use something like Redis. Redis is a fast, in-memory data store that all our gateway 
+instances can access. Redis can become our central source of truth for all token bucket 
+state. When any gateway needs to check or update a user's rate limit, it talks to Redis.
 
 ---
 
@@ -45,6 +69,23 @@ the counter from the corresponding bucket in Redis, and checks if the limit is r
 - If the limit isn't reached, the request is sent to API servers. 
 
 Meanwhile, the system increments the counter and saves it back to Redis.
+
+Here's exactly how the Token Bucket algorithm works with Redis:
+
+1. A request arrives at Gateway A for user Alice with a user ID of alice.
+
+2. The gateway calls Redis to fetch Alice's current bucket state using HMGET alice:bucket 
+tokens last_refill. The HMGET command retrieves the values of multiple keys from a 
+Redis hash. In this case, we're getting the current tokens count and the last_refill 
+timestamp for Alice's bucket.
+
+3. The gateway calculates how many tokens to add to Alice's bucket based on the time elapsed 
+since her last refill. If Alice's bucket was last updated 30 seconds ago and her refill 
+rate is 1 token per second, the gateway adds 30 tokens to her current count, up to the 
+bucket's maximum capacity.
+
+4. The gateway then updates Alice's bucket state atomically using a Redis transaction to 
+prevent race conditions.
 
 ---
 
