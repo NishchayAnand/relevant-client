@@ -1,0 +1,34 @@
+---
+title: 'System Design: What is API Gateway?'
+publishedAt: '2026-06-05'
+---
+
+An API Gateway serves as a single entry point for all client requests, managing and routing 
+them to appropriate backend services. 
+
+API Gateway is a design pattern that allows us to remove redundant latency by managing 
+centralized middleware like authentication, routing, and request handling which may occur
+if we use separate services for each of these functionalities.
+
+Without an API Gateway, clients would need to know about and communicate with multiple 
+services directly.
+
+The gateway's primary function is request routing, determining which backend service should 
+handle each incoming request.
+
+While most services communicate via HTTP, in some cases your backend services might use a 
+different protocol like gRPC for internal communication. When this happens, the API Gateway 
+can handle translating between protocols, though this is relatively uncommon in practice.
+
+Before sending the response back to the client, the gateway can optionally cache the response. 
+This is useful for frequently accessed data that doesn't change often and, importantly, is not 
+user specific.
+
+While API Gateways are primarily known for routing and middleware functionality, they often 
+include load balancing capabilities. However, it's important to understand the distinction:
+
+- **Client-to-Gateway Load Balancing:** This is typically handled by a dedicated load balancer 
+in front of your API Gateway instances (like AWS ELB or NGINX).
+
+- **Gateway-to-Service Load Balancing:** The API Gateway itself can perform load balancing 
+across multiple instances of backend services.

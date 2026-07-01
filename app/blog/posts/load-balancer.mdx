@@ -1,4 +1,30 @@
 ---
 title: 'System Design: What is Load Balancing?'
-publishedAt: '2026-06-05'
+publishedAt: '2026-06-03'
 ---
+
+Design a load balancer service similar to AWS Network Load Balancer that distributes 
+incoming traffic across multiple servers to ensure high availability and optimal 
+performance.
+
+you need a load balancer wherever you have multiple machines capable of handling the same 
+request. 
+
+A Network Load Balancer is a layer-4 traffic distribution service that accepts TCP/UDP 
+connections on a virtual IP and spreads them across many backend servers to keep 
+applications fast and highly available. 
+
+#### Functional Requirements
+
+It must be ultra-reliable, low latency, fault-tolerant, and resilient to traffic spikes and 
+failures. 
+
+### Types of Load Balancers
+
+1. NLB (Network Load Balancer) is usually deployed before the API gateway, handling traffic 
+routing based on IP. It does not parse the HTTP requests.
+
+2. ALB (Application Load Balancer) routes requests based on HTTP header or URL and thus can 
+provide richer routing rules. We can choose the load balancer based on routing requirements. 
+For simple services with a smaller scale, one load balancer is enough.
+
