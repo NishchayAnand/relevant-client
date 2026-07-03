@@ -3,3 +3,53 @@ title: 'AI-Driven System Design: Chatbot System (ChatGPT)'
 publishedAt: '2026-07-09'
 ---
 
+Design a conversational AI system similar to ChatGPT that allows users to have natural 
+language conversations and receive intelligent responses. 
+
+![chatgpt](/chatgpt/chatgpt.svg)
+
+> **NOTE:** We treat the LLM as a black box we call, not something we train or run the internals of. 
+
+---
+
+### Functional Requirements
+
+Create Chat
+
+Send Message
+
+1. Users should be able to view past chats and resume a conversation, with the chat's prior 
+context carried into the prompt.
+
+> **NOTE:** We'll also scope this to text in, text out only, with no images, audio, or video, and 
+no editing or branching of existing messages.
+
+---
+
+### Non-Functional Requirements
+
+1. Latency to the first token matters more than total completion time. 
+
+2. Serve ~200M daily active users. 
+
+---
+
+### Sequence Flow
+
+1. A user types a prompt, the system runs it through a large language model with the prior 
+turns of the chat as context, and tokens stream back as they are generated.
+
+---
+
+### Load Estimation
+
+1. 10K new messages per second at peak.
+
+GPUs are scarce and load is bursty, so requests have to be queued, batched, and shed under 
+pressure rather than dispatched one per worker.
+
+---
+
+### Data Model
+
+users chats
