@@ -1,5 +1,5 @@
 ---
-title: 'AI-Driven System Design: Chatbot System (ChatGPT)'
+title: 'AI-Driven System Design: Personal Assistant Chatbot (ChatGPT)'
 publishedAt: '2026-07-09'
 ---
 
@@ -32,6 +32,13 @@ no editing or branching of existing messages.
 
 2. Serve ~200M daily active users. 
 
+5.8 billion visits per month
+
+1 billion weekly active users sending 2.5+ billion prompts per day
+
+Your database can't store 500TB per year. API costs will hit $145 million per month. And 
+you'll need 11.4 million concurrent connections that no single server can handle.
+
 ---
 
 ### Sequence Flow
@@ -53,3 +60,33 @@ pressure rather than dispatched one per worker.
 ### Data Model
 
 users chats
+
+---
+
+### Design Rationale
+
+ChatGPT's workload is 90% reads, 10% writes. Hence, we can use Single Primary PostgreSQL (not 
+sharded).
+
+---
+
+### High Level Architecture
+
+
+#### Conversation Service
+
+Massive write throughput. Chat history is append only??
+
+#### Context Builder Service
+
+#### Memory Service
+
+Memory service is semantic. ??
+
+#### Streaming Service
+
+---
+
+
+
+
