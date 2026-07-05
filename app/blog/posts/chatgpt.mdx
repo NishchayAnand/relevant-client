@@ -46,6 +46,8 @@ you'll need 11.4 million concurrent connections that no single server can handle
 1. A user types a prompt, the system runs it through a large language model with the prior 
 turns of the chat as context, and tokens stream back as they are generated.
 
+The user might create a new chat session or might have existing chat session.
+
 ---
 
 ### Load Estimation
@@ -68,6 +70,10 @@ users chats
 ChatGPT's workload is 90% reads, 10% writes. Hence, we can use Single Primary PostgreSQL (not 
 sharded).
 
+A session storage being used for storing session information (e.g., conversation history, 
+user preferences) across multiple requests. For each user request chatGPT retrieve the 
+relevant session and inject it into the model's input to maintain context.
+
 ---
 
 ### High Level Architecture
@@ -86,6 +92,8 @@ Memory service is semantic. ??
 #### Streaming Service
 
 ---
+
+
 
 
 
