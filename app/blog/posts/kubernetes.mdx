@@ -1,5 +1,5 @@
 ---
-title: 'System Design: Container Orchestration with Kubernetes'
+title: 'System Design: Container Orchestration (Kubernetes)'
 publishedAt: '2026-06-14'
 ---
 
@@ -38,5 +38,39 @@ or automatically based on CPU usage.
 virtual hardware to running an application on an OS using logical resources.
 
 ---
+
+### Architecture
+
+A Kubernetes cluster consists of a control plane plus a set of worker machines, called nodes, 
+that run containerized applications. In production environments, the control plane usually 
+runs across multiple computers and a cluster usually runs multiple nodes, providing 
+fault-tolerance and high availability.
+
+---
+
+### Low Level Design 
+
+1. API Layer (Spring Boot REST Controller): Instead of Node.js with Express, you would use a 
+Spring Boot REST Controller to accept incoming container deployment requests. You can use 
+Spring Data JPA or MyBatis with a database like PostgreSQL to store your job states.
+
+2. Job Dispatcher (Spring Scheduling): Rather than BullMQ, you can use Spring's native 
+Scheduling capabilities (`@Scheduled`) to create a background task that polls your database 
+for "submitted" jobs. You could also use an enterprise-grade job scheduling library like 
+`JobRunr` if you require distributed job processing across multiple nodes.
+
+3. CRI / Scheduler (Docker Java API): To interact with Docker, use the docker-java library, 
+which provides a native Java SDK for the Docker Remote API. This allows your service to 
+perform the same operations shown in the video—pulling images, creating containers, and 
+monitoring their lifecycle.
+
+Core Components Structure:
+
+Repository Layer: Define a JobEntity to track image, command, status (PENDING, RUNNING, SUCCEEDED), and containerId.
+Scheduler Service: Create a `@Service` class annotated with `@EnableScheduling` to handle the logic of polling the database and triggering the Docker interaction.
+Docker Client Bean: Configure a `@Configuration` class to initialize the DockerClient object, allowing you to inject it into your services.
+This approach gives you a robust foundation in Java for managing containerized workloads. Remember to handle thread safety (e.g., using AtomicLong or database locking) if you plan to run multiple scheduler instances to avoid race conditions when picking up jobs.
+
+
 
 
