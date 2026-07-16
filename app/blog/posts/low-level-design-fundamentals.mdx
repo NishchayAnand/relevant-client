@@ -13,6 +13,101 @@ for building scalable and maintainable software.
 
 ---
 
+### What are SOLID Principles?
+
+#### Single Responsibility Principle
+
+#### Open-Closed Principle
+
+#### Liskov Substitution Principle
+
+#### Interface Segregation Principle
+
+### Dependency Inversion Principle
+
+---
+
+### What is the significance of `final` keyword?
+
+The `final` keyword is used to restrict modification. Depending on where it is applied, it has 
+different meanings:
+
+#### Final Variable
+
+A `final` variable can be assigned only once. Java requires a `final` field to be initialized 
+either at the time of declaration or inside a constructor (for instance variables).
+
+```java
+// At the time of declaration
+private final String name = "Nishchay";
+
+// Inside a constructor (for instance variables)
+public Employee(String name) {
+    this.name = name;
+}
+```
+<br/>
+---
+
+### What is a Singleton Class?
+
+A Singleton class ensures that only one instance of the class exists throughout the application.
+
+#### Basic Implementation (Lazy Initialization)
+
+```java
+public class Singleton {
+
+    private static Singleton instance;
+
+    private Singleton() {
+        // Private constructor presents object creation
+    }
+
+    public static Singleton getInstance() {
+        if (instance == null) { // NOTE: If two threads execute this at the same time, they may create two instances.
+            instance = new Singleton();
+        }
+        return instance;
+    }
+}
+```
+
+#### How Does Spring Make All Beans Singleton by Default?
+
+Spring implements the **Singleton pattern at the IoC container level**, not inside your class.
+
+Spring maintains a cache called `DefaultSingletonRegistry` which contains:
+
+```java
+public class DefaultSingletonRegistry {
+
+    private final Map<String, Object> singletonObjects = new ConcurrentHashMap<>();
+
+    // singletonObjects.put("userService", new UserService());
+}
+
+@SpringBootApplication
+public class DemoApplication {
+
+    public static void main(String[] args) {
+
+        ApplicationContext context = SpringApplication.run(DemoApplication.class, args);
+
+        UserService userService1 = context.getBean(UserService.class);
+        UserService userService2 = context.getBean(USerService.class);
+
+        System.out.println(userService1 == userService2);
+
+    }
+
+}
+```
+
+
+
+---
+
 ### What is an Inner Class?
 
 **Inner classes** in Java are simply classes defined inside another class, used to group
@@ -55,81 +150,6 @@ class Outer {
 }
 ```
 <br/>
----
-
-### What is an Immutable class?
-
-In multi-threaded applications, bugs usually happen when two different threads try to 
-modify the exact same piece of data at the same time, leading to "race conditions" or 
-data corruption.
-
-Because an immutable object cannot be changed after it is created, it can be shared 
-across dozens of threads simultaneously without any synchronization, locks, or fear of 
-corruption.
-
-#### How to create an Immutable class?
-
-**Before Java 17:**
-
-1. Make the class final so it cannot be inherited / overridden.
-2. Make all fields private and final.
-3. Initialize all fields via a constructor performing a deep copy.
-4. Provide only getter methods. Do not provide setters.
-5. Return copy for mutable fields.
-<br/>
-```java
-// Rule 1: Make the class final so it cannot be inherited / overridden
-class final ImmutableUser {
-  
-  // Rule 2: Make all fields private and final
-  private final String name;
-  private final int age;
-  private final List<String> roles; // mutable object
-  
-  // Rule 3: Initialize all fields via a constructor making deep copy
-  public ImmutableUser(String name, int age, List<String> roles) {
-    this.name = name;
-    this.age = age;
-    // don't do this.roles = roles;
-    // otherwise the caller can modify the list from outside
-    this.roles = new ArrayList<>(roles);
-  }
-  
-  // Rule 4: All provide getter methods
-  public String getName() {
-    return name;
-  }
-  
-  public int getAge() {
-    return age;
-  }
-  
-  // Return a copy for mutable objects
-  public List<String> getRoles() {
-    // Prevents the caller from modifying the internal list
-    return new ArrayList<>(roles);
-  }
-  
-}
-```
-<br/>
-**After Java 17:**
-
-1. Introduced Record to create a type of class that is shallowly immutable by default.
-2. If your record takes a mutable collection like a List, use compact constructor to clone 
-it so the outside world can't modify your record's internal state.
-
-<br/>
-```java
-record ImmutableUser(String name, int age, List<String> roles) {
-    public ImmutableUser {
-        roles = List.copyOf(roles);
-    }
-}
-```
-
-**NOTE:** Think of Record as Java's version of a “Data Transfer Object” (DTO) or “Tuple”. They are perfect for scenarios where you need a simple carrier for immutable data without writing a mountain of boilerplate code.
-
 ---
 
 ### Strategy Pattern
@@ -373,6 +393,8 @@ algorithms. The annotation itself remains clean metadata, delegating the actual 
 workflow to the underlying framework.
 
 ---
+
+
 
 
 
