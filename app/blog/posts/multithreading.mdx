@@ -58,7 +58,9 @@ class Main {
 Implementing `Runnable` separates the task being performed from the execution mechanism 
 (the `Thread` object).
 
-#### Method 3: Using an ExecutorService
+---
+
+#### ExecutorService
 
 Managing raw threads can be dangerous. If you create too many, you risk running out of 
 memory or causing high CPU contention due to context switching.
@@ -156,63 +158,140 @@ Best for: Highly parallel, recursive, or "divide-and-conquer" tasks.
 
 ---
 
-### How does Executor Service work?
 
-`ExecutorService` is a Java framework component that manages and executes threads for you.
+### Limitations of the Runnable Interface
 
-When you submit a `Callable`task to an `ExecutorService`, it immediately returns a 
-`Future` object, allowing your program to continue with other work while the task runs in 
-the background.
+The `Runnable` interface is useful for executing tasks concurrently, but it has several limitations:
+
+#### Cannot Return a Result
+
+The `run()` method of `Runnable` interface has a `void` return type. So you cannot directly 
+get the result of a computation.
 
 ```java
-package com.example.demo;
-
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-
-public class ExecutorServiceDemo {
-
-    public static void main(String[] args) {
-
-        try(ExecutorService executorService = Executors.newSingleThreadExecutor()) {
-            // Defining a callable task
-            Callable<String> task = () -> {
-                Thread.sleep(1000);
-                return "hello world";
-            };
-
-            // Submitting the task
-            Future<String> future = executorService.submit(task);
-
-            // other work can be done here
-            System.out.println("Working on something else...");
-
-            // Retrieving the result (blocks until the result is ready)
-            System.out.println(future.get());
-
-            executorService.shutdown();
-        } catch (Exception ex) {
-            System.out.println("ExecutorServiceDemo Exception");
-        }
-
-    }
+public interface Runnable {
+    void run();
 }
 ```
+
+#### Cannot Handle Exceptions
+
+The `run()` method does not declare any checked exceptions. This means code like the following 
+will not compile:
+
+```java
+Runnable task = () -> {
+    throw new IOException("File not found");
+};
+```
+
+You must catch and handle checked exceptions inside the task itself. If a runtime exception occurs
+inside a `Runnable`, it is not automatically propagated to the caller.
+
+```java
+Runnable task = () -> {
+    throw new RuntimeException("Failure");
+};
+```
+
+The thread may terminate, but the caller doesn't receive the exception.
+
+#### Cannot Handle Cancellation
+
+The `run()` method does not provide a way to cancel a task. This means you cannot cancel a 
+task once it has started.
+
+---
+
+### Introduction of the Callable and Future Interfaces
+
+Most of the limitations of the `Runnable` interface were addressed by the `Callable` and 
+`Future` interfaces introduced in Java 5 (as part of the `java.util.concurrent` package released 
+in 2004).
+
+#### The Callable Interface
+
+A functional interface that can be used to define tasks that can be executed concurrently and 
+return a result. It features a `call()` method that can return an object of any type `V` and throw 
+checked exceptions.
+
+```java
+public interface Callable<V> {
+    V call() throws Exception;
+}
+
+Callable<String> task = () -> {
+    return 100;
+}
+```
+
+A `Callable` cannot be executed directly by a `Thread` because `Thread` accepts only a `Runnable`.
+Instead, a `Callable` must be submitted to an `ExecutorService` to be executed.
+
+```java
+Callable<Integer> task = () -> {
+    return 100;
+}
+
+ExecutorService executor = Executors.newSingleThreadExecutor();
+Future<Integer> future = executor.submit(task);
+```
+
+#### The Future Interface
+
+The `Future` interface represents the result of an asynchronous computation. It is returned when a 
+task is submitted to an `ExecutorService` and provides methods such as:
+
+1. `get()`: to retrieve the result
+2. `isDone()`: to check completion status
+3. `cancel()`: to cancel execution
+4. `isCancelled()`: to verify cancellation
+
+```java
+Callable<String> task = () -> {
+    Thread.sleep(1000);
+    return "hello world";
+};
+
+ExecutorService executor = Executors.newSingleThreadExecutor();
+Future<String> future = executor.submit(task);
+
+String result = future.get();
+System.out.println(result);
+
+executor.shutdown();
+```
+<br/>
+---
+
+### Limitations of the Future Interface
+
+`Future` was a significant improvement over raw threads, but it had several limitations:
+
+1. **Blocking Result Retrieval**: `future.get()` blocks the calling thread until the task completes.
+
+2. **No Callback Support**: There is no way to register a callback that executes automatically 
+when the task completes.
+
+3. **No Task Chaining**: You cannot express dependent asynchronous operations. For example, 
+executing Task B after Task A completes requires manual coordination.
 
 ---
 
 ### What is CompletableFuture?
 
-While a traditional `Future` represents the result of an asynchronous computation, it is 
-limited. You generally have to call `.get()` to retrieve the result, which causes the 
-calling thread to block (pause and wait) until the task is complete.
+The `CompletableFuture` class, introduced in Java 8, is an implementation of the `Future` interface 
+that enables **asynchronous**, **non-blocking**, and **composable programming**. It addressed the 
+limitations of `Future` interface by providing:
 
-`CompletableFuture` solves this by allowing you to define what happens next once a task 
-completes, without stopping your program to wait for it. Instead of waiting (blocking) for 
-the result, you provide callbacks (`thenApply`, `thenAccept`) that trigger automatically 
-when the task finishes.
+1. **Non-Blocking Callbacks**: Execute actions automatically when a task completes, without 
+blocking the calling thread.
+
+2. **Task Chaining**: Compose multiple asynchronous operations into a workflow where the output of 
+one task becomes the input of another.
+
+3. **Better Exception Handling**: Handle and recover from exceptions declaratively within the 
+asynchronous pipeline.
 
 ```java
 import java.util.concurrent.CompletableFuture;
@@ -224,6 +303,10 @@ public class Main {
         CompletableFuture<String> future = CompletableFuture.supplyAsync(() -> {
             simulateDelay(2000); // Simulating 2 seconds of work
             return "User Data";
+        })
+        .exceptionally(ex -> {
+            System.out.println("Exception: " + ex.getMessage());
+            return "Exception Occurred.";
         });
 
         // 2. Define what happens when the task finishes (Non-blocking)
@@ -234,8 +317,8 @@ public class Main {
         // 3. The main thread is free to do other things immediately
         System.out.println("Main thread is not blocked!");
 
-        // Keeping main alive long enough to see the output
-        simulateDelay(3000); 
+        // 4. Keeping main alive long enough to see the output
+        simulateDelay(3000);
     }
 
     private static void simulateDelay(int ms) {
@@ -243,9 +326,7 @@ public class Main {
     }
 }
 ```
-
-
-
+<br/>
 ---
 
 ### What are Virtual Threads? 
@@ -283,6 +364,15 @@ another thread could intervene between steps 1 and 3, leading to lost updates.
 For operations that require atomicity (like counters or complex state updates), you should 
 use synchronized blocks, locks, or the classes found in the `java.util.concurrent.atomic` 
 package (such as `AtomicInteger`).
+
+---
+
+### How to make Singleton class Thread-safe?
+
+---
+
+### What is Immutable class?
+
 
 ---
 
