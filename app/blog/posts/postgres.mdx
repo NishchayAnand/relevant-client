@@ -10,6 +10,9 @@ publishedAt: '2026-06-22'
 
 Indexes help the database locate rows quickly without scanning the entire table.
 
+If we are performing order by operation on a column which has a index on it, the database
+does not run a sorting operation on the data since the index is already sorted.
+
 ---
 
 ### Query Execution Plan 
