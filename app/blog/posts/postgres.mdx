@@ -39,16 +39,19 @@ AND trade_date = CURRENT_DATE;
 
 **<span className="text-blue-500"> A. Most Probable Reason: Table Size is Growing Daily</span>**
 
-If the amount of data being read everyday increases gradually and the query is performing a **full table scan**, 
-the runtime of query execution is expected to increase with time.
+If the amount of data being read everyday increases gradually, the runtime of query execution is 
+expected to increase with time.
 
+Possible solutions:
 
+1. **Add Appropriate Indexes**: If an appropriate index is not present, the optimizer may perform a 
+full table scan, causing query execution time to increase with table size. For example, create a composite 
+index on the `curve_id` and `trade_date` columns.
 
+2. **Archive Historical Data**: Move old market prices that are rarely accessed to an archive table or
+data lake.
 
-
-
-Possible solutions would be to process only incremental data instead of the entire dataset or archive 
-historical data.
+3. **Partition Table**: Partition the table by `trade_date` (yearly or monthtly).
 
 ---
 
@@ -69,5 +72,7 @@ Indexing
 
 
 ---
+
+Q4. Write queries have started taking more time.
 
 
