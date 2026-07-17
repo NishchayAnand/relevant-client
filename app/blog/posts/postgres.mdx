@@ -3,15 +3,22 @@ title: 'System Design: Database (PostgreSQL)'
 publishedAt: '2026-06-22'
 ---
 
----
-
-### Query Execution Plan 
 
 ---
 
 ### Indexing
 
 Indexes help the database locate rows quickly without scanning the entire table.
+
+---
+
+### Query Execution Plan 
+
+A **Query Execution Plan (QEP)** is the strategy chosen by the database optimizer to execute a SQL query.
+For the same query, the database may choose different execution plans depending on the **table size**,
+**available indexes**, **data distribution**, **statistics** and **join conditions**.
+
+---
 
 
 ---
@@ -28,7 +35,7 @@ price
 ```
 
 **<span className="text-emerald-500"> Initially, a query on a table with `100k` took `100ms`. After the table grew to `10M` rows, the same 
-query now takes `5` seconds. What could be the probable reason?</span>**
+query now takes `5 seconds`. What could be the probable reason?</span>**
 
 ```sql
 SELECT * 
@@ -55,11 +62,12 @@ data lake.
 
 ---
 
-Q2. Sudden increase in query execution time. What could be the probable reason?
+**<span className="text-emerald-500"> Q2. A query that consistently executed in `100 ms` suddenly started taking `5 seconds`, 
+even though no application code changes were deployed. What could be the probable reason?</span>**
 
-**Existing Indexes are no Longer Selective Enough**
+**<span className="text-blue-500"> A. Most Probable Reason: Query Execution Plan Changed</span>**
 
-An index becomes less effective when many rows contain the same value.
+An index becomes less effective when many rows contain the same value. Less selective index.
 
 Possible solutions could be to use composite indexes
 
