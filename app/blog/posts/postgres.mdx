@@ -1,4 +1,73 @@
 ---
-title: 'System Design: Database (Postgres)'
-publishedAt: '2026-06-23'
+title: 'System Design: Database (PostgreSQL)'
+publishedAt: '2026-06-22'
 ---
+
+---
+
+### Query Execution Plan 
+
+---
+
+### Indexing
+
+Indexes help the database locate rows quickly without scanning the entire table.
+
+
+---
+
+**<span className="text-emerald-500"> Q1. You have a table storing market price curves.</span>**
+
+```sql
+MARKET_PRICE
+------------
+curve_id
+trade_date
+delivery_date
+price
+```
+
+**<span className="text-emerald-500"> Initially, a query on a table with `100k` took `100ms`. After the table grew to `10M` rows, the same 
+query now takes `5` seconds. What could be the probable reason?</span>**
+
+```sql
+SELECT * 
+FROM market_price 
+WHERE curve_id = 101
+AND trade_date = CURRENT_DATE;
+```
+
+**<span className="text-blue-500"> A. Most Probable Reason: Table Size is Growing Daily</span>**
+
+If the amount of data being read everyday increases gradually and the query is performing a **full table scan**, 
+the runtime of query execution is expected to increase with time.
+
+
+
+
+
+
+Possible solutions would be to process only incremental data instead of the entire dataset or archive 
+historical data.
+
+---
+
+Q2. Sudden increase in query execution time. What could be the probable reason?
+
+**Existing Indexes are no Longer Selective Enough**
+
+An index becomes less effective when many rows contain the same value.
+
+Possible solutions could be to use composite indexes
+
+---
+
+
+**Q2. How to optimize query performance?**
+
+Indexing 
+
+
+---
+
+
