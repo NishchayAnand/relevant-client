@@ -52,7 +52,7 @@ AND trade_date = CURRENT_DATE;
 If the amount of data being read everyday increases gradually, the runtime of query execution is 
 expected to increase with time.
 
-Possible solutions:
+**<span className="text-purple-500"> Possible solutions</span>**
 
 1. **Add Appropriate Indexes**: If an appropriate index is not present, the optimizer may perform a 
 full table scan, causing query execution time to increase with table size. For example, create a composite 
@@ -70,20 +70,51 @@ even though no application code changes were deployed. What could be the probabl
 
 **<span className="text-blue-500"> A. Most Probable Reason: Query Execution Plan Changed</span>**
 
-An index becomes less effective when many rows contain the same value. Less selective index.
+The database optimizer may have selected a different execution plan because the existing index is 
+**no longer selective enough** or because **table statistics are outdated**.
 
-Possible solutions could be to use composite indexes
+An index is most effective when it filters down to a small number of rows. As the data grows or its 
+distribution changes, many rows may start matching the indexed column. In such cases, using the 
+index can become more expensive than scanning the table, causing the optimizer to choose a 
+different execution plan.
 
+**<span className="text-purple-500"> Example</span>**
+
+Initially:
+
+```
+Total Rows          : 10,000,000
+curve_id = 101      : 100 rows
+Execution Plan      : Index Seek
+Execution Time      : 100 ms
+```
+
+After a bulk data load:
+
+```
+Total Rows          : 12,000,000
+curve_id = 101      : 3,000,000 rows
+Execution Plan      : Index Scan / Full Table Scan
+Execution Time      : 5 sec
+```
+
+Since nearly `25%` of the table now matches `curve_id = 101`, the index is no longer highly selective. 
+The optimizer decides that scanning the table is cheaper than performing millions of index lookups.
+
+**<span className="text-purple-500"> Possible solutions</span>**
+
+1. **Review Index Selectivity**: Redesign indexes if the indexed column is no longer selective.
+For example, create a Composite Index using additional filter columns (e.g., curve_id, trade_date) 
+to improve selectivity.
+<br/>
 ---
 
 
-**Q2. How to optimize query performance?**
+**Q3. How to optimize query performance?**
 
 Indexing 
 
 
 ---
-
-Q4. Write queries have started taking more time.
 
 
