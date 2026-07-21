@@ -4,6 +4,10 @@ publishedAt: '2026-06-22'
 ---
 
 
+When we store data in a database, it's ultimately written to disk as a collection of files. 
+The main table data is typically stored as a heap file - essentially a collection of rows in no particular order. 
+Think of this like a notebook where you write entries as they come, one after another.
+
 ---
 
 ### Indexing
@@ -12,6 +16,29 @@ Indexes help the database locate rows quickly without scanning the entire table.
 
 If we are performing order by operation on a column which has a index on it, the database
 does not run a sorting operation on the data since the index is already sorted.
+
+#### B-Tree Indexes
+
+Maintains a balanced tree structure that minimizes the number of disk reads needed to find any piece of data.
+
+A B-tree is a self-balancing tree that maintains sorted data and allows for efficient insertions, deletions, 
+and searches. 
+
+When you create a table like this in PostgreSQL:
+
+```sql
+CREATE TABLE users (
+    id SERIAL PRIMARY KEY,
+    email VARCHAR(255) UNIQUE
+);
+```
+
+PostgreSQL automatically creates two B-tree indexes: one for the primary key and one for the unique email constraint. 
+These B-trees maintain sorted order, which is crucial for both uniqueness checks and range queries.
+
+> **NOTE**: PostgreSQL uses them for almost everything - primary keys, unique constraints, and most regular 
+indexes are all B-trees.
+
 
 ---
 
@@ -114,6 +141,12 @@ to improve selectivity.
 
 Indexing 
 
+
+---
+
+Q4. So when might indexes actually hurt more than help? 
+
+The classic case is a table with frequent writes but infrequent reads. 
 
 ---
 
