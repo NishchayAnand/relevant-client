@@ -67,6 +67,10 @@ resources (e.g., servers, storage, network capacity) without compromising perfor
 
 Data sharding helps achieve scalability.
 
+#### Vertical Scaling 
+
+#### Horizontal Scaling
+
 ---
 
 ### What is Availability?
@@ -847,9 +851,26 @@ DELETE /employees/{id}
 
 #### Specify Content Types
 
+---
 
+**<span className="text-emerald-500">Q1. An API that consistently responded within 200 ms before 
+deployment now takes 4-5 seconds after a new release. CPU, memory, and disk utilization remain 
+within normal limits. How would you approach debugging this issue?</span>**
+
+A. Normal CPU and memory usage usually means the application isn't busy computing, it's often waiting. 
+Common wait sources include **database queries**, **locks**, **external service calls**, **network latency** 
+and **connection pool availability**.
 
 ---
+
+**<span className="text-emerald-500">Q2. The response time of an application keeps increasing over time, 
+even though the traffic remains stable. What could be happening?</span>**
+
+**<span className="text-purple-500">Memory Leak (Most Common)</span>**
+
+The application keeps allocating memory but doesn't release it, gradually increasing heap usage.
+
+
 
 
 
