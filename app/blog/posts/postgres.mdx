@@ -10,9 +10,24 @@ Think of this like a notebook where you write entries as they come, one after an
 
 ---
 
-### Indexing
+### What is a Data Page?
+
+A database does not store one row at a time on disk. Instead, it groups multiple rows together into a fixed-size block 
+called a page (also called a block in Oracle).
+
+The database always reads and writes entire pages, not individual rows.
+
+Depending on the specific DBMS architecture, page sizes are pre-determined and usually range from 4KB to 64KB. 
+For instance, PostgreSQL defaults to 8KB. 
+
+---
+
+### What is Indexing?
 
 Indexes help the database locate rows quickly without scanning the entire table.
+
+An index only stores the indexed column(s) and pointers to the actual table rows. After finding matching entries 
+in the index, the database still has to fetch the corresponding rows from the table.
 
 If we are performing order by operation on a column which has a index on it, the database
 does not run a sorting operation on the data since the index is already sorted.
@@ -39,10 +54,9 @@ These B-trees maintain sorted order, which is crucial for both uniqueness checks
 > **NOTE**: PostgreSQL uses them for almost everything - primary keys, unique constraints, and most regular 
 indexes are all B-trees.
 
-
 ---
 
-### Query Execution Plan 
+### What is Query Execution Plan?
 
 A **Query Execution Plan (QEP)** is the strategy chosen by the database optimizer to execute a SQL query.
 For the same query, the database may choose different execution plans depending on the **table size**,
@@ -50,6 +64,15 @@ For the same query, the database may choose different execution plans depending 
 
 ---
 
+### What are Database statistics?
+
+Database statistics are metadata collected by the database about tables and indexes, such as the total number 
+of rows, number of distinct values, data distribution, NULL counts, and index cardinality. The query optimizer 
+uses these statistics to estimate how many rows a query will return and to calculate the cost of different 
+execution plans. Based on these estimates, it decides whether to use an Index Seek, Index Scan, or Full Table Scan. 
+
+If the statistics become outdated after significant data changes, the optimizer may choose an inefficient execution plan, 
+leading to slower query performance. Updating statistics allows the optimizer to make better decisions.
 
 ---
 
@@ -131,20 +154,35 @@ The optimizer decides that scanning the table is cheaper than performing million
 **<span className="text-purple-500"> Possible solutions</span>**
 
 1. **Review Index Selectivity**: Redesign indexes if the indexed column is no longer selective.
-For example, create a Composite Index using additional filter columns (e.g., curve_id, trade_date) 
+For example, create a composite index using additional filter columns (e.g., curve_id, trade_date) 
 to improve selectivity.
 <br/>
 ---
 
 
-**Q3. How to optimize query performance?**
+**<span className="text-emerald-500"> Q3. How to optimize query performance?</span>**
 
-Indexing 
+1. Analyze the Query Execution Plan
+2. Create or Optimize Indexes
+3. Reduce the Amount of Data Read: Partition Large Tables, Archive Historical Data
+4. Optimize JOIN Operations: Join indexed columns, Filter data before joining.
+
+---
+
+**<span className="text-emerald-500"> Q4. How to write an optimized query?</span>**
+
+1. Select Only the Columns You Need
+2. Filter Data as Early as Possible
+3. Use Indexed Columns in WHERE Clauses
+4. Avoid Functions on Indexed Columns
+5. Avoid Leading Wildcards
+6. Create Composite Indexes for Multiple Filters
+7. Join on Indexed Columns
 
 
 ---
 
-Q4. So when might indexes actually hurt more than help? 
+Q5. So when might indexes actually hurt more than help? 
 
 The classic case is a table with frequent writes but infrequent reads. 
 
