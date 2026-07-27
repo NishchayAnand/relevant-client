@@ -35,7 +35,9 @@ songs concurrently.
 
 2. **Low Latency:** Real-time streaming must have low latency for a seamless user experience.
 
-3. **High Availability:** The system must be available at all times with minimal downtime.
+3. **High Availability:** The system must be available at all times with minimal downtime(prioritizing 
+availability over consistency).
+
 
 4. **Global Reach:** Support users from different geographic regions, potentially leveraging CDNs to serve audio files 
 faster.
@@ -48,7 +50,31 @@ faster.
 
 ### Design Rationale
 
-1. **Streaming Service:** Handles streaming of music from the storage system to user’s device in real-time.
+different devices require different video formats in order to play back video. Once the user uploads a video, 
+S3 will fire an event notification to a video processing service. This service will do the work to convert 
+the original video into different formats. It will store each format as a file in S3. It will also update 
+the video metadata record with the file URLs representing the different formats.
+
+This approach fails to anticipate the need to store small segments of video for streaming later. If we store 
+the entire video, there's no way for the client to download "part" of a video. As we will see later, 
+downloading "part" of a video is really important for streaming for various reasons.
+
+Post-processes videos by splitting them into small segments (each a playable unit that's a few seconds in length) 
+and then converts each segment into different formats playable on different devices. This approach introduces 
+some complexity. Firstly, it makes our post-processing service more complex, turning it into a "pipeline." It 
+first must split up the video into segments, and then generate video formats per segment. In addition, the 
+system needs to store references to these segments in a sane way and use them downstream in our streaming flow 
+effectively.
+
+### Watch A Video
+
+If the entire video needs to be downloaded before playback, the user could be waiting to watch the video for a 
+long time. For example, a 10GB video would take 13+ minutes to download on 100 MBPS internet, which is an 
+unreasonable amount of time.
+
+---
+
+1. **Streaming Service:** Handles streaming of music from the storage system to user's device in real-time.
 
 2. **Search Service:** Handles searching of songs, artists, albums and playlists.
 
@@ -117,6 +143,12 @@ Search Queries: Cache popular search queries to avoid hitting the search index r
 Popular Songs: Frequently streamed songs can be cached to reduce database queries.
 
 User Preferences: Store the user's liked songs and playlists in the cache for faster retrieval.
+
+---
+
+1. Design Spotify
+2. Design Live Streaming Platform
+3. Video Takedowns
 
 
 
