@@ -157,6 +157,35 @@ video streamed only when the user starts watching.
 
 ### Design Rationale
 
+Designing a platform like Instagram requires carefully evaluating multiple architectural approaches to address 
+challenges such as **handling billions of media objects**, **serving personalized feeds with low latency**, 
+**supporting global traffic**, and **maintaining high availability**. 
+
+The following design rationale explains the key design decisions, the alternatives considered, and the 
+trade-offs behind each choice.
+
+#### How can Instagram upload large media files efficiently?
+
+---
+
+(continue from here...)
+
+Instead of sending media through the backend, the server generates a pre-signed object storage URL. 
+The client uploads directly to storage, after which an event triggers asynchronous processing such as 
+compression, thumbnail generation, and video transcoding. This reduces backend bandwidth usage and 
+allows application servers to remain stateless.
+
+#### How should Instagram generate the home feed for billions of users?
+
+A hybrid fan-out strategy balances read and write efficiency. Regular users use fan-out on write, 
+where posts are pushed to followers' feed timelines for fast reads. Celebrity accounts use fan-out 
+on read, where posts are merged dynamically during feed requests, avoiding massive write amplification.
+
+#### How can Instagram provide low-latency image and video delivery worldwide?
+
+Media is stored in object storage and distributed through a Content Delivery Network (CDN). 
+Frequently accessed content is cached at edge locations close to users, minimizing latency and 
+reducing load on origin servers.
 
 #### Upload a Photo
 
