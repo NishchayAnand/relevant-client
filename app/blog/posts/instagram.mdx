@@ -72,6 +72,23 @@ table scans, we can add a few indexes to our database.
 Our first concern would be that for users following 1,000+ accounts, we need 1,000+ queries 
 to the Posts table to get posts from each of their followed accounts.
 
+- **Read Amplification**: Every time a user refreshes their feed, we generate a large number of database reads.
+With 500M daily active users refreshing their feeds multiple times per day, this quickly becomes unsustainable. 
+This is going to get expensive fast.
+
+- **Repeated Work**: If two users follow many of the same accounts (which is common), we're repeatedly querying for the 
+same posts. At Instagram's scale, popular posts might be retrieved millions of times.
+
+Let's put this in perspective with some numbers:
+
+- Each feed refresh might need to process 10,000 posts (1,000 followed accounts × 10 posts/day)
+- With 500M DAU, if each user refreshes their feed 5 times daily, that's 2.5 billion feed generations per day
+- During peak usage (e.g., evenings, major events), we might see 150,000+ feed requests per second
+
+A much better approach is to precompute the feeds. Instead of generating the feed when the user requests 
+it (fan-out on read), we generate it when a user posts (fan-out on write).
+
+
 #### Follow Service
 
 We've added a dedicated Follow Service to handle follow/unfollow operations separately 
