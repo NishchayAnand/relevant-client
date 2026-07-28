@@ -2,3 +2,145 @@
 title: 'System Design (Instagram): Social Networking System'
 publishedAt: '2026-06-18'
 ---
+
+
+<br/>
+![instagram](/instagram/instagram.svg)
+<br/>
+
+---
+
+### Functional Requirements
+
+---
+
+### Non-Functional Requirements
+
+---
+
+#### Back-of-the-Envelope Estimation
+
+#### Load Estimation
+
+#### Storage Capacity
+
+---
+
+### Design Rationale
+
+
+#### Upload a Photo
+
+#### Follow Users
+
+We can model this relationship with just a Followers table in our database that stores the 
+`followerId` and `followedId`. Each time we receive a new `POST /follows` request, we'll insert 
+a single new row into our table.
+
+#### View Feed
+
+1. Get followees: Query the Follow table to get a list of user_ids that the current user follows.
+
+2. Get Posts: For each of those followed users, query the Post table to get their recent posts.
+
+3. Merge and Sort: Combine all the retrieved posts and sort them chronologically (by timestamp or postId).
+
+4. Return: Return the sorted posts to the client.
+
+> **NOTE**: These queries would be incredibly slow if we needed to look through every single Followers row 
+for every user and then search through every Post row to find the ones we want. To avoid these full 
+table scans, we can add a few indexes to our database.
+
+1. The client makes a GET request to the API Gateway with the cursor and limit.
+
+2. The API Gateway routes the request to the Post Service.
+
+3. The Post Service queries the Follow table to get the followed users of the current user.
+
+4. The Post Service queries the Post table for each followed user to get their recent posts.
+
+5. The Post Service combines and sorts the posts and returns them to the client, limited by the cursor and limit.
+
+---
+
+### High-Level Design
+
+#### Post Service
+
+"fan-out on read" approach could work for a small app, but it's not going to scale to 500M DAU.
+
+Our first concern would be that for users following 1,000+ accounts, we need 1,000+ queries 
+to the Posts table to get posts from each of their followed accounts.
+
+#### Follow Service
+
+We've added a dedicated Follow Service to handle follow/unfollow operations separately 
+from the Post Service. Since following users happens less frequently than posting and 
+viewing content, this separation lets us optimize and scale each service based on 
+its specific needs.
+
+
+---
+
+### Sequence Flow 
+
+handling post creation requests. It will receive the media and caption, store the post metadata in the database, 
+the actual bytes on the media in a blob store, and return a postId to the client.
+
+1. The client makes a POST request to the API Gateway with the media and caption.
+
+2. The API Gateway routes the request to the Post Service.
+
+3. The Post Service receives the media and caption, stores the post metadata in the database, and the 
+actual bytes on the media in a blob store.
+
+4. The Post Service returns a postId to the client.
+
+---
+
+### API Design
+
+#### Create Posts
+
+```
+POST /posts -> postId
+{
+  "media": {photo or video bytes},
+  "caption": "My cool photo!",
+}
+```
+
+#### Follow Request
+
+```
+POST /follows
+{
+  "followedId": "123"
+}
+```
+
+#### View Feed
+
+```
+GET /feed?cursor={cursor}&limit={page_size} -> Post[]
+```
+
+We'll use a cursor for pagination, and a limit to control the page size.
+
+---
+
+### Data Model Design
+
+#### Post Table 
+
+For the Post table, we'll make the partition key the userId since most of our queries will be to 
+get the posts of a given user. We can make the sort key a composite of createdAt and postId to 
+ensure chronological ordering while maintaining uniqueness.
+
+#### Follow table
+
+For the Follower table, we'll make the partition key the followerId and the sort key the followedId. 
+This allows us to efficiently query for all users that a given user follows.
+
+---
+
