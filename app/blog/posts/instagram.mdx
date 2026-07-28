@@ -127,16 +127,31 @@ The ingress bandwidth is calculated as:
 Ingress Bandwidth
 = 1,000 posts/sec x 3.6 MB/post
 = 3,600 MB/sec
-≈ 3.6 GB/sec
-
-If you want it in bits per second (network bandwidth) = 3.6 GB/sec x 8 ≈ 28 Gbps
+= 3.6 GB/sec
+= 3.6 GB/sec x 8 ≈ 28 Gbps
 ```
 
 #### Egress Bandwidth (Feed Retrieval)
 
-Assuming each feed page contains approximately 10 posts, the combined payload (thumbnails + metadata) for these 10 posts is approximately 1 MB.
+Unlike media uploads, a feed request typically does not return the original high-resolution photos or videos.
+Instead, it returns a lightweight payload containing compressed thumbnails, post metadata, captions, 
+profile information, and URLs for the media assets.
 
-<br/>
+Assuming each feed page contains approximately `10` posts, the combined payload (thumbnails + metadata) 
+for these `10` posts can be approximately `1 MB`.
+
+If the system receives `25,000` feed requests per second, the outbound bandwidth is:
+
+```
+Egress Bandwidth
+= 25,000 requests/sec x 1 MB/request
+= 25,000 MB/sec
+= 25 GB/sec
+= 25 x 8 ≈ 200 Gbps
+```
+
+> **NOTE**: Videos are initially represented by preview thumbnails and playback URLs, with the actual 
+video streamed only when the user starts watching.
 
 ---
 
