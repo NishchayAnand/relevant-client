@@ -3,6 +3,8 @@ title: 'System Design (Instagram): Social Networking System'
 publishedAt: '2026-06-18'
 ---
 
+Design a photo and video sharing social media platform like Instagram that enables users to 
+connect, share visual content, and view updates from accounts they follow at scale.
 
 <br/>
 ![instagram](/instagram/instagram.svg)
@@ -12,17 +14,47 @@ publishedAt: '2026-06-18'
 
 ### Functional Requirements
 
+1. **Post Creation**: Users can create posts featuring photos, videos, and a simple caption.
+
+2. **Follow Relationships**: Users can follow other users.
+
+3. **Chronological Feed**: Users can view a chronological feed of posts from the accounts they follow.
+
 ---
 
 ### Non-Functional Requirements
+
+1. **Scale**: Support `500 million` Daily Active Users (DAU) and `100 million` new posts per day.
+
+2. **Availability**: Prioritize high availability for media delivery over consistency (eventual 
+consistency up to `2 minutes` is acceptable).
+
+3. **Latency**: Deliver feed content with low latency (`< 500ms` end-to-end response time for feed 
+requests) and ensure instant rendering of media content.
 
 ---
 
 #### Back-of-the-Envelope Estimation
 
+To design a scalable system, we need to size our infrastructure based on our core scale parameters: 
+`500 million` **Daily Active Users (DAU)** and `100 million` **new posts per day**.
+
 #### Load Estimation
 
-#### Storage Capacity
+Our load requirements primarily depend on the **read traffic for feed requests** and **write traffic 
+for post creation**.
+
+##### **<span className="text-purple-500">Read Traffic (Feed Requests)</span>**
+
+
+fnjfnjf
+
+##### **<span className="text-purple-500">Write Traffic (Posts)</span>**
+
+#### Storage Capacity Estimation
+
+#### Bandwidth Estimation
+
 
 ---
 
@@ -61,9 +93,6 @@ table scans, we can add a few indexes to our database.
 
 5. The Post Service combines and sorts the posts and returns them to the client, limited by the cursor and limit.
 
----
-
-### High-Level Design
 
 #### Post Service
 
@@ -96,7 +125,6 @@ from the Post Service. Since following users happens less frequently than postin
 viewing content, this separation lets us optimize and scale each service based on 
 its specific needs.
 
-
 ---
 
 ### Sequence Flow 
@@ -112,6 +140,10 @@ the actual bytes on the media in a blob store, and return a postId to the client
 actual bytes on the media in a blob store.
 
 4. The Post Service returns a postId to the client.
+
+---
+
+### High-Level Design
 
 ---
 
@@ -160,4 +192,12 @@ For the Follower table, we'll make the partition key the followerId and the sort
 This allows us to efficiently query for all users that a given user follows.
 
 ---
+
+### Similar Case Studies
+
+1. Design Twitter
+
+2. Design Facebook
+
+3. 
 
