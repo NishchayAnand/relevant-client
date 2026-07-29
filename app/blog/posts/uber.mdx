@@ -1,6 +1,126 @@
 ---
-title: 'System Design (Uber): Ride Booking System'
+title: 'System Design (Uber): Ride Sharing System'
 publishedAt: '2026-06-19'
 ---
 
+Design a ride-sharing platform like Uber that connects passengers with drivers who 
+offer transportation services in personal vehicles.
+
 ![uber](/uber/uber.png)
+
+---
+
+### Functional Requirements
+
+1. Riders should be able to input a start location and a destination and get a fare estimate.
+
+2. Riders should be able to request a ride based on the estimated fare.
+
+3. Upon request, riders should be matched with a driver who is nearby and available.
+
+4. Drivers should be able to accept/decline a request and navigate to pickup/drop-off.
+
+#### Out-of-Scope 
+
+5. Riders should be able to request different categories of rides (e.g., X, XL, Comfort).
+
+<br/>
+
+---
+
+### Non-Functional Requirements
+
+1. The system should prioritize low latency matching (`< 1 minutes` to match or failure)
+
+2. The system should ensure strong consistency in ride matching to prevent any driver 
+from being assigned multiple rides simultaneously.
+
+3. The system should be able to handle high throughput, especially during peak hours or 
+special events (100k requests from same location).
+
+---
+
+### Sequence Flow
+
+
+---
+
+### Load Estimation
+
+---
+
+---
+
+### Storage Estimation
+
+---
+
+### Bandwidth Estimation
+
+---
+
+### High-Level Design 
+
+---
+
+### API Design 
+
+POST endpoint that takes in the user's current location and desired destination and returns 
+a Fare object with the estimated fare and eta. We use POST here because we will be creating 
+a new Fare entity in the database.
+
+```
+POST /fare -> Fare
+Body: {
+  pickupLocation, 
+  destination
+}
+```
+
+Request Ride Endpoint: This endpoint is used by riders to confirm their ride request after 
+reviewing the estimated fare. It initiates the ride matching process by signaling the backend 
+to find a suitable driver, thus creating a new ride object.
+
+```
+POST /rides -> Ride
+Body: {
+  fareId
+}
+```
+
+Update Driver Location Endpoint: Before we can do any matching, we need to know where our drivers are. 
+This endpoint is used by drivers to update their location in real-time. It is called periodically by 
+the driver client to ensure that the driver's location is always up to date.
+
+```
+POST /drivers/location -> Success/Error
+Body: {
+        lat, long
+    }
+
+- note the driverId is present in the session cookie or JWT and not in the body or path params
+```
+
+Accept Ride Request Endpoint: This endpoint allows drivers to accept a ride request. Upon acceptance, 
+the system updates the ride status and provides the driver with the pickup location coordinates.
+
+```
+PATCH /rides/:rideId -> Ride
+Body: {
+  accept/deny
+}
+```
+
+<br/>
+
+---
+
+### Data Model Design 
+
+---
+
+### Final Architecture
+
+---
+
+
