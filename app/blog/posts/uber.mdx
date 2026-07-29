@@ -42,12 +42,78 @@ special events (100k requests from same location).
 
 ### Sequence Flow
 
+Let's walk through the sequence of events that occur when a user requests a ride and the system matches them with a nearby driver:
+
+1. The user confirms their ride request in the client app, which sends a POST request to our backend system with the ID of the 
+fare they are accepting.
+
+2. The API gateway performs necessary authentication and rate limiting before forwarding the request to the Ride Service.
+
+3. The Ride Service creates a ride object as mentioned above, and then forwards the request to the Ride Matching Service to 
+trigger the matching workflow (we'll discuss ways to make this more robust later, keeping it simple for now).
+
+4. Meanwhile, at all times, drivers are sending their current location to the location service, and we are updating our 
+database with their latest location lat & long so we know where they are.
+
+5. The matching workflow then uses these updated locations to query for the closest available drivers in an attempt to 
+find an optimal match.
+
+#### Riders should be able to input a start location and a destination and get an estimated fare.
+
+The first thing that users will do when they open the app to request a ride is search for 
+their desired destination. At this point, the client will make a request to our service to 
+get an estimated price for the ride. The user will then have a chance to request a ride with 
+this fare or do nothing.
+
+1. The rider enters their pickup location and desired destination into the client app, which sends 
+a `POST` request to our backend system via `/fare`.
+
+2. The API gateway receives the request and handles any necessary authentication and rate limiting 
+before forwarding the request to the `Ride` Service.
+
+3. The Ride Service makes a request to the Third Party Mapping API to calculate the distance and travel 
+time between the pickup and destination locations and then applies the company's pricing model to the distance 
+and travel time to generate a fare estimate.
+
+4. The Ride Service creates a new `Fare` entity in the Database with the details about the estimated fare.
+
+5. The service then returns the `Fare` entity to the API Gateway, which forwards it to the `Rider` Client so 
+they can make a decision about whether accept the fare and request a ride.
+
+#### Riders should be able to request a ride based on the estimated fare
+
+Once a user reviews the estimated fare and ETA, they can request a ride. 
+
+1. The user confirms their ride request in the client app, which sends a `POST` request to our backend system 
+with the id of the `Fare` they are accepting.
+
+2. The API gateway performs necessary authentication and rate limiting before forwarding the request to 
+the `Ride` Service.
+
+3. The Ride Service receives the request and creates a new entry in the Ride table, linking to the relevant 
+`Fare` that was accepted, and initializing the Ride's status as requested.
+
+4. Next, it triggers the matching flow so that we can assign a driver to the ride.
+
+#### Upon request, riders should be matched with a driver who is nearby and available
+
+1. After the Ride Matching Service determines the ranked list of eligible drivers, it sends a 
+notification to the top driver on the list via APNs or FCM.
+
+2. The driver receives a notification that a new ride request is available. They open the 
+Driver Client app and accept the ride request, which sends a PATCH request to our backend system with the rideID. 
+If they decline the ride instead, the system will send a notification to the next driver on the list.
+
+3. The API gateway receives the requests and routes it to the Ride Service.
+
+4. The Ride Service receives the request and updates the status of the ride to "accepted" and updates the 
+assigned driver accordingly. It then returns the pickup location coordinates to the Driver Client.
+
+5. With the coordinates in hand, the Driver uses on client GPS to navigate to the pickup location.
 
 ---
 
 ### Load Estimation
-
----
 
 ---
 
@@ -60,6 +126,49 @@ special events (100k requests from same location).
 ---
 
 ### High-Level Design 
+
+#### Ride Service
+
+This microservice is tasked with managing ride state, starting with calculating fare estimates. 
+It interacts with third-party mapping APIs (like Google Maps) to determine the distance and travel 
+time between locations and applies the company's pricing model to generate a fare estimate.
+
+#### Location Service 
+
+Manages the real-time location data of drivers. It is responsible for receiving location updates 
+from drivers, storing this information in the database, and providing the Ride Matching Service 
+with the latest location data to facilitate accurate and efficient driver matching.
+
+#### Ride Matching Service 
+
+Handles incoming ride requests and utilizes a sophisticated algorithm to match these requests with 
+the best available drivers based on proximity, availability, driver rating, and other relevant factors.
+
+#### Notification Service 
+
+Responsible for dispatching real-time notifications to drivers when a new ride request is matched to them. 
+It ensures that drivers are promptly informed so they can accept ride requests in a timely manner, thus 
+maintaining a fluid user experience.
+
+---
+
+### Design Rationale
+
+#### How do we handle frequent driver location updates and efficient proximity searches on location data?
+
+**Primary approach**: Directly writing each driver's location update to the database as it comes in, and 
+performing proximity searches on this raw data.  It's considered a bad approach because it doesn't scale well 
+with the high volume of updates from millions of drivers, and it makes proximity searches inefficient and slow.
+
+**Better Approach**: Instead of writing each driver location update directly to the database, updates are aggregated 
+over a short interval and then batch-processed. The interval between batch writes introduces a delay, which means 
+the location data in the database may not reflect the drivers' most current positions. This can lead to suboptimal 
+driver matches.
+
+**Best Approach**: Redis is an in-memory data store that supports geospatial data types and commands. It uses geohashing 
+to encode latitude and longitude coordinates into a 52-bit integer score within a sorted set, where each member 
+(e.g., driverId) is associated with its geohash score. This allows for efficient storage and querying of 
+geospatial data.
 
 ---
 
@@ -111,7 +220,8 @@ Body: {
 }
 ```
 
-<br/>
+> **NOTE**: The `Ride` object would contain information about the pickup location and destination so the 
+client can display this information to the driver.
 
 ---
 
