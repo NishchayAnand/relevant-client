@@ -1,0 +1,18 @@
+---
+title: 'System Design (TripAdvisor): Proximity Service'
+publishedAt: '2026-06-30'
+---
+
+---
+
+### Extra
+
+You have two numbers, latitude and longitude, and what you actually care about is the straight-line 
+distance between points. A single B-tree only knows how to sort on one of those numbers at a time. 
+Index on latitude and you get a horizontal strip of the earth. Index on longitude and you get a vertical 
+strip. Even a composite index on both columns can't save you, because a B-tree sorts by the first column 
+and only breaks ties with the second, so the database still effectively sorts on a single dimension, and 
+the strip it pulls back still holds millions of rows, none of them ranked by distance from the rider. So 
+it falls back to the brute-force version, computing the real distance from each driver to the rider one 
+row at a time and discarding everyone past 2 kilometers.
+

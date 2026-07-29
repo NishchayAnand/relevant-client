@@ -125,6 +125,74 @@ assigned driver accordingly. It then returns the pickup location coordinates to 
 
 ---
 
+### Design Rationale
+
+#### How to calculate estimated fare?
+
+Make a request to the **Third Party Mapping API (like Google Maps)** to calculate the distance and travel time 
+between the pickup and destination locations and then applies the company's pricing model to the distance 
+and travel time to generate a fare estimate.
+
+When a rider enters the pickup and drop locations, the Pricing Service is responsible for calculating an 
+estimated fare before the ride is confirmed. 
+
+- It begins by calling the Mapping Service, which determines the optimal route based on the road network, 
+live traffic conditions, road closures, and historical travel patterns. 
+
+- The Mapping Service returns the estimated travel distance and duration for the trip. 
+
+- Using this information, the Pricing Service calculates the fare by combining a base fare, a distance-based 
+charge (distance x per-mile rate), and a time-based charge (estimated duration x per-minute rate). 
+
+- It then consults the Demand Service to determine whether surge pricing should be applied based on the current 
+demand-supply imbalance in the rider's area. If demand significantly exceeds the number of available drivers, 
+a surge multiplier is applied to the fare. 
+
+- Finally, the service adds any applicable fees such as airport surcharges, tolls, booking fees, or taxes, and 
+subtracts any promotional discounts or coupons before returning the estimated fare to the rider.
+
+> <span className="text-purple-500 bg-yellow-200">**NOTE**: It's important to note that this is only an estimate, not 
+the final fare. The estimate is based on the predicted route and expected travel time, both of which may 
+change once the ride begins. Factors such as unexpected traffic congestion, road closures, route deviations, 
+rider-requested stops, or changes to the destination can increase or decrease the actual trip distance and 
+duration. Therefore, after the ride is completed, the fare is recalculated using the actual distance traveled, 
+the actual trip duration, and any applicable surcharges or tolls incurred during the ride. This approach allows 
+Uber to provide riders with a reasonably accurate upfront estimate while ensuring that drivers are compensated 
+fairly for the actual trip completed.</span>
+
+#### How to pick the best driver for the requested trip?
+
+Once a rider requests a trip, the Matching Service is responsible for selecting the most suitable driver. The process 
+begins by querying the Location Service, which **uses a geospatial index (such as Geohash or S2) to quickly identify 
+drivers within a configurable search radius around the pickup location**. Drivers who are offline, already on another 
+trip, or who have not sent a recent location update are filtered out.
+
+The remaining candidate drivers are then ranked based on multiple factors rather than just physical distance. The most 
+important criterion is the Estimated Time of Arrival (ETA) to the pickup location, since traffic conditions, one-way streets, 
+and road connectivity often make ETA a better indicator than straight-line distance. The Matching Service obtains this 
+ETA by calling the Mapping Service for each candidate driver.
+
+After the Matching Service determines the ranked list of eligible drivers, it **sends a notification** to the top driver 
+on the list.
+
+#### How do we handle frequent driver location updates and efficient proximity searches on location data?
+
+**Primary approach**: Directly writing each driver's location update to the database as it comes in, and 
+performing proximity searches on this raw data.  It's considered a bad approach because it doesn't scale well 
+with the high volume of updates from millions of drivers, and it makes proximity searches inefficient and slow.
+
+**Better Approach**: Instead of writing each driver location update directly to the database, updates are aggregated 
+over a short interval and then batch-processed. The interval between batch writes introduces a delay, which means 
+the location data in the database may not reflect the drivers' most current positions. This can lead to suboptimal 
+driver matches.
+
+**Best Approach**: Redis is an in-memory data store that supports geospatial data types and commands. It uses geohashing 
+to encode latitude and longitude coordinates into a 52-bit integer score within a sorted set, where each member 
+(e.g., driverId) is associated with its geohash score. This allows for efficient storage and querying of 
+geospatial data.
+
+---
+
 ### High-Level Design 
 
 #### Ride Service
@@ -149,26 +217,6 @@ the best available drivers based on proximity, availability, driver rating, and 
 Responsible for dispatching real-time notifications to drivers when a new ride request is matched to them. 
 It ensures that drivers are promptly informed so they can accept ride requests in a timely manner, thus 
 maintaining a fluid user experience.
-
----
-
-### Design Rationale
-
-#### How do we handle frequent driver location updates and efficient proximity searches on location data?
-
-**Primary approach**: Directly writing each driver's location update to the database as it comes in, and 
-performing proximity searches on this raw data.  It's considered a bad approach because it doesn't scale well 
-with the high volume of updates from millions of drivers, and it makes proximity searches inefficient and slow.
-
-**Better Approach**: Instead of writing each driver location update directly to the database, updates are aggregated 
-over a short interval and then batch-processed. The interval between batch writes introduces a delay, which means 
-the location data in the database may not reflect the drivers' most current positions. This can lead to suboptimal 
-driver matches.
-
-**Best Approach**: Redis is an in-memory data store that supports geospatial data types and commands. It uses geohashing 
-to encode latitude and longitude coordinates into a 52-bit integer score within a sorted set, where each member 
-(e.g., driverId) is associated with its geohash score. This allows for efficient storage and querying of 
-geospatial data.
 
 ---
 
@@ -232,5 +280,11 @@ client can display this information to the driver.
 ### Final Architecture
 
 ---
+
+### Similar Case Studies
+
+1. Design Google Maps
+
+2. Design Proximity Service like TripAdvisor or Yelp
 
 
