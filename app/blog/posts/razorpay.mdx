@@ -2,3 +2,123 @@
 title: 'System Design (Razorpay): Payment System'
 publishedAt: '2026-06-15'
 ---
+
+Design a payment processing system like Razorpay that allows merchants (businesses) to accept payment from 
+their customers.
+
+![razorpay](/razorpay/razorpay.png)
+
+---
+
+### Functional Requirements
+
+1. All transactions should be persisted. Financial auditing standards require us to maintain 
+immutable records of every payment attempt, success, and failure.
+
+---
+
+### Non-Functional Requirements
+
+1. Secure payment workflow. Proper merchant authentication.
+
+1. The system shoulbe be able to handle `10,000` **transactions per second (TPS)** at peak load.
+
+2. 
+
+
+
+---
+
+### Sequence Flow
+
+1. Customer reaches the checkout page and input payment details. 
+
+2. The merchant makes an API call to our system by sending a POST request to `/payment-intents` with 
+details like amount, currency, and description.
+
+3. Once authenticated, the request is routed to the PaymentIntent Service.
+
+4. The PaymentIntent Service creates a new PaymentIntent record with an initial status of "created" 
+and stores it in the Database.
+
+5. The system generates a unique identifier for this PaymentIntent and returns it to the merchant 
+in the API response.
+
+---
+
+### Load Estimation
+
+---
+
+### Storage Capacity Estimation
+
+---
+
+### Bandwidth Estimation
+
+---
+
+### Design Rationale
+
+Q. What happens if a payment fails?
+
+No transaction data should ever be lost, even in case of failures. It would both be a financial 
+and legal disaster.
+
+Consider this scenario that happens daily in production systems:
+
+1. We send a $200 charge request to the customer's bank
+2. The bank approves and debits the customer's account
+3. The response packet gets delayed or lost in network congestion
+4. Our 30-second timeout triggers, we mark the payment as "failed"
+5. The merchant displays "Payment failed, please try again"
+6. The customer retries, creating a second $200 charge
+7. The customer now has $400 in charges for a $200 purchase
+
+Q. Why do we need a separate audit table?
+
+We need to track not just what the current state is, but the entire sequence of events that led to 
+that state. When a customer disputes a charge six months later, we must be able to prove exactly 
+what happened: when the payment was initiated, what amount was authorized, when it was captured, 
+and whether any refunds were processed. A single missing record could mean inability to defend 
+against chargebacks, failed compliance audits, or worse—being unable to determine the true state 
+of customer accounts.
+
+---
+
+### High-Level Design
+
+---
+
+### API Design
+
+---
+
+### Data Model Design
+
+---
+
+### Extra
+
+Payment processing is inherently asynchronous.
+
+Payment networks - Visa, Mastercard, American Express - actually authorize and process the financial
+transactions. Payment networks operate on private, highly secure networks that are completely 
+separate from the public internet.
+
+What are replay attacks?
+
+What is API key management with request signing? What is secret key based authentication?
+
+How iframes help me ensuring the merchant's server is not bothered with customer card details?
+
+Webhooks - server to server communication
+
+Websockets, SSE - server to client communication
+
+
+
+
+
+
+
