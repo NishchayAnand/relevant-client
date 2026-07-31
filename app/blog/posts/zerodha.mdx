@@ -1,5 +1,135 @@
 ---
-title: 'System Design (Zerodha): Stock Exchange'
+title: 'System Design (Zerodha): Stock Trading Platform'
 publishedAt: '2026-06-21'
 ---
+
+Design a stock trading platform like Zerodha that features real-time market data and basic order 
+management.
+
+<br/>
+![zerodha](/zerodha/zerodha.svg)
+<br/>
+
+---
+
+### Functional Requirements
+
+1. Users can see live prices of stocks.
+
+2. Users can manage their stock orders (market / limit orders).
+
+---
+
+### Non-Functional Requirements
+
+1. High consistency for order management. It's essential for users to see up-to-date order 
+information when making trades. ??
+
+2. 20 million DAU, 5 trades per day per user on average, 1000s of symbols (stocks).
+
+3. Low latency.
+
+4. Client connections (stock exchange) are typically expensive. The system should minimize number of
+active clients connecting to external exchange API.
+
+---
+
+### Design Rationale
+
+#### How can the user see multiple live stock prices at once?
+
+- **Bad Approach**: Polling exchange directly for price data per symbol. The client would poll every
+few seconds (per symbol), and update the price on the UI. It involves polling indiscriminately even
+if the price has not changed. Additionally, many clients would be requesting the same information 
+from the exchange, which is wasteful. If 5000 clients request a symbol price at the same time, 
+the price isn't different per user, yet we'll be making 5000 API calls to get the required information
+to different end users. This approach will not minimize client connections / calls. Also, to support
+the short SLA of 200ms, we would need to poll every 200ms, which is unreasonable.
+
+- **Better Approach**: Maintain an internal cache and keep it up-to-date by a symbol price 
+processor that is listening to prices on the exchange. We can poll a symbol service that performs 
+a key-value lookup on the internal cache. This approach is an improvement to the client connections
+but we are still polling from the symbol service and maintaining a 200ms SLA would still be difficult.
+
+- **Best Approach**: Use SSE (Server Sent Events) to establish persistent connections that allow our 
+servers to push live price changhes to clients instantly. It is similar to websockets but is 
+unidirectional and goes over HTTP instead of a separate protocol. However, this approach also comes
+with its own set of challenges. The load balancer needs to be configured to support "sticky sessions"
+so that a user and server can maintain a connection to promote data transfer. 
+
+#### How to create or cancel order via the exchange?
+
+- **Bad Solution**: Any orders issued by the client are directly submitted to the exchange. While 
+this is the "mainline" way to submit orders that cuts out any incurred latency from a backend proxying
+the exchange, it can lead to large number of exchange clients and concurrent requests, which will be
+very expensive. 
+
+- **Better Approach:** Send orders to an order service which enqueues them for an order dispatch 
+service. The queue prevents the dispatch service from getting overloaded. This approach proxies the
+exchange and allows a path for elastic scalability in case of increased load (e.g., bursts in 
+trading traffic). However, this approach breaks down when we consider our tight order SLA (under
+200ms as a goal). Imagine a user who wants to quickly order stocks or quickly cancel an outstanding 
+order. It would be unacceptable for them to be left waiting for our dispatcher to eventually handle 
+their order, or for our service to start more machines up to scale up given increased queue load.
+
+- **Best Approach**: This approach involves sending our orders directly from the order service to 
+an order dispatch gateway. The gateway would enable external internet communication with the 
+exchange via the order service. **What is this???**
+
+
+
+
+
+---
+
+### API Design 
+
+to get a symbol:
+
+```
+GET /symbol/:name
+Response: Symbol
+```
+
+To create an order:
+
+```
+POST /order
+Request: {
+  position: "buy",
+  symbol: "META",
+  priceInCents: 52210,
+  numShares: 10
+}
+Response: Order
+```
+
+cancel an order:
+
+```
+DELETE /order/:id
+Response: {
+  ok: true
+}
+```
+
+list orders for a user:
+
+```
+GET /orders
+Response: Order[] (paginated)
+```
+
+---
+
+### Extra
+
+Stock brokers are paid by stock exchanges for the order flow.
+
+---
+
+### Similar Case Studies
+
+1. Design a Stock Exchange like BSE, NSE.
+
 
