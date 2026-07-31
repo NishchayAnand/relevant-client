@@ -76,10 +76,6 @@ their order, or for our service to start more machines up to scale up given incr
 an order dispatch gateway. The gateway would enable external internet communication with the 
 exchange via the order service. **What is this???**
 
-
-
-
-
 ---
 
 ### API Design 
@@ -126,10 +122,41 @@ Response: Order[] (paginated)
 
 Stock brokers are paid by stock exchanges for the order flow.
 
+Stock exchange - primary responsibility is to match buyers and sellers efficiently.
+
+Focus on order creation and order cancellation, and only consider limit order. It basically represents the stocks listed on the exchange. Do you need to support 10000000s of orders per day? How do we make sure that users have sufficient funds when they place orders?
+
+For example, if an order is waiting in the order book to be filled, the funds required for the order need to be withheld to prevent overspending. Availability is crucial for exchanges, downtime even seconds can harm reputation. Fall tolerance and a fast recovery mechanism is also needed to limit the impact of a production incident. What are distributed denial of service attacks? Exchanges are usually open from Monday to Friday from 9.30 AM to 4 PM.
+
+That's 6.5 hours in total for a single day. The trading volume is significantly higher than the market 1st opens in the morning and before it closes in the afternoon. Unlimited order is a buy or send order.
+
+With the fixed price.
+
+It might not find a match immediately.
+
+Or it might just be partially matched.
+
+Matched. A market order doesn't specify a price, it is executed at the prevailing market price immediately.
+
+A market order sacrifices cost in order to warranty execution.
+
+It is useful in certain fast moving market conditions. Reading volume.
+
+Is significantly higher than the market 1st opens in the morning, and before it closes in the afternoon. The matching Indian generates a stream of executions as matches are made.
+
+The stream is sent to the market data publisher.
+
+Understand what this is and how it is working.
+
+The heart of the trading flow is the matching engine.The primary responsibilities of the Matching engine:
+1. Maintain the order book for each symbol. An order book is a list of buy and sell orders for the symbol.
+2. Match buy and sell orders. A matching results in two executions: one from the buyer side and one from the seller side.  The matching function must be fast and accurate.
+
+What is a sequencer, and how is it different from Kafka?
+
 ---
 
 ### Similar Case Studies
 
 1. Design a Stock Exchange like BSE, NSE.
-
 
