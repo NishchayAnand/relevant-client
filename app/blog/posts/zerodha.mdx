@@ -154,9 +154,25 @@ The heart of the trading flow is the matching engine.The primary responsibilitie
 
 What is a sequencer, and how is it different from Kafka?
 
+Note that the restful API might not satisfy the latency requirement of institutional clients like 
+hedge funds. The specialised software built for these institutions likely uses a different protocol, 
+but no matter what, the basic functionality mentioned below needs to be supported.
+
+Candlestick chart is another key data structure in the market data processor to produce market data. 
+We model this with a candlestick class and a candlestick chart class. When the interval for the 
+candlestick has elapsed, a new candlestick class is instantiated for the next interval and added to 
+the linked list in the candlestick chart instance. Tracing price history in candlestick charts for 
+many symbols at many time intervals consumes a lot of memory. As a solution, we can use pre-allocated 
+ring buffers to hold sticks to reduce the number of new object allocations.
+
+When there are multiple components all communicating over the network on the critical path, the total 
+network latency adds up to single-digit milliseconds.
+
 ---
 
 ### Similar Case Studies
 
 1. Design a Stock Exchange like BSE, NSE.
+
+2. Design a Buy / Sell order book.
 
