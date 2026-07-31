@@ -1,0 +1,47 @@
+
+
+Stock exchange - primary responsibility is to match buyers and sellers efficiently.
+
+Focus on order creation and order cancellation, and only consider limit order. It basically represents the stocks listed on the exchange. Do you need to support 10000000s of orders per day? How do we make sure that users have sufficient funds when they place orders?
+
+For example, if an order is waiting in the order book to be filled, the funds required for the order need to be withheld to prevent overspending. Availability is crucial for exchanges, downtime even seconds can harm reputation. Fall tolerance and a fast recovery mechanism is also needed to limit the impact of a production incident. What are distributed denial of service attacks? Exchanges are usually open from Monday to Friday from 9.30 AM to 4 PM.
+
+That's 6.5 hours in total for a single day. The trading volume is significantly higher than the market 1st opens in the morning and before it closes in the afternoon. Unlimited order is a buy or send order.
+
+With the fixed price.
+
+It might not find a match immediately.
+
+Or it might just be partially matched.
+
+Matched. A market order doesn't specify a price, it is executed at the prevailing market price immediately.
+
+A market order sacrifices cost in order to warranty execution.
+
+It is useful in certain fast moving market conditions. Reading volume.
+
+Is significantly higher than the market 1st opens in the morning, and before it closes in the afternoon. The matching Indian generates a stream of executions as matches are made.
+
+The stream is sent to the market data publisher.
+
+Understand what this is and how it is working.
+
+The heart of the trading flow is the matching engine.The primary responsibilities of the Matching engine:
+1. Maintain the order book for each symbol. An order book is a list of buy and sell orders for the symbol.
+2. Match buy and sell orders. A matching results in two executions: one from the buyer side and one from the seller side.  The matching function must be fast and accurate.
+
+What is a sequencer, and how is it different from Kafka?
+
+Note that the restful API might not satisfy the latency requirement of institutional clients like 
+hedge funds. The specialised software built for these institutions likely uses a different protocol, 
+but no matter what, the basic functionality mentioned below needs to be supported.
+
+Candlestick chart is another key data structure in the market data processor to produce market data. 
+We model this with a candlestick class and a candlestick chart class. When the interval for the 
+candlestick has elapsed, a new candlestick class is instantiated for the next interval and added to 
+the linked list in the candlestick chart instance. Tracing price history in candlestick charts for 
+many symbols at many time intervals consumes a lot of memory. As a solution, we can use pre-allocated 
+ring buffers to hold sticks to reduce the number of new object allocations.
+
+When there are multiple components all communicating over the network on the critical path, the total 
+network latency adds up to single-digit milliseconds.
