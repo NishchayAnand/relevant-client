@@ -29,6 +29,8 @@ no editing or branching of existing messages.
 ### Non-Functional Requirements
 
 1. Latency to the first token matters more than total completion time. 
+The system should have low time-to-first-token (< ~500ms), with continuous, smooth 
+streaming after that. A full response can take up to ~30 seconds to finish generating.
 
 2. Serve ~200M daily active users. 
 
@@ -39,6 +41,10 @@ no editing or branching of existing messages.
 Your database can't store 500TB per year. API costs will hit $145 million per month. And 
 you'll need 11.4 million concurrent connections that no single server can handle.
 
+The system should prioritize high availability over strong consistency for conversation 
+state (~99.9%+). It's better to return an error or a degraded experience than to block the 
+whole system on perfectly synchronized chat state.
+
 ---
 
 ### Sequence Flow
@@ -47,6 +53,33 @@ you'll need 11.4 million concurrent connections that no single server can handle
 turns of the chat as context, and tokens stream back as they are generated.
 
 The user might create a new chat session or might have existing chat session.
+
+Here's how these interact when a user sends a prompt:
+
+1. The user types a prompt, and the client sends a POST request to `/chats/{chatId}/messages`.
+
+2. The API Gateway authenticates the request and forwards it to the Chat Service.
+
+3. The Chat Service writes the user's message to the messages table.
+
+4. The Chat Service makes a synchronous call to the Inference Service, which runs the 
+prompt through the model and returns the full completion once it's done.
+
+5. The Chat Service writes the assistant message back to the messages table and returns 
+it to the client.
+
+For context carry-over, when the user sends a follow-up prompt on an existing chat:
+
+1. The Chat Service queries the messages table for the prior messages in that chatId, 
+ordered by creation time.
+
+2. It builds the prompt by concatenating those messages (with their roles, user vs 
+assistant) followed by the new user message.
+
+3. It sends that combined prompt to the Inference Service, just like the first turn.
+
+4. The new assistant message gets written back to the messages table, so the next turn 
+can read it too.
 
 ---
 
@@ -74,6 +107,28 @@ A session storage being used for storing session information (e.g., conversation
 user preferences) across multiple requests. For each user request chatGPT retrieve the 
 relevant session and inject it into the model's input to maintain context.
 
+If the Chat Service calls a GPU worker directly with no admission control. Nothing 
+decides which requests to accept or turn away when the workers are already full. That 
+breaks down the moment GPUs become the bottleneck.
+
+If the model sees the whole conversation every turn, so it behaves like it remembers. 
+But sending full history every turn has two obvious problems. It breaks once a 
+conversation grows past the model's context window, and it gets more expensive every turn 
+since input tokens are billed per call. We'll tackle that with summarization and prefix 
+caching in the deep dives.
+
+Server Sent Events are purpose built for one-way server-to-client streaming.
+
+#### How do we stream the first token fast?
+
+
+
+It is a latency problem.
+
+#### How to keep token stream smooth?
+
+The browser needs a live push channel from the server. 
+
 ---
 
 ### High Level Architecture
@@ -92,6 +147,43 @@ Memory service is semantic. ??
 #### Streaming Service
 
 ---
+
+### API Design
+
+create a new chat
+
+```
+POST /chats -> {chatId}
+Body: {}
+```
+
+user sends a prompt
+
+```
+POST /chats/{chatId}/messages -> { runId } What is runId?
+Body: {
+    content
+}
+```
+
+Generate tokens over SSE. 
+
+```
+GET /chats/{chatId}/runs/{runId}/stream -> Message tokens (SSE)
+```
+
+---
+
+### Data Model Design
+
+
+
+
+---
+
+How we stream tokens back fast, how we schedule limited GPU capacity, and how we keep costs sane as conversations grow?
+
+
 
 
 

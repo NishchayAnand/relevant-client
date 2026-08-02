@@ -384,5 +384,8 @@ be readable in the message queue. The filtering logic in the broker should not e
 the message payload. It is better to put data used for filtering into the metadata of the 
 message, which can be efficiently read by the broker.
 
+If the queue is unbounded, while it absorbs a temporary spike, sustained demand above what 
+the workers can handle just makes the line grow without limit.
+
 ---
 
