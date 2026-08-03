@@ -1,0 +1,98 @@
+---
+title: 'Data Structures & Algorithms (Graphs): Course Schedule'
+publishedAt: '2026-04-13'
+---
+
+There are a total of `numCourses` courses you have to take, labeled from `0` to `numCourses - 1`. 
+You are given an array prerequisites where `prerequisites[i] = [ai, bi]` indicates that 
+you must take course bi first if you want to take course ai.
+
+For example, the pair `[0, 1]`, indicates that to take course `0` you have to first take 
+course `1`. Return `true` if you can finish all courses. Otherwise, return `false`.
+
+``` 
+Example 1:
+
+Input: numCourses = 2, prerequisites = [[1,0]]
+Output: true
+Explanation: There are a total of 2 courses to take. 
+To take course 1 you should have finished course 0. So it is possible.
+
+Example 2:
+
+Input: numCourses = 2, prerequisites = [[1,0],[0,1]]
+Output: false
+Explanation: There are a total of 2 courses to take. 
+To take course 1 you should have finished course 0, and to take course 0 you should also 
+have finished course 1. So it is impossible.
+```
+
+> **Solve Here**: [Leetcode 207](https://leetcode.com/problems/course-schedule/description/)
+
+---
+
+### Intuition
+
+Let's suppose you're pursuing a **Computer Science** degree, and the curriculum consists of the 
+following courses:
+
+```
+{
+    1: "Programming Basics",
+    2: "Data Structure",
+    3: "Algorithms",
+    4: "Operating Systems",
+    5: "Machine Learning"
+}
+```
+
+The prerequisite requirements are as follows:
+
+| Course            | Prerequisite       |
+| ----------------- | ------------------ |
+| Data Structures   | Programming Basics |
+| Algorithms        | Data Structures    |
+| Operating Systems | Data Structures    |
+| Machine Learning  | Algorithms         |
+
+**<span className="text-emerald-500">Q. Is it possible to complete all the courses given 
+these prerequisite relationships?</span>**
+
+A. If the prerequisite relationships can be modelled as a directed graph, where each course
+is a node and each prerequisite is a directed edge, there exists a possible way to 
+complete all the courses.
+
+```
+Programming Basics
+        |
+        v
+Data Structures
+      /     \
+     v       v
+Algorithms  Operating Systems
+     |
+     v
+Machine Learning
+```
+
+Solving the problem ultimately boils down **determining if the graph contains a cycle or not**.
+
+---
+
+### Cycle Detection: Depth First Search
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
