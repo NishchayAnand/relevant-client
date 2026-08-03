@@ -77,9 +77,87 @@ Machine Learning
 
 Solving the problem ultimately boils down **determining if the graph contains a cycle or not**.
 
+> **NOTE**: A graph may consist of **multiple disconnected components**, meaning some 
+courses may have **no prerequisites** and **are not prerequisites of any other course**.
+
 ---
 
-### Cycle Detection: Depth First Search
+### Cycle Detection Approach: Depth-First Search
+
+Depth-First Search (DFS) allows us to traverse every reachable node in a graph. If during
+traversal, we encounter a node that is **already in the current DFS path**, it means we 
+have found a cycle.
+
+Since a graph may consist of **multiple disconnected components**, we cannot rely on a 
+single DFS traversal to visit every node. Instead, we iterate over all courses and 
+initiate DFS from every **unvisited** node. This ensures that every connected component 
+in the graph is explored.
+
+During the traversal, each course can be in one of the following three states:
+
+1. **Unvisited (0)**: The course has not been explored yet.
+2. **Visiting (1)**: The course is in the current DFS path.
+3. **Visited (2)**: The course and all its prerequisites have already been explored.
+
+**<span className="text-emerald-500">We can use recursion to perform DFS.</span>**
+
+#### Hypothesis
+
+Let `DFS(currentCourse)` be the recursive function that explores all courses reachable
+from `currentCourse`. The function returns:
+
+- `true` if a cycle is detected anywhere in the DFS subtree rooted at `currentCourse`.
+- `false` if the entire subtree rooted at `currentCourse` can be explored without 
+encountering a cycle.
+
+#### Recursive Steps
+
+```java
+// 1. Process the currentCourse
+graph[currentCourse].state = 'VISITING';
+
+// 2. Explore all prerequisites
+for each prerequisite in graph[currentCourse].prerequisites:
+    // if prerequisite is unvisited
+    if prerequisite.state == 'UNVISITED':
+        // perform DFS on the prerequisite
+        boolean hasCycle = DFS(prerequisite);
+        if (hasCycle): return true;
+
+// 3. Entire subtree rooted at currentCourse has been explored without encountering a cycle.
+graph[currentCourse].state = 'VISITED';
+return false; 
+```
+
+#### Base Condition
+
+```java
+// 1. If prerequisite is already in the current DFS recursion stack
+if prerequisite.state == 'VISITING': return true;
+
+// 2. if prerequisite is already explored, ignore it 
+if prerequisite.state == 'VISITED': continue;
+```
+
+#### Implementation
+
+The edge list can be converted in an adjancy list to explore graph effectively.
+
+Add visulization here...
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
