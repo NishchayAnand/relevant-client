@@ -16,18 +16,9 @@ For example:
 
 ---
 
-### Common Terminologies
-
-Q. What is a job?
-
-Q. What do we mean when we have execute a job? Where is the job executed? How the execution
-takes place?
-
----
-
 ### Functional Requirements
 
-Design a **distributed ETL job scheduler** that: 
+Design an **<span className="text-emerald-500">ETL job scheduler</span>** that: 
 
 1. Allow users to create, update, pause, resume, and delete jobs.
 
@@ -35,18 +26,41 @@ Design a **distributed ETL job scheduler** that:
 **event/dependency-based triggers**. For example, job `A` should run every day at `2:00 AM` or
 start only after all its upstream dependencies have completed successfully.
 
-3. The system should retry failed jobs automatically based on configurable retry policies
-(maximum retries, retry interval, etc).
+3. The system should retry failed jobs automatically based on configurable retry policies.
 
 4. Track the status of each job (Waiting on Dependencies, Active, Completed Normally, 
 Completed Abnormally, Orphaned, Error).
 
-5. Persist execution metadata (start time, end time, duration, status, etc) and history 
-so that users can inspect previous runs, execution duration, logs, and failure reasons.
+5. Persist execution metadata (start time, end time, duration, status, etc) so that users 
+can inspect previous runs, execution duration, logs, and failure reasons.
 
 ---
 
 ### Non-Functional Requirements
+
+For a **Distributed ETL Job Scheduler**, the following non-functional requirements are 
+important:
+
+1. **High Throughput**: The system should be capable of scheduling and executing **10,000
+jobs per second** at peak load. For example, imagine a large enterprise that runs 
+thousands of ETL jobs daily. At `2:00 AM` every day, many jobs are scheduled to run 
+simultaneously. The system must **quickly identify all jobs that are due and dispatch 
+them for execution**.
+
+2. **Low Execution Latency**: A job should begin execution within `1-2 seconds` of its
+scheduled execution time. The system should efficiently identify available workers so that 
+all dispatched jobs start executing with minimal delay.
+
+3. **High Availability**: The system should be highly available (availability > consistency). 
+There should be no single point of failure, ensuring that scheduled pipelines continue to 
+execute without manual intervention.
+
+4. **Durability**: Execution history should be retained for `30 days` to support debugging, 
+auditing, and operational monitoring.
+
+---
+
+The system should be able to execute 10k jobs per second. 
 
 execute scheduled jobs reliably across 
 multiple machines.
@@ -55,6 +69,55 @@ multiple machines.
 running? What is the meaning of 10k jobs per second?
 
 2. Availability > Consistency
+
+---
+
+### Design Rationale
+
+A distributed job scheduler revolves around a few core concepts. Understanding these terms 
+will make the subsequent design much easier to follow.
+
+**<span className="text-purple-500">Q. What is a Job?</span>**
+
+A job contains everything required for execution, such as:
+
+- **What to** execute (script, SQL query, Python program, etc)
+- **When to** execute it (schedule, trigger)
+- **Execution Environment** (Docker container, virtual machine, etc)
+- **Retry Policy** (maximum retries, retry interval, etc)
+
+For example, a typical job definition for a daily sales ETL job for an e-commerce company 
+might look like this:
+
+```json
+{
+  "jobId": "daily-sales-etl",
+  "name": "Daily Sales ETL",
+  "type": "Python",
+  "command": "python etl/daily_sales_pipeline.py",
+  "schedule": "0 2 * * *",
+  "parameters": {
+    "execution_date": "{{ ds }}"
+  },
+  "retries": 3,
+  "retryDelay": "5m",
+  "timeout": "60m",
+  "owner": "data-engineering"
+}
+```
+
+**<span className="text-purple-500">Q. How does a job scheduler execute a job?</span>**
+
+The scheduler itself does not execute jobs. Instead, it stores only the metadata describing
+the job and delegates execution to **worker nodes** (also called executors or agents).
+
+---
+
+### Load Estimation
+
+---
+
+### High-Level Design
 
 ---
 
@@ -69,12 +132,6 @@ running? What is the meaning of 10k jobs per second?
 ### API Design
 
 
-
----
-
-### Design Rationale
-
-Q. 
 
 ---
 
