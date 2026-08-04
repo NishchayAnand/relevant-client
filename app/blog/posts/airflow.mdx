@@ -10,19 +10,39 @@ For example:
 - Generate monthly bank statements on the `1st` of every month.
 - Retry failed payments after `30 minutes`.
 - Process uploaded videos after the upload completes. 
+- **<span className="text-emerald-500">Orchestrate ETL workflows.</span>**
 
 ![airflow](/airflow/airflow.png)
 
 ---
 
+### Common Terminologies
+
+Q. What is a job?
+
+Q. What do we mean when we have execute a job? Where is the job executed? How the execution
+takes place?
+
+---
+
 ### Functional Requirements
 
-Design a distributed job scheduler that: 
+Design a **distributed ETL job scheduler** that: 
 
-1. Allows users to schedule jobs to be executed immediately, at a future date, or on a 
-recurring schedule (e.g. every day at `10:00 AM`).
+1. Allow users to create, update, pause, resume, and delete jobs.
 
-2. Users should be able to monitor the status of their jobs.
+2. Allow users to schedule jobs using **time-based dependencies (Cron)** or 
+**event/dependency-based triggers**. For example, job `A` should run every day at `2:00 AM` or
+start only after all its upstream dependencies have completed successfully.
+
+3. The system should retry failed jobs automatically based on configurable retry policies
+(maximum retries, retry interval, etc).
+
+4. Track the status of each job (Waiting on Dependencies, Active, Completed Normally, 
+Completed Abnormally, Orphaned, Error).
+
+5. Persist execution metadata (start time, end time, duration, status, etc) and history 
+so that users can inspect previous runs, execution duration, logs, and failure reasons.
 
 ---
 
@@ -39,6 +59,16 @@ running? What is the meaning of 10k jobs per second?
 ---
 
 ### Sequence Flow
+
+#### Use Case 1:
+
+#### Use Case 2:
+
+---
+
+### API Design
+
+
 
 ---
 
@@ -375,3 +405,7 @@ public class JobEventConsumer {
     }
 }
 ```
+
+### Related Blogs
+
+- [Maximum Profit in Job Scheduling](https://leetcode.com/problems/maximum-profit-in-job-scheduling/description/)
