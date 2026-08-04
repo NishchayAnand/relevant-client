@@ -68,6 +68,7 @@ import MissingNumberNestedVisualizer from './missing-number-nested-visualizer';
 import BatchVsRealityVisualizer from './batch-vs-reality-visualizer';
 import StreamProcessingVisualizer from './stream-processing-visualizer';
 import ConsistentHashingVisualizer from './consistent-hashing-visualizer';
+import CycleDetectionDFSVisualizer from './cycle-detection-dfs-visualizer';
 
 hljs.registerLanguage('javascript', javascript);
 
@@ -275,6 +276,7 @@ let components = {
   BatchVsRealityVisualizer: BatchVsRealityVisualizer,
   StreamProcessingVisualizer: StreamProcessingVisualizer,
   ConsistentHashingVisualizer: ConsistentHashingVisualizer,
+  CycleDetectionDFSVisualizer: CycleDetectionDFSVisualizer,
   Image: RoundedImage,
   a: CustomLink,
   code: Code,

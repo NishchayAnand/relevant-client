@@ -93,7 +93,7 @@ Hence, we cannot rely on a single DFS traversal to visit every node. We need to 
 over all courses and initiate DFS from every **unvisited** node. This ensures that every connected component 
 in the graph is explored.
 
-#### Implementation
+#### Algorithm
 
 The edge list can be converted in an adjancy list to explore graph effectively.
 
@@ -147,11 +147,7 @@ if prerequisite.state == 'VISITING': return true;
 if prerequisite.state == 'VISITED': continue;
 ```
 
-<br/>
-##### **<span className="text-purple-500">Visualization</span>**
-<br/>
-
-Add visulization here...
+#### Implementation
 
 ```java
 class Solution {
@@ -215,13 +211,13 @@ class Solution {
 }
 ```
 
-<br/>
-##### **<span className="text-purple-500">Time Complexity</span>**
-<br/>
+#### Visualization
 
-<br/>
-##### **<span className="text-purple-500">Space Complexity</span>**
-<br/>
+<CycleDetectionDFSVisualizer />
+
+#### Time Complexity
+
+#### Space Complexity
 
 ---
 
