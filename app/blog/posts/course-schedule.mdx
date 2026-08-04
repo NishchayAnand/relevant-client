@@ -217,7 +217,23 @@ class Solution {
 
 #### Time Complexity
 
+The **work done by all DFS calls is shared across the graph** rather than repeated for 
+every starting node. Across the entire algorithm:
+
+- Every course is processed at most once: `O(V)`
+- Every prerequisite relationship is examined at most once: `O(E)`
+
+Hence, the overall time complexity is `O(E + V)`.
+
 #### Space Complexity
+
+The algorithm uses additional memory for three data structures:
+
+- The adjacency list: `O(E + V)`
+- The state array: `O(V)`
+- The recursion stack: `O(V)`
+
+Hence, the overall space complexity is `O(E + V)`.
 
 ---
 
