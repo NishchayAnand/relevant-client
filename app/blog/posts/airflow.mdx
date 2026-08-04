@@ -18,7 +18,7 @@ For example:
 
 ### Functional Requirements
 
-Design an **<span className="text-emerald-500">ETL job scheduler</span>** that: 
+Design an **<span className="text-emerald-500">Distributed ETL Job Scheduler</span>** that: 
 
 1. Allow users to create, update, pause, resume, and delete jobs.
 
@@ -38,8 +38,8 @@ can inspect previous runs, execution duration, logs, and failure reasons.
 
 ### Non-Functional Requirements
 
-For a **Distributed ETL Job Scheduler**, the following non-functional requirements are 
-important:
+For a **<span className="text-emerald-500">Distributed ETL Job Scheduler</span>**, the 
+following non-functional requirements are important:
 
 1. **High Throughput**: The system should be capable of scheduling and executing **10,000
 jobs per second** at peak load. For example, imagine a large enterprise that runs 
@@ -60,24 +60,13 @@ auditing, and operational monitoring.
 
 ---
 
-The system should be able to execute 10k jobs per second. 
-
-execute scheduled jobs reliably across 
-multiple machines.
-
-1. The system should be able to execute 10k jobs per second. What if the jobs are long 
-running? What is the meaning of 10k jobs per second?
-
-2. Availability > Consistency
-
----
-
 ### Design Rationale
 
-A distributed job scheduler revolves around a few core concepts. Understanding these terms 
-will make the subsequent design much easier to follow.
+A **<span className="text-emerald-500">Distributed ETL Job Scheduler</span>** revolves 
+around a few core concepts. Understanding these terms will make the subsequent design much 
+easier to follow.
 
-**<span className="text-purple-500">Q. What is a Job?</span>**
+**<span className="text-purple-500">Q. What does an ETL job look like?</span>**
 
 A job contains everything required for execution, such as:
 
@@ -106,10 +95,69 @@ might look like this:
 }
 ```
 
-**<span className="text-purple-500">Q. How does a job scheduler execute a job?</span>**
+**<span className="text-purple-500">Q. How does the job scheduler execute an ETL job?</span>**
 
-The scheduler itself does not execute jobs. Instead, it stores only the metadata describing
-the job and delegates execution to **worker nodes** (also called executors or agents).
+The scheduler itself **does not execute ETL jobs**. Its responsibility is to determine when a 
+job should run and delegate the actual execution to worker nodes.
+
+A straightforward approach is for the scheduler to **directly dispatch jobs to available 
+worker nodes**.
+
+```
+                 Scheduler
+                      │
+      Select available worker
+                      │
+     ┌────────────────┼────────────────┐
+     ▼                ▼                ▼
+ Worker 1         Worker 2         Worker 3
+     │                │                │
+ Execute ETL     Execute ETL     Execute ETL
+```
+
+Whenever a job becomes due, the scheduler selects an available worker based on factors 
+such as CPU utilization, memory usage, or the number of currently running jobs, and sends 
+the job directly to that worker.
+
+Although this approach is simple, it introduces several challenges:
+
+- The scheduler must continuously maintain the health and load information of every worker.
+
+- Every job requires the scheduler to perform worker selection, making it a centralized 
+bottleneck.
+
+- If a selected worker crashes immediately after receiving the job, the scheduler must 
+detect the failure and redispatch the job.
+
+- As the number of workers grows from tens to thousands, managing worker state and 
+dispatching jobs becomes increasingly complex.
+
+- The scheduler becomes tightly coupled to the execution layer, making independent scaling 
+difficult.
+
+To overcome these limitations, we can introduce a distributed message queue between the 
+scheduler and the workers.
+
+```
+                 Scheduler
+                      │
+      Detects jobs ready to run
+                      │
+                      ▼
+            Ready Jobs Queue
+        (Kafka / RabbitMQ / SQS)
+                      │
+        ┌─────────────┼─────────────┐
+        ▼             ▼             ▼
+    Worker 1      Worker 2      Worker 3
+        │             │             │
+        ▼             ▼             ▼
+ Execute ETL     Execute ETL    Execute ETL
+```
+
+Instead of dispatching jobs directly, the scheduler simply publishes ready-to-run jobs to 
+the queue. All worker nodes subscribe to the queue and compete to consume available jobs. 
+The worker that successfully consumes a job becomes responsible for executing it.
 
 ---
 
