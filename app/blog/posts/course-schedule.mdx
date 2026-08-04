@@ -58,7 +58,7 @@ The prerequisite requirements are as follows:
 **<span className="text-emerald-500">Q. Is it possible to complete all the courses given 
 these prerequisite relationships?</span>**
 
-A. If the prerequisite relationships can be modelled as a directed graph, where each course
+A. If the prerequisite relationships can be modelled as a **directed graph**, where each course
 is a node and each prerequisite is a directed edge, there exists a possible way to 
 complete all the courses.
 
@@ -75,23 +75,27 @@ Algorithms  Operating Systems
 Machine Learning
 ```
 
-Solving the problem ultimately boils down **determining if the graph contains a cycle or not**.
-
-> **NOTE**: A graph may consist of **multiple disconnected components**, meaning some 
-courses may have **no prerequisites** and **are not prerequisites of any other course**.
-
+<br/>
 ---
 
 ### Cycle Detection Approach: Depth-First Search
 
-Depth-First Search (DFS) allows us to traverse every reachable node in a graph. If during
-traversal, we encounter a node that is **already in the current DFS path**, it means we 
-have found a cycle.
 
-Since a graph may consist of **multiple disconnected components**, we cannot rely on a 
-single DFS traversal to visit every node. Instead, we iterate over all courses and 
-initiate DFS from every **unvisited** node. This ensures that every connected component 
+<span className="text-emerald-500">Solving the problem ultimately boils down 
+**determining if the graph contains a cycle or not. Depth-First Search (DFS)** allows us to traverse every 
+reachable node in a graph. If during traversal, we encounter a node that is **already in 
+the current DFS path**, it means we have found a cycle.</span>
+
+
+> **NOTE**: A graph may consist of **multiple disconnected components**, meaning some 
+courses may have **no prerequisites** and **are not prerequisites of any other course**.
+Hence, we cannot rely on a single DFS traversal to visit every node. We need to iterate 
+over all courses and initiate DFS from every **unvisited** node. This ensures that every connected component 
 in the graph is explored.
+
+#### Implementation
+
+The edge list can be converted in an adjancy list to explore graph effectively.
 
 During the traversal, each course can be in one of the following three states:
 
@@ -99,9 +103,9 @@ During the traversal, each course can be in one of the following three states:
 2. **Visiting (1)**: The course is in the current DFS path.
 3. **Visited (2)**: The course and all its prerequisites have already been explored.
 
-**<span className="text-emerald-500">We can use recursion to perform DFS.</span>**
+We can use recursion to perform DFS.
 
-#### Hypothesis
+##### **<span className="text-purple-500">Hypothesis</span>**
 
 Let `DFS(currentCourse)` be the recursive function that explores all courses reachable
 from `currentCourse`. The function returns:
@@ -110,7 +114,9 @@ from `currentCourse`. The function returns:
 - `false` if the entire subtree rooted at `currentCourse` can be explored without 
 encountering a cycle.
 
-#### Recursive Steps
+<br/>
+##### **<span className="text-purple-500">Recursive Steps</span>**
+<br/>
 
 ```java
 // 1. Process the currentCourse
@@ -129,7 +135,9 @@ graph[currentCourse].state = 'VISITED';
 return false; 
 ```
 
-#### Base Condition
+<br/>
+##### **<span className="text-purple-500">Base Conditions</span>**
+<br/>
 
 ```java
 // 1. If prerequisite is already in the current DFS recursion stack
@@ -139,11 +147,83 @@ if prerequisite.state == 'VISITING': return true;
 if prerequisite.state == 'VISITED': continue;
 ```
 
-#### Implementation
-
-The edge list can be converted in an adjancy list to explore graph effectively.
+<br/>
+##### **<span className="text-purple-500">Visualization</span>**
+<br/>
 
 Add visulization here...
+
+```java
+class Solution {
+
+    private boolean hasCycle(Map<Integer, List<Integer>> graph, int[] state, int currentCourse) {
+
+        // Base Condition 1: If the currentCourse is in 'Visiting' state, a cycle has been detected.
+        if(state[currentCourse] == 1) {
+            return true;
+        }
+
+        // Base Condition 2: If the currentCourse is in 'Visited' state, its subtree is alread explored and no cycle was detected.
+        if(state[currentCourse] == 2) {
+            return false;
+        }
+
+        // Recursive Steps
+
+        // 1. Mark the currentCourse as 'Visiting'
+        state[currentCourse] = 1;
+
+        // 2. Explore all its prerequisites
+        for(int prerequisite: graph.get(currentCourse)) {
+            boolean containsCycle = hasCycle(graph, state, prerequisite);
+            if(containsCycle) return true;
+        }
+
+        // 3. Mark the currentCourse state as 'Visited'.
+        state[currentCourse] = 2;
+        return false;
+    }
+
+    public boolean canFinish(int numCourses, int[][] prerequisites) {
+
+        // 1. Create an adjacency list using the prequisites edge list to represent the directed graph
+        Map<Integer, List<Integer>> graph = new HashMap<>();
+        for(int key = 0; key < numCourses; key++) {
+            graph.put(key, new ArrayList<>());
+        }
+
+        for(int[] edge: prerequisites) {
+            graph.get(edge[0]).add(edge[1]);
+        }
+
+        // 2. Define a array to store the states (0/1/2) of each course.
+        //    0 -> Unvisited, 1 -> Visiting, 2 -> Visited 
+        int[] state = new int[numCourses];
+
+        // 3. Iterate over all courses and perform DFS on the unvisited courses
+        for(int course: graph.keySet()) {
+            if(state[course] == 0) {
+                if(hasCycle(graph, state, course)) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+ 
+    }
+}
+```
+
+<br/>
+##### **<span className="text-purple-500">Time Complexity</span>**
+<br/>
+
+<br/>
+##### **<span className="text-purple-500">Space Complexity</span>**
+<br/>
+
+---
 
 
 

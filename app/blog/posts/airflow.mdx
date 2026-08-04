@@ -3,14 +3,53 @@ title: 'System Design (Airflow): Distributed Job Scheduler'
 publishedAt: '2026-06-20'
 ---
 
-Design a dependency DAG visualizer and a reactive state-sync layer, which is the core engine 
-that makes tools like Airflow feel so fast and responsive.
+Many tasks in software systems don't need to happen immediately when a user makes a request. 
+For example:
+
+- Send a welcome email `5 minutes` after a user signs up.
+- Generate monthly bank statements on the `1st` of every month.
+- Retry failed payments after `30 minutes`.
+- Process uploaded videos after the upload completes. 
 
 ![airflow](/airflow/airflow.png)
 
 ---
 
 ### Functional Requirements
+
+Design a distributed job scheduler that: 
+
+1. Allows users to schedule jobs to be executed immediately, at a future date, or on a 
+recurring schedule (e.g. every day at `10:00 AM`).
+
+2. Users should be able to monitor the status of their jobs.
+
+---
+
+### Non-Functional Requirements
+
+execute scheduled jobs reliably across 
+multiple machines.
+
+1. The system should be able to execute 10k jobs per second. What if the jobs are long 
+running? What is the meaning of 10k jobs per second?
+
+2. Availability > Consistency
+
+---
+
+### Sequence Flow
+
+---
+
+### Design Rationale
+
+Q. 
+
+---
+
+Design a dependency DAG visualizer and a reactive state-sync layer, which is the core engine 
+that makes tools like Airflow feel so fast and responsive.
 
 The UI needs to answer questions like:
 
