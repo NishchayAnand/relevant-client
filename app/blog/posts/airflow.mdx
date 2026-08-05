@@ -29,7 +29,7 @@ start only after all its upstream dependencies have completed successfully.
 3. The system should retry failed jobs automatically based on configurable retry policies.
 
 4. The system should keep track of the status of each job (Waiting on Dependencies, Active, 
-Completed Normally, Completed Abnormally, Orphaned, Error).
+Completed Normally, Completed Abnormally, Paused, Cancelled).
 
 ---
 
@@ -62,7 +62,7 @@ A **Distributed ETL Job Scheduler** revolves
 around a few core concepts. Understanding these terms will make the subsequent design much 
 easier to follow.
 
-**<span className="text-emerald-500">Q. What does an ETL job look like?</span>**
+#### <span className="text-emerald-500">Q. What does an ETL job look like?</span>
 
 A job contains everything required for execution, such as:
 
@@ -90,20 +90,31 @@ might look like this:
 }
 ```
 
-**<span className="text-emerald-500">Q. How does the job scheduler track the status of a 
-job?</span>**
+#### <span className="text-emerald-500">Q. How does the job scheduler track the status of a job?</span>
 
-states and their descriptions:
+The possible job states are:
 
-| State                       | Owner              | Description                                                                                                                                                            |
-| --------------------------- | ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Waiting on Dependencies** | Scheduler          | The job cannot run until all upstream jobs have completed successfully.                                                                                                |
-| **Active**                  | Scheduler + Worker | The scheduler dispatches the job to a worker, and the worker begins execution. The scheduler records the job as active based on the worker's "Job Started" event.      |
-| **Completed Normally**      | Worker → Scheduler | The worker successfully finishes execution and reports completion. The scheduler updates the job state.                                                                |
-| **Completed Abnormally**    | Worker → Scheduler | The job terminated unexpectedly (timeout, killed by OS, infrastructure issue, etc.). The worker reports the abnormal termination, and the scheduler updates the state. |
-| **Failed**                  | Scheduler          | The scheduler marks the job as failed after determining that retries have been exhausted or the failure is unrecoverable.                                              |
-| **Paused**                  | Scheduler          | The user or administrator pauses the job. The scheduler will not dispatch future executions.                                                                           |
-| **Cancelled**               | Scheduler          | The user or administrator cancels the job before or during execution. The scheduler instructs the worker to terminate it if it's already running.                      |
+| **State**                   | **Description**                                                                                                                                                                                             |
+| --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Waiting on Dependencies** | The job is waiting for its scheduled time or one or more upstream jobs to complete successfully before it can be scheduled for execution.                                                                   |
+| **Active**                  | The job has been dispatched to a worker and is currently being executed.                                                                                                                                    |
+| **Completed Normally**      | The job finished successfully without any errors.                                                                                                                                                           |
+| **Completed Abnormally**    | The job terminated unexpectedly due to an execution issue, such as a timeout, worker crash, process termination, or infrastructure failure. Depending on the retry policy, the scheduler may retry the job. |
+| **Paused**                  | The job has been temporarily suspended by a user. The job remains paused until it is explicitly resumed by the user or the scheduler initiates a new execution.                                             |
+| **Cancelled**               | The job has been explicitly cancelled by a user before completion. This is a terminal state.                                                                                                                |
+
+The scheduler needs to maintain the lifecycle of every job so that users can monitor 
+progress and troubleshoot issues. 
+
+##### **<span className="text-purple-500">Naive Approach</span>**
+
+Maintain a **Job Execution Metadata** table that stores one record for every execution (run) 
+of a job. For example,
+
+| Run ID | Job ID | Status                  | Start Time | End Time | Worker | Retry Count |
+| ------ | ------ | ----------------------- | ---------- | -------- | ------ | ----------- |
+| 1001   | 10     | Waiting on Dependencies | -          | -        | -      | 0           |
+
 
 
 **<span className="text-emerald-500">Q. How does the job scheduler execute an ETL job?</span>**
