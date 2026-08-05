@@ -141,9 +141,10 @@ or
 
 Upon receiving the worker's event, the scheduler updates the same execution record (expand).
 
-Although this approach is simple, it leads to **loss of state transition history**. Since 
-the same row is continuously updated, only the latest state is retained. We cannot determine 
-the exact sequence of events that led to the current state.
+**<span className="bg-yellow-100">Although this approach is simple, it leads to loss of 
+state transition history. Since the same row is continuously updated, only the latest 
+state is retained. We cannot determine the exact sequence of events that led to the 
+current state.</span>**
 
 ##### **<span className="text-purple-500">Suitable Approach</span>**
 
