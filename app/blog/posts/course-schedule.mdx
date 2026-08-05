@@ -58,8 +58,8 @@ The prerequisite requirements are as follows:
 **<span className="text-emerald-500">Q. Is it possible to complete all the courses given 
 these prerequisite relationships?</span>**
 
-A. If the prerequisite relationships can be modelled as a **directed graph**, where each course
-is a node and each prerequisite is a directed edge, there exists a possible way to 
+A. If the prerequisite relationships can be modelled as a **directed graph**, where each 
+course is a node and each prerequisite is a directed edge, there exists a possible way to 
 complete all the courses.
 
 ```
@@ -236,6 +236,73 @@ The algorithm uses additional memory for three data structures:
 Hence, the overall space complexity is `O(E + V)`.
 
 ---
+
+### Topological Sort Approach (Kahn's Algorithm): Breadth-First Search
+
+<span className="text-emerald-500">Repeatedly **complete the courses that have no 
+remaining prerequisites**. Every **completed course may unlock additional courses**. If 
+you can eventually complete all courses, no cycle exists. Otherwise, the remaining 
+courses will be part of a cycle.</span>
+
+#### Algorithm
+
+If we represent the directed graph as an adjacency list with following key-value pairs: 
+`{course -> list of prerequisites}`, then post removing a course with no prerequisites, we 
+may have to update the list of prerequisites for other courses. 
+
+For example, consider the following graph:
+
+```
+{
+    Programming Basics : [],
+    Data Structures    : [Programming Basics],
+    Algorithms         : [Data Structures],
+    Operating Systems  : [Data Structures]
+}
+```
+
+After completing `Programming Basics`, `Data Structures` should no longer list it as a 
+prerequisite. To update the graph, we would have to iterate over the list of prerequisites
+of every course, searching for `Programming Basics` and removing it wherever it appears.
+**<span className="bg-yellow-100">This operation would take `O(V+E)` time for every course we remove, making the overall 
+algorithm inefficient</span>**.
+
+Instead, if we represent the graph as `{prerequisite -> list of dependent courses}` and use 
+an array to store the **count of prerequisites (also called in-degree)** for each 
+course, we can efficiently:
+
+- Identify a course which is currently eligible to be taken (in-degree == `0`)
+
+- Iterate over its dependent courses and decrement their in-degree by `1`. If the in-degree
+of any dependent course becomes `0`, it means all of its prerequisites have been completed,
+making it eligible to be taken next.
+
+> <span className="bg-purple-100">**NOTE**: We can use a queue to store the courses that are 
+currently eligible to be taken.</span>
+
+<br/>
+
+```
+1. Build adjacency list (prerequisite -> list of dependent courses)
+2. Build in-degree array (course -> in-degree)
+3. Initialize a queue with courses that have in-degree == 0
+4. While queue is not empty:
+    - Dequeue a course
+    - Iterate over its dependent courses and decrement their in-degree by 1
+    - If the in-degree of any dependent course becomes 0, enqueue it
+5. If the number of courses completed is equal to the total number of courses, return true
+6. Otherwise, return false
+```
+
+#### Implementation
+
+#### Time Complexity
+
+#### Space Complexity
+
+---
+
+
 
 
 
