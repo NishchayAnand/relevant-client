@@ -115,9 +115,40 @@ of a job. For example,
 | ------ | ------ | ----------------------- | ---------- | -------- | ------ | ----------- |
 | 1001   | 10     | Waiting on Dependencies | -          | -        | -      | 0           |
 
+At the beginning of the day, a background process inserts a new execution record for 
+every scheduled job with the initial state **Waiting on Dependencies**. Once the 
+scheduled time for a job is reached and all its dependencies have completed successfully, 
+the scheduler dispatches the job to a worker and updates its state to **Active**.
+
+After executing the job, the worker sends an event (how??) back to the scheduler. For example:
+
+```json
+{
+  "runId": 1001,
+  "status": "Completed Normally"
+}
+```
+
+or 
+
+```json
+{
+  "runId": 1001,
+  "status": "Completed Abnormally",
+  "reason": "Connection timeout"
+}
+```
+
+Upon receiving the worker's event, the scheduler updates the same execution record (expand).
+
+Although this approach is simple, it leads to **loss of state transition history**. Since 
+the same row is continuously updated, only the latest state is retained. We cannot determine 
+the exact sequence of events that led to the current state.
+
+##### **<span className="text-purple-500">Suitable Approach</span>**
 
 
-**<span className="text-emerald-500">Q. How does the job scheduler execute an ETL job?</span>**
+#### **<span className="text-emerald-500">Q. How does the job scheduler execute an ETL job?</span>**
 
 The scheduler itself **does not execute ETL jobs**. Its responsibility is to determine when a 
 job should run and delegate the actual execution to worker nodes.
@@ -194,11 +225,11 @@ Let's break down the sequence flow of few of the major use cases:
 
 #### Schedule a Job
 
-1. The client makes a `POST /jobs` request to the `Job Scheduler Service` with the job 
+1. The client makes a `POST /jobs` request to the `scheduler-service` with the job 
 definition (`name`, `type`, `command`, `schedule`, `parameters`, `retries`, `retryDelay`, 
 `timeout`, `owner`) passed as **JSON payload** in the request body.
 
-2. The `Job Scheduler Service` validates the request body {/* what validations? */}, stores 
+2. The `scheduler-service` validates the request body {/* what validations? */}, stores 
 the job definition in the database and sends a `201 Created` response with the `job ID` in 
 the response body.
 
