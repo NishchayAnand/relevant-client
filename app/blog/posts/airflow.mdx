@@ -28,11 +28,8 @@ start only after all its upstream dependencies have completed successfully.
 
 3. The system should retry failed jobs automatically based on configurable retry policies.
 
-4. Track the status of each job (Waiting on Dependencies, Active, Completed Normally, 
-Completed Abnormally, Orphaned, Error).
-
-5. Persist execution metadata (start time, end time, duration, status, etc) so that users 
-can inspect previous runs, execution duration, logs, and failure reasons.
+4. The system should keep track of the status of each job (Waiting on Dependencies, Active, 
+Completed Normally, Completed Abnormally, Orphaned, Error).
 
 ---
 
@@ -55,8 +52,8 @@ all dispatched jobs start executing with minimal delay.
 There should be no single point of failure, ensuring that scheduled pipelines continue to 
 execute without manual intervention.
 
-4. **Durability**: Execution history should be retained for `30 days` to support debugging, 
-auditing, and operational monitoring.
+4. **Durability**: Execution metadata (start time, end time, duration, status, etc) should 
+be retained for `30 days` to support debugging, auditing, and operational monitoring.
 
 ---
 
@@ -159,27 +156,50 @@ Instead of dispatching jobs directly, the scheduler simply publishes ready-to-ru
 the queue. All worker nodes subscribe to the queue and compete to consume available jobs. 
 The worker that successfully consumes a job becomes responsible for executing it.
 
----
+Q. How to manually trigger a job?
 
-### Load Estimation
 
----
-
-### High-Level Design
+Q. How to pause/resume a job?
 
 ---
 
 ### Sequence Flow
 
-#### Use Case 1:
+Let's break down the sequence flow of few of the major use cases:
 
-#### Use Case 2:
+#### Allow Users to Schedule Jobs
+
+1. The client makes a `POST /jobs` request to the `Job Scheduler Service` with the job 
+definition (`name`, `type`, `command`, `schedule`, `parameters`, `retries`, `retryDelay`, 
+`timeout`, `owner`) passed as **JSON payload** in the request body.
+
+2. The `Job Scheduler Service` validates the request body {/* what validations? */}, stores 
+the job definition in the database and sends a `201 Created` response with the `job ID` in 
+the response body.
+
+3. 
+
+#### Execute Scheduled Jobs
+
+#### Allow Users to Trigger Jobs
+
+#### Allow Users to Pause/Resume jobs
+
+#### Retry Failed Jobs Automatically
+
+#### Track the Status of Scheduled Jobs
 
 ---
 
 ### API Design
 
+---
 
+### Data Model Design
+
+---
+
+### High-Level Design
 
 ---
 
