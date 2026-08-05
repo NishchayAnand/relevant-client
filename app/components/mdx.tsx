@@ -69,6 +69,7 @@ import BatchVsRealityVisualizer from './batch-vs-reality-visualizer';
 import StreamProcessingVisualizer from './stream-processing-visualizer';
 import ConsistentHashingVisualizer from './consistent-hashing-visualizer';
 import CycleDetectionDFSVisualizer from './cycle-detection-dfs-visualizer';
+import TopologicalSortBFSVisualizer from './topological-sort-bfs-visualizer';
 
 hljs.registerLanguage('javascript', javascript);
 
@@ -277,6 +278,7 @@ let components = {
   StreamProcessingVisualizer: StreamProcessingVisualizer,
   ConsistentHashingVisualizer: ConsistentHashingVisualizer,
   CycleDetectionDFSVisualizer: CycleDetectionDFSVisualizer,
+  TopologicalSortBFSVisualizer: TopologicalSortBFSVisualizer,
   Image: RoundedImage,
   a: CustomLink,
   code: Code,

@@ -5,7 +5,7 @@ publishedAt: '2026-04-13'
 
 There are a total of `numCourses` courses you have to take, labeled from `0` to `numCourses - 1`. 
 You are given an array prerequisites where `prerequisites[i] = [ai, bi]` indicates that 
-you must take course bi first if you want to take course ai.
+you must take course `bi` first if you want to take course `ai`.
 
 For example, the pair `[0, 1]`, indicates that to take course `0` you have to first take 
 course `1`. Return `true` if you can finish all courses. Otherwise, return `false`.
@@ -277,10 +277,11 @@ course, we can efficiently:
 of any dependent course becomes `0`, it means all of its prerequisites have been completed,
 making it eligible to be taken next.
 
-> <span className="bg-purple-100">**NOTE**: We can use a queue to store the courses that are 
-currently eligible to be taken.</span>
+<span className="bg-red-100">The mental model shifts from **"for a course to be completed, 
+all its prerequisities must be completed"** to **"if the prerequisite is completed, all its 
+dependent courses may become eligible for completion"**</span>.
 
-<br/>
+We can use a queue to store the courses that are currently eligible to be taken.
 
 ```
 1. Build adjacency list (prerequisite -> list of dependent courses)
@@ -294,11 +295,100 @@ currently eligible to be taken.</span>
 6. Otherwise, return false
 ```
 
+> **NOTE**: Notice that all courses at the current level are processed before moving on to 
+the next level, which is exactly the behavior of a Breadth First Search.
+
+
 #### Implementation
+
+```java
+class Solution {
+    public boolean canFinish(int numCourses, int[][] prerequisites) {
+
+        // 1. Create adjacency list for {prerequisite -> list of dependent courses}
+        Map<Integer, List<Integer>> adjList = new HashMap<>();
+        for(int key = 0; key < numCourses; key++) {
+            adjList.put(key, new ArrayList<>());
+        }
+
+        int[] indegree = new int[numCourses];
+        for(int[] edge: prerequisites) {
+            int course = edge[0];
+            int prerequisite = edge[1];
+
+            adjList.get(prerequisite).add(course);
+            indegree[course]++;
+        }
+
+        // 2. Initialize a queue with all the courses having in-degree = 0.
+        Queue<Integer> queue = new LinkedList<>();
+        for(int course = 0; course < numCourses; course++) {
+            if(indegree[course] == 0) {
+                queue.offer(course);
+            }
+        }
+
+        int completedCourses = 0;
+
+        // 3. Traverse the directed graph
+        while(!queue.isEmpty()) {
+            int currentCourse = queue.poll();
+            completedCourses++;
+
+            // Iterate over the currentCourse dependent courses and decrement their in-degree by 1.
+            for(int dependentCourse: adjList.get(currentCourse)) {
+                indegree[dependentCourse]--;
+                // If in-degree of dependentCourse = 0, it is eligible for completion 
+                if(indegree[dependentCourse] == 0) {
+                    queue.offer(dependentCourse);
+                }
+            }
+        }
+
+        // 4. If completedCourses = numCourses, every course for traverse and no cycle was detected.
+        if(completedCourses == numCourses) return true;
+        return false;
+
+    }
+}
+```
+
+#### Visualization
+
+<TopologicalSortBFSVisualizer />
 
 #### Time Complexity
 
+The algorithm performs the following operations:
+
+1. **Building the adjacency list**: We iterate over the prerequisites edge list once. 
+This takes `O(E)` time.
+
+2. **Building the in-degree array**: While building the adjacency list, we also build the 
+in-degree array. This takes `O(E)` time.
+
+3. **Initializing the queue**: In the worst case, all courses have in-degree == 0. This 
+takes `O(V)` time.
+
+4. **Traversing the graph**: Each course is processed once and for each course, we iterate 
+over its dependent courses (prerequisite relationships). This takes `O(V + E)` time.
+
+Hence, the overall time complexity is `O(V + E)`.
+
 #### Space Complexity
+
+The algorithm uses additional memory for three data structures:
+
+1. **The adjacency list**: Stores one entry for every course (`V` vertices) and one entry for 
+every prerequisite relationship (`E` edges). This takes `O(E + V)` space.
+
+2. **The in-degree array**: Stores one entry for every course (`V` vertices). This takes 
+`O(V)` space.
+
+3. **The queue**: In worst case, it may store one entry for every course (`V` vertices). 
+This takes `O(V)` space.
+
+Hence, the overall space complexity is `O(E + V)`.
 
 ---
 
