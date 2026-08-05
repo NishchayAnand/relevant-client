@@ -18,7 +18,7 @@ For example:
 
 ### Functional Requirements
 
-Design an **<span className="text-emerald-500">Distributed ETL Job Scheduler</span>** that: 
+Design an **Distributed ETL Job Scheduler** that: 
 
 1. Allow users to create, update, pause, resume, and delete jobs.
 
@@ -35,8 +35,7 @@ Completed Normally, Completed Abnormally, Orphaned, Error).
 
 ### Non-Functional Requirements
 
-For a **<span className="text-emerald-500">Distributed ETL Job Scheduler</span>**, the 
-following non-functional requirements are important:
+For a **Distributed ETL Job Scheduler**, the following non-functional requirements are important:
 
 1. **High Throughput**: The system should be capable of scheduling and executing **10,000
 jobs per second** at peak load. For example, imagine a large enterprise that runs 
@@ -59,11 +58,11 @@ be retained for `30 days` to support debugging, auditing, and operational monito
 
 ### Design Rationale
 
-A **<span className="text-emerald-500">Distributed ETL Job Scheduler</span>** revolves 
+A **Distributed ETL Job Scheduler** revolves 
 around a few core concepts. Understanding these terms will make the subsequent design much 
 easier to follow.
 
-**<span className="text-purple-500">Q. What does an ETL job look like?</span>**
+**<span className="text-emerald-500">Q. What does an ETL job look like?</span>**
 
 A job contains everything required for execution, such as:
 
@@ -77,8 +76,7 @@ might look like this:
 
 ```json
 {
-  "jobId": "daily-sales-etl",
-  "name": "Daily Sales ETL",
+  "name": "daily-sales-etl",
   "type": "Python",
   "command": "python etl/daily_sales_pipeline.py",
   "schedule": "0 2 * * *",
@@ -92,7 +90,23 @@ might look like this:
 }
 ```
 
-**<span className="text-purple-500">Q. How does the job scheduler execute an ETL job?</span>**
+**<span className="text-emerald-500">Q. How does the job scheduler track the status of a 
+job?</span>**
+
+states and their descriptions:
+
+| State                       | Owner              | Description                                                                                                                                                            |
+| --------------------------- | ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Waiting on Dependencies** | Scheduler          | The job cannot run until all upstream jobs have completed successfully.                                                                                                |
+| **Active**                  | Scheduler + Worker | The scheduler dispatches the job to a worker, and the worker begins execution. The scheduler records the job as active based on the worker's "Job Started" event.      |
+| **Completed Normally**      | Worker → Scheduler | The worker successfully finishes execution and reports completion. The scheduler updates the job state.                                                                |
+| **Completed Abnormally**    | Worker → Scheduler | The job terminated unexpectedly (timeout, killed by OS, infrastructure issue, etc.). The worker reports the abnormal termination, and the scheduler updates the state. |
+| **Failed**                  | Scheduler          | The scheduler marks the job as failed after determining that retries have been exhausted or the failure is unrecoverable.                                              |
+| **Paused**                  | Scheduler          | The user or administrator pauses the job. The scheduler will not dispatch future executions.                                                                           |
+| **Cancelled**               | Scheduler          | The user or administrator cancels the job before or during execution. The scheduler instructs the worker to terminate it if it's already running.                      |
+
+
+**<span className="text-emerald-500">Q. How does the job scheduler execute an ETL job?</span>**
 
 The scheduler itself **does not execute ETL jobs**. Its responsibility is to determine when a 
 job should run and delegate the actual execution to worker nodes.
@@ -156,10 +170,10 @@ Instead of dispatching jobs directly, the scheduler simply publishes ready-to-ru
 the queue. All worker nodes subscribe to the queue and compete to consume available jobs. 
 The worker that successfully consumes a job becomes responsible for executing it.
 
-Q. How to manually trigger a job?
+**<span className="text-emerald-500">Q. How to manually trigger a job?</span>**
 
 
-Q. How to pause/resume a job?
+**<span className="text-emerald-500">Q. How to pause/resume a job?</span>**
 
 ---
 
@@ -167,7 +181,7 @@ Q. How to pause/resume a job?
 
 Let's break down the sequence flow of few of the major use cases:
 
-#### Allow Users to Schedule Jobs
+#### Schedule a Job
 
 1. The client makes a `POST /jobs` request to the `Job Scheduler Service` with the job 
 definition (`name`, `type`, `command`, `schedule`, `parameters`, `retries`, `retryDelay`, 
@@ -177,9 +191,11 @@ definition (`name`, `type`, `command`, `schedule`, `parameters`, `retries`, `ret
 the job definition in the database and sends a `201 Created` response with the `job ID` in 
 the response body.
 
-3. 
+3. How does the job is displayed to the client once scheduled?
 
-#### Execute Scheduled Jobs
+#### Track the Status of Scheduled Jobs
+
+#### Execute a Scheduled Jobs
 
 #### Allow Users to Trigger Jobs
 
@@ -187,7 +203,7 @@ the response body.
 
 #### Retry Failed Jobs Automatically
 
-#### Track the Status of Scheduled Jobs
+
 
 ---
 
@@ -202,6 +218,12 @@ the response body.
 ### High-Level Design
 
 ---
+
+### Frequently Asked Questions
+
+---
+
+### EXTRA
 
 Design a dependency DAG visualizer and a reactive state-sync layer, which is the core engine 
 that makes tools like Airflow feel so fast and responsive.
