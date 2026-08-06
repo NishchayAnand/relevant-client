@@ -89,16 +89,6 @@ might look like this:
 }
 ```
 
-For 10,000 jobs, the table will have 10,000 rows. Not very write heavy. Read heavy
-
-Since this data is highly structured and requires transactional guarantees, a relational database 
-such as **PostgreSQL** or **MySQL** is a suitable choice. A typical schema for the **Job Definition** 
-table might look like this:
-
-| Job ID | Name | Type | Command | Schedule | Parameters | Retries | Retry Delay | Timeout | Owner |
-| ------ | ---- | ---- | ------- | -------- | ---------- | ------- | ----------- | ------- | ----- |
-| 1001   | daily-sales-etl | Python | python etl/daily_sales_pipeline.py | 0 2 * * * | `{"execution_date": "{{ ds }}"}` | 3 | 5m | 60m | data-engineering |
-
 #### **<span className="text-emerald-500">Q. How does the job scheduler execute an ETL job?</span>**
 
 The scheduler itself **does not execute ETL jobs**. Its responsibility is to determine when a 
@@ -291,6 +281,22 @@ the response body.
 ---
 
 ### Data Model Design
+
+#### Job Definition Table
+
+For 10,000 jobs, the table will have 10,000 rows. write heavy as status updates and Read heavy
+
+Since this data is highly structured and requires transactional guarantees, a relational database 
+such as **PostgreSQL** or **MySQL** is a suitable choice. A typical schema for the **Job Definition** 
+table might look like this:
+
+| Job ID | Name | Type | Command | Schedule | Parameters | Retries | Retry Delay | Timeout | Owner |
+| ------ | ---- | ---- | ------- | -------- | ---------- | ------- | ----------- | ------- | ----- |
+| 1001   | daily-sales-etl | Python | python etl/daily_sales_pipeline.py | 0 2 * * * | `{"execution_date": "{{ ds }}"}` | 3 | 5m | 60m | data-engineering |
+
+#### Job Execution Table
+
+### Job Execution History Table
 
 ---
 
