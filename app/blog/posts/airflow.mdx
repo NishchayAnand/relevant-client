@@ -20,11 +20,11 @@ For example:
 
 Design an **Distributed ETL Job Scheduler** that: 
 
-1. Allow users to create, update, pause, resume, and delete jobs.
-
-2. Allow users to schedule jobs using **time-based dependencies (Cron)** or 
+1. Allow users to schedule jobs using **time-based dependencies (Cron)** or 
 **event/dependency-based triggers**. For example, job `A` should run every day at `2:00 AM` or
 start only after all its upstream dependencies have completed successfully.
+
+2. Allow users to manually trigger, pause, resume, and cancel jobs.
 
 3. The system should retry failed jobs automatically based on configurable retry policies.
 
@@ -89,6 +89,16 @@ might look like this:
 }
 ```
 
+For 10,000 jobs, the table will have 10,000 rows. Not very write heavy. Read heavy
+
+Since this data is highly structured and requires transactional guarantees, a relational database 
+such as **PostgreSQL** or **MySQL** is a suitable choice. A typical schema for the **Job Definition** 
+table might look like this:
+
+| Job ID | Name | Type | Command | Schedule | Parameters | Retries | Retry Delay | Timeout | Owner |
+| ------ | ---- | ---- | ------- | -------- | ---------- | ------- | ----------- | ------- | ----- |
+| 1001   | daily-sales-etl | Python | python etl/daily_sales_pipeline.py | 0 2 * * * | `{"execution_date": "{{ ds }}"}` | 3 | 5m | 60m | data-engineering |
+
 #### **<span className="text-emerald-500">Q. How does the job scheduler execute an ETL job?</span>**
 
 The scheduler itself **does not execute ETL jobs**. Its responsibility is to determine when a 
@@ -133,8 +143,8 @@ difficult.
 
 ##### **<span className="text-purple-500">Suitable Approach</span>**
 
-To overcome these limitations, we can introduce a distributed message queue between the 
-scheduler and the workers.
+To overcome these limitations, we can introduce a message queue between the scheduler 
+and the workers.
 
 ```
                  Scheduler
@@ -157,26 +167,28 @@ Instead of dispatching jobs directly, the scheduler simply publishes ready-to-ru
 the queue. All worker nodes subscribe to the queue and compete to consume available jobs. 
 The worker that successfully consumes a job becomes responsible for executing it.
 
-#### **<span className="text-emerald-500">Q. How to manually trigger a job?</span>**
+#### **<span className="text-emerald-500">Q. How can a user manually trigger a job?</span>**
 
 
-#### **<span className="text-emerald-500">Q. How to pause/resume a job?</span>**
+#### **<span className="text-emerald-500">Q. How can a user pause/resume a job?</span>**
 
 #### <span className="text-emerald-500">Q. How does the job scheduler track the execution status of a job?</span>
 
-##### **<span className="text-purple-500">Naive Approach</span>**
-
-Maintain a **Job Execution Metadata** table that stores one record for every execution (run) 
-of a job. For example,
+To persist the execution status of a job, maintain a **Job Execution Metadata** table 
+that stores one record for every execution (run) of a job. For example,
 
 | Run ID | Job ID | Status                  | Start Time | End Time | Worker | Retry Count |
 | ------ | ------ | ----------------------- | ---------- | -------- | ------ | ----------- |
 | 1001   | 10     | Waiting on Dependencies | -          | -        | -      | 0           |
 
-At the beginning of the day, a background process inserts a new execution record for 
-every scheduled job with the initial state **Waiting on Dependencies**. Once the 
-scheduled time for a job is reached and all its dependencies have completed successfully, 
-the scheduler dispatches the job to a worker and updates its state to **Active**.
+Whenever a new execution of a job is created, the scheduler inserts a new record into the **Job 
+Execution Metadata** table with the initial state **Waiting on Dependencies** and dispatches it to 
+a worker node.
+
+**<span className="bg-yellow-100">There are multiple ways for workers to communicate execution 
+updates back to the scheduler.</span>**
+
+##### **<span className="text-purple-500">Naive Approach</span>**
 
 After finishing execution, the worker makes an **HTTP API** call to the scheduler to update
 the execution record with the new state. For example:
@@ -201,8 +213,7 @@ POST /job-runs/1001/status
 }
 ```
 
-**<span className="bg-yellow-100">Although this approach is simple, it introduces 
-several challenges:</span>**
+Although this approach is simple, it introduces several challenges:
 
 - **Scheduler Overload**: As the number of workers and jobs grows, the scheduler 
 spends a significant amount of time handling HTTP requests instead of performing its core 
@@ -216,14 +227,9 @@ backoff), increasing the complexity of every worker node.
 
 ##### **<span className="text-purple-500">Suitable Approach</span>**
 
-Instead of storing the current state in the **Job Execution Metadata** table, treat every
-state transition as an execution event  
-
-
 Additionally, we can adopt an event-driven architecture where workers publish execution 
 events to a message queue. The scheduler can consume these events asynchronously to update 
 the execution record.
-
 
 ---
 
@@ -239,12 +245,14 @@ The possible job states are:
 | **Cancelled**               | The job has been explicitly cancelled by a user before completion. This is a terminal state.                                                                                                                |
 
 The scheduler needs to maintain the lifecycle of every job so that users can monitor 
-progress and troubleshoot issues. 
-
+progress and troubleshoot issues. Instead of storing the current state in the **Job Execution 
+Metadata** table, treat every state transition as an execution event.
 
 - **Loss of State Transition History**: Since the same row is continuously updated, only 
 the latest state is retained. We cannot determine the exact sequence of events that led to 
 the current state or how long the job remained in each state.
+
+Can use append-only logs to store the execution history of a job.
 
 ---
 
