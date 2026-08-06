@@ -184,13 +184,24 @@ ways to get status updates from workers back to the scheduler.</span>**
 
 ##### **<span className="text-purple-500">Naive Approach</span>**
 
-The worker directly updates the execution record in the **Job Execution** table. The scheduler keeps 
-querying the table at regular intervals to get the latest updates.
+The worker directly updates the execution record in the **Job Execution** table. The scheduler 
+periodically polls the table to detect changes in the execution status.
 
-#### **<span className="text-purple-500">Better Approach</span>**
+Although this approach is simple, it introduces several challenges:
 
-After finishing execution, the worker makes an **HTTP API** call to the scheduler to update
-the execution record with the new state. For example:
+- **Polling Overhead**: The scheduler continuously polls the database even when no job status has 
+changed, resulting in unnecessary database queries.
+
+- **Scheduler Bottleneck**: As the number of concurrent jobs grows, the scheduler spends a significant 
+amount of time polling the database instead of scheduling new jobs.
+
+- **Delayed Detection**: Status changes are only detected during the next polling cycle, increasing 
+the time before dependent jobs can be triggered.
+
+##### **<span className="text-purple-500">Better Approach</span>**
+
+Instead of polling, workers actively notify the scheduler whenever the execution state changes using 
+an HTTP (or gRPC) callback. For example:
 
 ```json
 POST /job-runs/1001/status
@@ -212,25 +223,42 @@ POST /job-runs/1001/status
 }
 ```
 
-Although this approach is simple, it introduces several challenges:
+The scheduler immediately updates the execution metadata. However, this approach also introduces 
+some challenges:
 
-- **Scheduler Overload**: As the number of workers and jobs grows, the scheduler 
-spends a significant amount of time handling HTTP requests instead of performing its core 
-responsibility, i.e., scheduling jobs.
+- **Tight Coupling Between Scheduler and Workers**: Workers depend on the scheduler being available 
+to report execution status.
 
-- **Tight Coupling Between Scheduler and Workers**: Workers communicate directly with the 
-scheduler to report execution status, making them dependent on the scheduler's availability. 
-If the scheduler is temporarily unavailable, status updates fail. To ensure these updates 
-are eventually delivered, each worker must implement retry logic (and often exponential 
-backoff), increasing the complexity of every worker node.
+- **Retry Complexity**: If the scheduler is temporarily unavailable, status updates fail. Workers must 
+implement retry logic, exponential backoff, and timeout handling.
+
+- **Scheduler Bottleneck**: As the number of workers grows, the scheduler becomes the centralized 
+endpoint for all status updates, competing with its primary responsibility of scheduling jobs.
 
 ##### **<span className="text-purple-500">Suitable Approach</span>**
 
-Additionally, we can adopt an event-driven architecture where workers publish execution 
-events to a message queue. The scheduler can consume these events asynchronously to update 
-the execution record.
+Adopt an event-driven architecture where workers publish execution events to a durable message queue 
+such as Kafka or RabbitMQ.
 
----
+Workers publish immutable events such as `JOB_STARTED`,`JOB_COMPLETED` or `JOB_FAILED` to the 
+message queue. The scheduler asynchronously consumes these events and updates the corresponding 
+execution record.
+
+The benefits associated with this approach are:
+
+- **Loose Coupling**: Workers are independent of the scheduler's availability.
+
+- **High Throughput**: The scheduler consumes events asynchronously without being overwhelmed by 
+thousands of concurrent HTTP requests.
+
+- **Fault Tolerance**: Events remain in the message queue until they are successfully processed.
+
+- **Scalability**: Both workers and scheduler instances can scale horizontally without changing the 
+communication model.
+
+#### **<span className="text-emerald-500">Q. How retries are handled?</span>**
+
+#### **<span className="text-emerald-500">Q. How status logs are saved for auditing and monitoring?</span>**
 
 The possible job states are:
 
