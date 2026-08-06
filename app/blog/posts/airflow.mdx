@@ -37,11 +37,10 @@ Completed Normally, Completed Abnormally, Paused, Cancelled).
 
 For a **Distributed ETL Job Scheduler**, the following non-functional requirements are important:
 
-1. **High Throughput**: The system should be capable of scheduling and executing **10,000
-jobs per second** at peak load. For example, imagine a large enterprise that runs 
-thousands of ETL jobs daily. At `2:00 AM` every day, many jobs are scheduled to run 
-simultaneously. The system must **quickly identify all jobs that are due and dispatch 
-them for execution**.
+1. **High Throughput**: The system should be capable of scheduling **10,000 jobs per 
+second** at peak load. For example, imagine a large enterprise that runs thousands of ETL 
+jobs daily. At `2:00 AM` every day, many jobs are scheduled to run simultaneously. The 
+system must **quickly identify all jobs that are due and dispatch them for execution**.
 
 2. **Low Execution Latency**: A job should begin execution within `1-2 seconds` of its
 scheduled execution time. The system should efficiently identify available workers so that 
@@ -90,69 +89,12 @@ might look like this:
 }
 ```
 
-#### <span className="text-emerald-500">Q. How does the job scheduler track the status of a job?</span>
-
-The possible job states are:
-
-| **State**                   | **Description**                                                                                                                                                                                             |
-| --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Waiting on Dependencies** | The job is waiting for its scheduled time or one or more upstream jobs to complete successfully before it can be scheduled for execution.                                                                   |
-| **Active**                  | The job has been dispatched to a worker and is currently being executed.                                                                                                                                    |
-| **Completed Normally**      | The job finished successfully without any errors.                                                                                                                                                           |
-| **Completed Abnormally**    | The job terminated unexpectedly due to an execution issue, such as a timeout, worker crash, process termination, or infrastructure failure. Depending on the retry policy, the scheduler may retry the job. |
-| **Paused**                  | The job has been temporarily suspended by a user. The job remains paused until it is explicitly resumed by the user or the scheduler initiates a new execution.                                             |
-| **Cancelled**               | The job has been explicitly cancelled by a user before completion. This is a terminal state.                                                                                                                |
-
-The scheduler needs to maintain the lifecycle of every job so that users can monitor 
-progress and troubleshoot issues. 
-
-##### **<span className="text-purple-500">Naive Approach</span>**
-
-Maintain a **Job Execution Metadata** table that stores one record for every execution (run) 
-of a job. For example,
-
-| Run ID | Job ID | Status                  | Start Time | End Time | Worker | Retry Count |
-| ------ | ------ | ----------------------- | ---------- | -------- | ------ | ----------- |
-| 1001   | 10     | Waiting on Dependencies | -          | -        | -      | 0           |
-
-At the beginning of the day, a background process inserts a new execution record for 
-every scheduled job with the initial state **Waiting on Dependencies**. Once the 
-scheduled time for a job is reached and all its dependencies have completed successfully, 
-the scheduler dispatches the job to a worker and updates its state to **Active**.
-
-After executing the job, the worker sends an event (how??) back to the scheduler. For example:
-
-```json
-{
-  "runId": 1001,
-  "status": "Completed Normally"
-}
-```
-
-or 
-
-```json
-{
-  "runId": 1001,
-  "status": "Completed Abnormally",
-  "reason": "Connection timeout"
-}
-```
-
-Upon receiving the worker's event, the scheduler updates the same execution record (expand).
-
-**<span className="bg-yellow-100">Although this approach is simple, it leads to loss of 
-state transition history. Since the same row is continuously updated, only the latest 
-state is retained. We cannot determine the exact sequence of events that led to the 
-current state.</span>**
-
-##### **<span className="text-purple-500">Suitable Approach</span>**
-
-
 #### **<span className="text-emerald-500">Q. How does the job scheduler execute an ETL job?</span>**
 
 The scheduler itself **does not execute ETL jobs**. Its responsibility is to determine when a 
 job should run and delegate the actual execution to worker nodes.
+
+##### **<span className="text-purple-500">Naive Approach</span>**
 
 A straightforward approach is for the scheduler to **directly dispatch jobs to available 
 worker nodes**.
@@ -189,6 +131,8 @@ dispatching jobs becomes increasingly complex.
 - The scheduler becomes tightly coupled to the execution layer, making independent scaling 
 difficult.
 
+##### **<span className="text-purple-500">Suitable Approach</span>**
+
 To overcome these limitations, we can introduce a distributed message queue between the 
 scheduler and the workers.
 
@@ -213,10 +157,94 @@ Instead of dispatching jobs directly, the scheduler simply publishes ready-to-ru
 the queue. All worker nodes subscribe to the queue and compete to consume available jobs. 
 The worker that successfully consumes a job becomes responsible for executing it.
 
-**<span className="text-emerald-500">Q. How to manually trigger a job?</span>**
+#### **<span className="text-emerald-500">Q. How to manually trigger a job?</span>**
 
 
-**<span className="text-emerald-500">Q. How to pause/resume a job?</span>**
+#### **<span className="text-emerald-500">Q. How to pause/resume a job?</span>**
+
+#### <span className="text-emerald-500">Q. How does the job scheduler track the execution status of a job?</span>
+
+##### **<span className="text-purple-500">Naive Approach</span>**
+
+Maintain a **Job Execution Metadata** table that stores one record for every execution (run) 
+of a job. For example,
+
+| Run ID | Job ID | Status                  | Start Time | End Time | Worker | Retry Count |
+| ------ | ------ | ----------------------- | ---------- | -------- | ------ | ----------- |
+| 1001   | 10     | Waiting on Dependencies | -          | -        | -      | 0           |
+
+At the beginning of the day, a background process inserts a new execution record for 
+every scheduled job with the initial state **Waiting on Dependencies**. Once the 
+scheduled time for a job is reached and all its dependencies have completed successfully, 
+the scheduler dispatches the job to a worker and updates its state to **Active**.
+
+After finishing execution, the worker makes an **HTTP API** call to the scheduler to update
+the execution record with the new state. For example:
+
+```json
+POST /job-runs/1001/status
+
+{
+    "status": "Completed Normally",
+    "completedAt": "2026-08-06T02:03:15Z"
+}
+```
+
+or 
+
+```json
+POST /job-runs/1001/status
+
+{
+    "status": "Completed Abnormally",
+    "failureReason": "Connection timeout"
+}
+```
+
+**<span className="bg-yellow-100">Although this approach is simple, it introduces 
+several challenges:</span>**
+
+- **Scheduler Overload**: As the number of workers and jobs grows, the scheduler 
+spends a significant amount of time handling HTTP requests instead of performing its core 
+responsibility, i.e., scheduling jobs.
+
+- **Tight Coupling Between Scheduler and Workers**: Workers communicate directly with the 
+scheduler to report execution status, making them dependent on the scheduler's availability. 
+If the scheduler is temporarily unavailable, status updates fail. To ensure these updates 
+are eventually delivered, each worker must implement retry logic (and often exponential 
+backoff), increasing the complexity of every worker node.
+
+##### **<span className="text-purple-500">Suitable Approach</span>**
+
+Instead of storing the current state in the **Job Execution Metadata** table, treat every
+state transition as an execution event  
+
+
+Additionally, we can adopt an event-driven architecture where workers publish execution 
+events to a message queue. The scheduler can consume these events asynchronously to update 
+the execution record.
+
+
+---
+
+The possible job states are:
+
+| **State**                   | **Description**                                                                                                                                                                                             |
+| --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Waiting on Dependencies** | The job is waiting for its scheduled time or one or more upstream jobs to complete successfully before it can be scheduled for execution.                                                                   |
+| **Active**                  | The job has been dispatched to a worker and is currently being executed.                                                                                                                                    |
+| **Completed Normally**      | The job finished successfully without any errors.                                                                                                                                                           |
+| **Completed Abnormally**    | The job terminated unexpectedly due to an execution issue, such as a timeout, worker crash, process termination, or infrastructure failure. Depending on the retry policy, the scheduler may retry the job. |
+| **Paused**                  | The job has been temporarily suspended by a user. The job remains paused until it is explicitly resumed by the user or the scheduler initiates a new execution.                                             |
+| **Cancelled**               | The job has been explicitly cancelled by a user before completion. This is a terminal state.                                                                                                                |
+
+The scheduler needs to maintain the lifecycle of every job so that users can monitor 
+progress and troubleshoot issues. 
+
+
+- **Loss of State Transition History**: Since the same row is continuously updated, only 
+the latest state is retained. We cannot determine the exact sequence of events that led to 
+the current state or how long the job remained in each state.
 
 ---
 
