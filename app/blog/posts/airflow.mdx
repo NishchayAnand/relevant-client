@@ -94,6 +94,9 @@ might look like this:
 The scheduler itself **does not execute ETL jobs**. Its responsibility is to determine when a 
 job should run and delegate the actual execution to worker nodes.
 
+(the worker nodes need to be spunned up (docker container on kubernetes) to execute jobs) - think 
+about this - how worker nodes would be configured?
+
 ##### **<span className="text-purple-500">Naive Approach</span>**
 
 A straightforward approach is for the scheduler to **directly dispatch jobs to available 
@@ -175,10 +178,16 @@ Whenever a new execution of a job is created, the scheduler inserts a new record
 Execution Metadata** table with the initial state **Waiting on Dependencies** and dispatches it to 
 a worker node.
 
-**<span className="bg-yellow-100">There are multiple ways for workers to communicate execution 
-updates back to the scheduler.</span>**
+Since the scheduler acts as the orchestrator, it needs to get status updates from workers to 
+know if the job completed successfully or not. **<span className="bg-yellow-100">There are multiple 
+ways to get status updates from workers back to the scheduler.</span>**
 
 ##### **<span className="text-purple-500">Naive Approach</span>**
+
+The worker directly updates the execution record in the **Job Execution** table. The scheduler keeps 
+querying the table at regular intervals to get the latest updates.
+
+#### **<span className="text-purple-500">Better Approach</span>**
 
 After finishing execution, the worker makes an **HTTP API** call to the scheduler to update
 the execution record with the new state. For example:
@@ -272,11 +281,11 @@ the response body.
 
 #### Retry Failed Jobs Automatically
 
-
-
 ---
 
 ### API Design
+
+How will the scheduler get upcoming jobs to execute?
 
 ---
 
