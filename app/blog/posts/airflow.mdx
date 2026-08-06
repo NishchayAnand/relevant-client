@@ -20,15 +20,11 @@ For example:
 
 Design an **Distributed ETL Job Scheduler** that: 
 
-1. Allow users to schedule jobs using **time-based dependencies (Cron)** or 
-**event/dependency-based triggers**. For example, job `A` should run every day at `2:00 AM` or
-start only after all its upstream dependencies have completed successfully.
+1. Allow users to schedule jobs using **time-based dependencies (Cron)**.
 
-2. Allow users to manually trigger, pause, resume, and cancel jobs.
+2. The system should retry failed jobs automatically based on configurable retry policies.
 
-3. The system should retry failed jobs automatically based on configurable retry policies.
-
-4. The system should keep track of the status of each job (Waiting on Dependencies, Active, 
+3. The system should keep track of the status of each job (Waiting, Active, 
 Completed Normally, Completed Abnormally, Paused, Cancelled).
 
 ---
@@ -159,11 +155,6 @@ and the workers.
 Instead of dispatching jobs directly, the scheduler simply publishes ready-to-run jobs to 
 the queue. All worker nodes subscribe to the queue and compete to consume available jobs. 
 The worker that successfully consumes a job becomes responsible for executing it.
-
-#### **<span className="text-emerald-500">Q. How can a user manually trigger a job?</span>**
-
-
-#### **<span className="text-emerald-500">Q. How can a user pause/resume a job?</span>**
 
 #### <span className="text-emerald-500">Q. How does the job scheduler track the execution status of a job?</span>
 
@@ -341,7 +332,11 @@ table might look like this:
 
 ---
 
-### Frequently Asked Questions
+### Follow-up Questions
+
+Q. How will cancellation of an executing job work?
+
+Q. Do we need to revered the changes of a cancelled job?
 
 ---
 
