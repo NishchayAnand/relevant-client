@@ -88,7 +88,7 @@ might look like this:
 Since this data is highly structured and requires transactional guarantees, a relational database 
 such as **PostgreSQL** or **MySQL** is a suitable choice.
 
-#### **<span className="text-emerald-500">Q. How does the job scheduler create execution instances</span>**
+#### **<span className="text-emerald-500">Q. How does the job scheduler create execution instances?</span>**
 
 To persist the execution status of a job, maintain a **Job Execution** table that stores one record 
 for every execution (run) of a job. The initial execution record for a job can be created 
@@ -105,17 +105,33 @@ subsequent run.
 ##### **<span className="text-purple-500">Naive Approach</span>**
 
 To identify jobs that are ready for execution, the scheduler periodically scans the **Job Execution**
-table for execution records whose scheduled execution time has arrived (`execution_time <= NOW()`) and 
-whose current status is **Waiting**. These records represent jobs that are eligible to run but have 
-not yet been dispatched.
+table every second for execution records whose scheduled execution time has arrived (`execution_time <= NOW()`) 
+and whose current status is **Waiting**. These records represent jobs that are eligible to run but 
+have not yet been dispatched.
 
 For each matching execution, the scheduler dispatches it to the execution layer.
 
+While this approach is simple, it introduces several challenges:
+
+- For `10,000` job executions per second, repeatedly querying even an indexed database every second 
+can become a bottleneck. 
+
+- After retrieving the jobs, we still need time to initialize them, distribute 
+them to workers, and begin execution. This processing overhead further reduces the available `1-2`
+second scheduling window.
+
 ##### **<span className="text-purple-500">Better Approach</span>**
 
-Considering the scheduler must be capable of identifying, dispatching, and starting up to `10,000` 
-new executions every second, while ensuring that each job begins execution within `1-2 seconds` of 
-its scheduled execution time, 
+To overcome these limitations, we can introduce a two-layered scheduler architecture where we can 
+query the **Job Execution** table for jobs that are due for execution in the next `5 minutes` and 
+and push them to a message queue, ordered by `execution_time`. Workers will then pull jobs from the 
+queue in order and execute the job.
+
+#### **<span className="text-purple-500">Suitable Approach</span>**
+
+
+
+---
 
 Instead of relying solely on PostgreSQL as the scheduling queue, introduce an in-memory delay 
 queue (e.g., Redis Sorted Set or a timing wheel).
