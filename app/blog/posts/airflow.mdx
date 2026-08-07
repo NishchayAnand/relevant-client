@@ -63,7 +63,7 @@ A job contains everything required for execution, such as:
 
 - **What to** execute (script, SQL query, Python program, etc)
 - **When to** execute it (schedule, trigger)
-- **Execution Environment** (Docker container, virtual machine, etc)
+- **Execution Environment** (virtual machine,docker container, lambda function, etc)
 - **Retry Policy** (maximum retries, retry interval, etc)
 
 For example, a typical job definition for a daily sales ETL job for an e-commerce company 
@@ -85,22 +85,39 @@ might look like this:
 }
 ```
 
-#### **<span className="text-emerald-500">Q. How does the job scheduler execute an ETL job?</span>**
+Since this data is highly structured and requires transactional guarantees, a relational database 
+such as **PostgreSQL** or **MySQL** is a suitable choice.
 
-The scheduler itself **does not execute ETL jobs**. Its responsibility is to determine when a 
-job should run and delegate the actual execution to worker nodes.
+#### **<span className="text-emerald-500">Q. How does the job scheduler create execution instances</span>**
 
-We need a separate Job Execution table to store the execution status of a job (why). To persist the 
-execution status of a job, maintain a **Job Execution Metadata** table that stores one record for 
-every execution (run) of a job.
+To persist the execution status of a job, maintain a **Job Execution** table that stores one record 
+for every execution (run) of a job. The initial execution record for a job can be created 
+immediately when the job is created. 
+
+Once that specific execution instance runs and completes,
+the scheduler calculates the next scheduled time based on the cron expression and inserts a new 
+entry into the **Job Execution** table for the subsequent run.
+
+#### **<span className="text-emerald-500">Q. How does the job scheduler efficiently identify jobs that are due for execution?</span>**
+
 
 How to efficiently find which jobs to run next? A cron job runs every 5 minutes to query the database 
 for jobs that are due for execution in the next ~5 minutes. It can query the current hour's bucket and 
 possibly the next hour's bucket from the Job Execution table. which database would be efficient for 
 this?
 
-When a recurring job completes, we can easily schedule its next occurrence by calculating the next 
-execution time and creating a new entry in the Job Execution table. 
+
+
+Considering we need to support a high throughput of `10,000` jobs 
+per second and the jobs need to be executed withing `1-2 seconds` of their scheduled execution time, 
+
+(talk about the database to use - Load estimation for job creation and storage required)
+
+
+#### **<span className="text-emerald-500">Q. How does the job scheduler execute an ETL job?</span>**
+
+The scheduler itself **does not execute ETL jobs**. Its responsibility is to determine when a 
+job should run and delegate the actual execution to worker nodes.
 
 Whenever a new execution of a job is created, the scheduler inserts a new record into the **Job 
 Execution Metadata** table with the initial state **Waiting on Dependencies** and and dispatches it to 
@@ -164,8 +181,8 @@ and the workers.
       Detects jobs ready to run
                       │
                       ▼
-            Ready Jobs Queue
-        (Kafka / RabbitMQ / SQS)
+              Message Jobs Queue
+           (Kafka / RabbitMQ / SQS)
                       │
         ┌─────────────┼─────────────┐
         ▼             ▼             ▼
@@ -181,8 +198,8 @@ The worker that successfully consumes a job becomes responsible for executing it
 
 ##### **<span className="text-purple-500">Suitable Approach</span>**
 
-(the worker nodes need to be spunned up (docker container on kubernetes) to execute jobs) - think 
-about this - how worker nodes would be configured?
+(the worker nodes need to be spunned up (docker container on kubernetes or lambda functions) to 
+execute jobs) - think about this - how worker nodes would be configured?
 
 #### <span className="text-emerald-500">Q. How does the job scheduler track the execution status of a job?</span>
 
@@ -331,12 +348,7 @@ How will the scheduler get upcoming jobs to execute?
 
 #### Job Definition Table
 
-For 10,000 jobs, the table will have 10,000 rows. write heavy as status updates and Read heavy
-
-
-Since this data is highly structured and requires transactional guarantees, a relational database 
-such as **PostgreSQL** or **MySQL** is a suitable choice. A typical schema for the **Job Definition** 
-table might look like this:
+A typical schema for the **Job Definition** table might look like this:
 
 | Job ID | Name | Type | Command | Schedule | Parameters | Retries | Retry Delay | Timeout | Owner |
 | ------ | ---- | ---- | ------- | -------- | ---------- | ------- | ----------- | ------- | ----- |
