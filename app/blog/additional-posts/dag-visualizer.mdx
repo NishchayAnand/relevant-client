@@ -1,0 +1,335 @@
+
+
+### EXTRA
+
+Design a dependency DAG visualizer and a reactive state-sync layer, which is the core engine 
+that makes tools like Airflow feel so fast and responsive.
+
+The UI needs to answer questions like:
+
+Which jobs are ready to run?
+Which jobs are blocked?
+Which jobs became runnable just now?
+Which downstream jobs are affected by a failure?
+
+Instead of recalculating the entire workflow every few seconds, the propagation algorithm 
+incrementally updates only the impacted portion of the graph.
+
+The key challenge is:
+
+How do you instantly update thousands of dependent jobs on a UI when one job changes state?
+
+```
+dag-monitoring-system/
+
+├── producer-service
+│   └── publishes job events
+│
+├── dag-service
+│   ├── kafka consumer
+│   ├── mongodb
+│   └── rest apis
+│
+├── dashboard-ui
+│   └── react
+│
+└── docker-compose
+```
+
+---
+
+### Non-Functional Requirements
+
+
+---
+
+### Sequence Flow
+
+#### State Propagation Algorithm
+
+
+Current DAG
+
+```
+        A
+      /   \
+     B     C
+      \   /
+        D
+
+A = RUNNING
+B = WAITING
+C = WAITING
+D = WAITING
+```
+
+When node A state changes, the algorithm traverses only the descendants and check 
+
+```
+{
+  "jobId":"A",
+  "status":"SUCCESS"
+}
+
+- Can B now run? - `allParentsSuccessful(B)?` - Yes
+- Can C now run? - `allParentsSuccessful(C)?` - Yes
+- Can D now run? - `allParentsSuccessful(D)?` - No
+```
+
+#### Dependency Resolution Engine
+
+#### Incremental DAG Updates
+
+Suppose dependency changes.
+
+Old:
+
+```
+A → B
+```
+
+New:
+
+```
+A → C
+```
+
+Instead of rebuilding graph: Publish event.
+
+```json
+{
+  "type":"DEPENDENCY_UPDATED",
+  "source":"A",
+  "target":"C"
+}
+```
+
+State Sync Service updates:
+
+```
+graph.get(A).children.add(C);
+graph.get(C).parents.add(A);
+```
+
+and broadcasts delta.
+
+#### Delta-Based Synchronization
+
+Never send full DAG.
+
+Bad:
+
+```json
+{
+  "5000 nodes..."
+}
+```
+
+Good:
+
+```json
+{
+   "type":"NODE_UPDATED",
+   "jobId":"A",
+   "status":"SUCCESS"
+}
+```
+
+or
+
+```json
+{
+   "type":"EDGE_ADDED",
+   "source":"A",
+   "target":"C"
+}
+```
+
+UI updates only changed pieces.
+
+#### WebSocket Push Layer
+
+When state changes:
+
+```json
+webSocket.send(
+    DAGDeltaEvent
+)
+```
+
+Example:
+
+```json
+{
+  "type":"NODE_UPDATED",
+  "id":"A",
+  "status":"SUCCESS"
+}
+```
+
+No polling. UI updates instantly.
+
+---
+
+
+### Design Rationale
+
+The most important design choice is keeping the DAG in memory (and/or Redis) and propagating 
+only deltas through Kafka and WebSockets. That turns a potentially expensive "reload the 
+entire workflow graph" operation into a few milliseconds of incremental state updates, which 
+is exactly how modern orchestration dashboards remain responsive at scale.
+
+
+```
+{
+  "jobId": "A",
+  "children": ["B", "C"],
+  "parents": []
+}
+
+{
+  "jobId": "D",
+  "children": [],
+  "parents": ["B","C"]
+}
+```
+
+Why store both both children and parent array.
+
+---
+
+### Tidal Producer
+
+Recommended JSON structure for your Kafka events:
+
+```json
+{
+  "eventId": "uuid-1234",
+  "timestamp": "2026-06-06T14:30:00Z",
+  "type": "DEPENDENCY_ADDED",
+  "jobId": "job-101",
+  "payload": {
+    "parentId": "job-99",
+    "childId": "job-101"
+  }
+}
+```
+<br/>
+```java
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class JobEvent {
+
+    private String jobId;
+
+    private String jobName;
+
+    private EventType eventType;
+
+    private JobStatus status;
+
+    private List<String> dependencies;
+
+    private Instant timestamp;
+}
+```
+<br/>
+```java
+producer.publish(
+        JobEvent.builder()
+                .jobId("ERCOT_001")
+                .jobName("ERCOT Outages")
+                .eventType(EventType.JOB_CREATED)
+                .status(JobStatus.PENDING)
+                .dependencies(List.of("LOAD_DATA"))
+                .timestamp(Instant.now())
+                .build()
+);
+```
+
+#### Kafka Cluster
+
+**Crucial Design Choice:** Use `jobId` as the Kafka Partition Key. This ensures that all 
+events for a specific job land in the same partition, guaranteeing the order of dependency 
+updates is preserved.
+
+#### Backend Consumer
+
+Your consumer service shouldn't just "process" messages, it should maintain an in-memory or 
+persistent state (like a Graph DB or a simple Cache/SQL table).
+
+- **Ingestion:** The consumer listens to the tidal-events topic.
+
+- **State Update:** When a `DEPENDENCY_ADDED` event arrives, the consumer performs an upsert 
+in your database (add edge from `parentId` to `childId`).
+
+- **API Response:** When a user queries your API for a job's DAG, the service performs a 
+fast read from your local database/cache (the "Collated State") rather than hitting Tidal.
+
+```java
+@Component
+@RequiredArgsConstructor
+public class JobEventConsumer {
+
+    private final JobRepository repository;
+
+    @KafkaListener(
+            topics = "job-events",
+            groupId = "dag-service"
+    )
+    public void consume(JobEvent event) {
+
+        switch (event.getEventType()) {
+
+            case JOB_CREATED ->
+                    createJob(event);
+
+            case JOB_STATUS_CHANGED ->
+                    updateStatus(event);
+
+            case DEPENDENCY_UPDATED ->
+                    updateDependencies(event);
+        }
+    }
+
+    private void createJob(JobEvent event) {
+
+        JobNode node = new JobNode();
+
+        node.setJobId(event.getJobId());
+        node.setJobName(event.getJobName());
+        node.setStatus(event.getStatus());
+        node.setDependencies(event.getDependencies());
+
+        repository.save(node);
+    }
+
+    private void updateStatus(JobEvent event) {
+
+        repository.findById(event.getJobId())
+                .ifPresent(job -> {
+
+                    job.setStatus(event.getStatus());
+
+                    repository.save(job);
+                });
+    }
+
+    private void updateDependencies(JobEvent event) {
+
+        repository.findById(event.getJobId())
+                .ifPresent(job -> {
+
+                    job.setDependencies(event.getDependencies());
+
+                    repository.save(job);
+                });
+    }
+}
+```
+
+### Related Blogs
+
+- [Maximum Profit in Job Scheduling](https://leetcode.com/problems/maximum-profit-in-job-scheduling/description/)

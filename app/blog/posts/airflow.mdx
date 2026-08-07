@@ -90,10 +90,33 @@ might look like this:
 The scheduler itself **does not execute ETL jobs**. Its responsibility is to determine when a 
 job should run and delegate the actual execution to worker nodes.
 
-(the worker nodes need to be spunned up (docker container on kubernetes) to execute jobs) - think 
-about this - how worker nodes would be configured?
+We need a separate Job Execution table to store the execution status of a job (why). To persist the 
+execution status of a job, maintain a **Job Execution Metadata** table that stores one record for 
+every execution (run) of a job.
+
+How to efficiently find which jobs to run next? A cron job runs every 5 minutes to query the database 
+for jobs that are due for execution in the next ~5 minutes. It can query the current hour's bucket and 
+possibly the next hour's bucket from the Job Execution table. which database would be efficient for 
+this?
+
+When a recurring job completes, we can easily schedule its next occurrence by calculating the next 
+execution time and creating a new entry in the Job Execution table. 
+
+Whenever a new execution of a job is created, the scheduler inserts a new record into the **Job 
+Execution Metadata** table with the initial state **Waiting on Dependencies** and and dispatches it to 
+a worker node.
+
+For worker nodes setup, we can different setups:
 
 ##### **<span className="text-purple-500">Naive Approach</span>**
+
+We maintain a fleet of server. When a worker node is available to execute jobs, it simply queries the 
+Executions table for entries where:
+
+- `execution_time` is within the next few minutes
+- `status` is "PENDING"
+
+The worker can then look up the full job details in the Jobs table and execute the task.
 
 A straightforward approach is for the scheduler to **directly dispatch jobs to available 
 worker nodes**.
@@ -130,7 +153,7 @@ dispatching jobs becomes increasingly complex.
 - The scheduler becomes tightly coupled to the execution layer, making independent scaling 
 difficult.
 
-##### **<span className="text-purple-500">Suitable Approach</span>**
+##### **<span className="text-purple-500">Better Approach</span>**
 
 To overcome these limitations, we can introduce a message queue between the scheduler 
 and the workers.
@@ -156,18 +179,12 @@ Instead of dispatching jobs directly, the scheduler simply publishes ready-to-ru
 the queue. All worker nodes subscribe to the queue and compete to consume available jobs. 
 The worker that successfully consumes a job becomes responsible for executing it.
 
+##### **<span className="text-purple-500">Suitable Approach</span>**
+
+(the worker nodes need to be spunned up (docker container on kubernetes) to execute jobs) - think 
+about this - how worker nodes would be configured?
+
 #### <span className="text-emerald-500">Q. How does the job scheduler track the execution status of a job?</span>
-
-To persist the execution status of a job, maintain a **Job Execution Metadata** table 
-that stores one record for every execution (run) of a job. For example,
-
-| Run ID | Job ID | Status                  | Start Time | End Time | Worker | Retry Count |
-| ------ | ------ | ----------------------- | ---------- | -------- | ------ | ----------- |
-| 1001   | 10     | Waiting on Dependencies | -          | -        | -      | 0           |
-
-Whenever a new execution of a job is created, the scheduler inserts a new record into the **Job 
-Execution Metadata** table with the initial state **Waiting on Dependencies** and dispatches it to 
-a worker node.
 
 Since the scheduler acts as the orchestrator, it needs to get status updates from workers to 
 know if the job completed successfully or not. **<span className="bg-yellow-100">There are multiple 
@@ -247,7 +264,9 @@ thousands of concurrent HTTP requests.
 - **Scalability**: Both workers and scheduler instances can scale horizontally without changing the 
 communication model.
 
-#### **<span className="text-emerald-500">Q. How retries are handled?</span>**
+#### **<span className="text-emerald-500">Q. How retries are automatically handled by the scheduler?</span>**
+
+
 
 #### **<span className="text-emerald-500">Q. How status logs are saved for auditing and monitoring?</span>**
 
@@ -314,6 +333,7 @@ How will the scheduler get upcoming jobs to execute?
 
 For 10,000 jobs, the table will have 10,000 rows. write heavy as status updates and Read heavy
 
+
 Since this data is highly structured and requires transactional guarantees, a relational database 
 such as **PostgreSQL** or **MySQL** is a suitable choice. A typical schema for the **Job Definition** 
 table might look like this:
@@ -323,6 +343,14 @@ table might look like this:
 | 1001   | daily-sales-etl | Python | python etl/daily_sales_pipeline.py | 0 2 * * * | `{"execution_date": "{{ ds }}"}` | 3 | 5m | 60m | data-engineering |
 
 #### Job Execution Table
+
+Concentrating all writes for a given hour into a single partition could create a hot partition under 
+heavy load. We'll address this with write sharding in the scaling deep dive.
+
+| Run ID | Job ID | Status                  | Start Time | End Time | Worker | Retry Count |
+| ------ | ------ | ----------------------- | ---------- | -------- | ------ | ----------- |
+| 1001   | 10     | Waiting on Dependencies | -          | -        | -      | 0           |
+
 
 ### Job Execution History Table
 
@@ -339,337 +367,3 @@ Q. How will cancellation of an executing job work?
 Q. Do we need to revered the changes of a cancelled job?
 
 ---
-
-### EXTRA
-
-Design a dependency DAG visualizer and a reactive state-sync layer, which is the core engine 
-that makes tools like Airflow feel so fast and responsive.
-
-The UI needs to answer questions like:
-
-Which jobs are ready to run?
-Which jobs are blocked?
-Which jobs became runnable just now?
-Which downstream jobs are affected by a failure?
-
-Instead of recalculating the entire workflow every few seconds, the propagation algorithm 
-incrementally updates only the impacted portion of the graph.
-
-The key challenge is:
-
-How do you instantly update thousands of dependent jobs on a UI when one job changes state?
-
-```
-dag-monitoring-system/
-
-├── producer-service
-│   └── publishes job events
-│
-├── dag-service
-│   ├── kafka consumer
-│   ├── mongodb
-│   └── rest apis
-│
-├── dashboard-ui
-│   └── react
-│
-└── docker-compose
-```
-
----
-
-### Non-Functional Requirements
-
-
----
-
-### Sequence Flow
-
-#### State Propagation Algorithm
-
-
-Current DAG
-
-```
-        A
-      /   \
-     B     C
-      \   /
-        D
-
-A = RUNNING
-B = WAITING
-C = WAITING
-D = WAITING
-```
-
-When node A state changes, the algorithm traverses only the descendants and check 
-
-```
-{
-  "jobId":"A",
-  "status":"SUCCESS"
-}
-
-- Can B now run? - `allParentsSuccessful(B)?` - Yes
-- Can C now run? - `allParentsSuccessful(C)?` - Yes
-- Can D now run? - `allParentsSuccessful(D)?` - No
-```
-
-#### Dependency Resolution Engine
-
-#### Incremental DAG Updates
-
-Suppose dependency changes.
-
-Old:
-
-```
-A → B
-```
-
-New:
-
-```
-A → C
-```
-
-Instead of rebuilding graph: Publish event.
-
-```json
-{
-  "type":"DEPENDENCY_UPDATED",
-  "source":"A",
-  "target":"C"
-}
-```
-
-State Sync Service updates:
-
-```
-graph.get(A).children.add(C);
-graph.get(C).parents.add(A);
-```
-
-and broadcasts delta.
-
-#### Delta-Based Synchronization
-
-Never send full DAG.
-
-Bad:
-
-```json
-{
-  "5000 nodes..."
-}
-```
-
-Good:
-
-```json
-{
-   "type":"NODE_UPDATED",
-   "jobId":"A",
-   "status":"SUCCESS"
-}
-```
-
-or
-
-```json
-{
-   "type":"EDGE_ADDED",
-   "source":"A",
-   "target":"C"
-}
-```
-
-UI updates only changed pieces.
-
-#### WebSocket Push Layer
-
-When state changes:
-
-```json
-webSocket.send(
-    DAGDeltaEvent
-)
-```
-
-Example:
-
-```json
-{
-  "type":"NODE_UPDATED",
-  "id":"A",
-  "status":"SUCCESS"
-}
-```
-
-No polling. UI updates instantly.
-
----
-
-
-### Design Rationale
-
-The most important design choice is keeping the DAG in memory (and/or Redis) and propagating 
-only deltas through Kafka and WebSockets. That turns a potentially expensive "reload the 
-entire workflow graph" operation into a few milliseconds of incremental state updates, which 
-is exactly how modern orchestration dashboards remain responsive at scale.
-
-
-```
-{
-  "jobId": "A",
-  "children": ["B", "C"],
-  "parents": []
-}
-
-{
-  "jobId": "D",
-  "children": [],
-  "parents": ["B","C"]
-}
-```
-
-Why store both both children and parent array.
-
----
-
-### Tidal Producer
-
-Recommended JSON structure for your Kafka events:
-
-```json
-{
-  "eventId": "uuid-1234",
-  "timestamp": "2026-06-06T14:30:00Z",
-  "type": "DEPENDENCY_ADDED",
-  "jobId": "job-101",
-  "payload": {
-    "parentId": "job-99",
-    "childId": "job-101"
-  }
-}
-```
-<br/>
-```java
-@Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
-public class JobEvent {
-
-    private String jobId;
-
-    private String jobName;
-
-    private EventType eventType;
-
-    private JobStatus status;
-
-    private List<String> dependencies;
-
-    private Instant timestamp;
-}
-```
-<br/>
-```java
-producer.publish(
-        JobEvent.builder()
-                .jobId("ERCOT_001")
-                .jobName("ERCOT Outages")
-                .eventType(EventType.JOB_CREATED)
-                .status(JobStatus.PENDING)
-                .dependencies(List.of("LOAD_DATA"))
-                .timestamp(Instant.now())
-                .build()
-);
-```
-
-#### Kafka Cluster
-
-**Crucial Design Choice:** Use `jobId` as the Kafka Partition Key. This ensures that all 
-events for a specific job land in the same partition, guaranteeing the order of dependency 
-updates is preserved.
-
-#### Backend Consumer
-
-Your consumer service shouldn't just "process" messages, it should maintain an in-memory or 
-persistent state (like a Graph DB or a simple Cache/SQL table).
-
-- **Ingestion:** The consumer listens to the tidal-events topic.
-
-- **State Update:** When a `DEPENDENCY_ADDED` event arrives, the consumer performs an upsert 
-in your database (add edge from `parentId` to `childId`).
-
-- **API Response:** When a user queries your API for a job's DAG, the service performs a 
-fast read from your local database/cache (the "Collated State") rather than hitting Tidal.
-
-```java
-@Component
-@RequiredArgsConstructor
-public class JobEventConsumer {
-
-    private final JobRepository repository;
-
-    @KafkaListener(
-            topics = "job-events",
-            groupId = "dag-service"
-    )
-    public void consume(JobEvent event) {
-
-        switch (event.getEventType()) {
-
-            case JOB_CREATED ->
-                    createJob(event);
-
-            case JOB_STATUS_CHANGED ->
-                    updateStatus(event);
-
-            case DEPENDENCY_UPDATED ->
-                    updateDependencies(event);
-        }
-    }
-
-    private void createJob(JobEvent event) {
-
-        JobNode node = new JobNode();
-
-        node.setJobId(event.getJobId());
-        node.setJobName(event.getJobName());
-        node.setStatus(event.getStatus());
-        node.setDependencies(event.getDependencies());
-
-        repository.save(node);
-    }
-
-    private void updateStatus(JobEvent event) {
-
-        repository.findById(event.getJobId())
-                .ifPresent(job -> {
-
-                    job.setStatus(event.getStatus());
-
-                    repository.save(job);
-                });
-    }
-
-    private void updateDependencies(JobEvent event) {
-
-        repository.findById(event.getJobId())
-                .ifPresent(job -> {
-
-                    job.setDependencies(event.getDependencies());
-
-                    repository.save(job);
-                });
-    }
-}
-```
-
-### Related Blogs
-
-- [Maximum Profit in Job Scheduling](https://leetcode.com/problems/maximum-profit-in-job-scheduling/description/)
