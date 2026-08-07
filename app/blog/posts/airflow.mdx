@@ -94,19 +94,33 @@ To persist the execution status of a job, maintain a **Job Execution** table tha
 for every execution (run) of a job. The initial execution record for a job can be created 
 immediately when the job is created. 
 
-Once that specific execution instance runs and completes,
-the scheduler calculates the next scheduled time based on the cron expression and inserts a new 
-entry into the **Job Execution** table for the subsequent run.
+which database would be efficient for this?
 
-#### **<span className="text-emerald-500">Q. How does the job scheduler efficiently identify jobs that are due for execution?</span>**
+Once that specific execution instance runs and completes, the scheduler calculates the next scheduled 
+time based on the cron expression and inserts a new entry into the **Job Execution** table for the 
+subsequent run.
 
+#### **<span className="text-emerald-500">Q. How does the job scheduler identify jobs that are due for execution?</span>**
 
-How to efficiently find which jobs to run next? A cron job runs every 5 minutes to query the database 
-for jobs that are due for execution in the next ~5 minutes. It can query the current hour's bucket and 
-possibly the next hour's bucket from the Job Execution table. which database would be efficient for 
-this?
+##### **<span className="text-purple-500">Naive Approach</span>**
 
+To identify jobs that are ready for execution, the scheduler periodically scans the **Job Execution**
+table for execution records whose scheduled execution time has arrived (`execution_time <= NOW()`) and 
+whose current status is **Waiting**. These records represent jobs that are eligible to run but have 
+not yet been dispatched.
 
+For each matching execution, the scheduler dispatches it to the execution layer.
+
+##### **<span className="text-purple-500">Better Approach</span>**
+
+Considering the scheduler must be capable of identifying, dispatching, and starting up to `10,000` 
+new executions every second, while ensuring that each job begins execution within `1-2 seconds` of 
+its scheduled execution time, 
+
+Instead of relying solely on PostgreSQL as the scheduling queue, introduce an in-memory delay 
+queue (e.g., Redis Sorted Set or a timing wheel).
+
+Redis maintains only the upcoming executions ordered by execution time.
 
 Considering we need to support a high throughput of `10,000` jobs 
 per second and the jobs need to be executed withing `1-2 seconds` of their scheduled execution time, 
