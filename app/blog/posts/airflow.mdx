@@ -122,12 +122,41 @@ second scheduling window.
 
 ##### **<span className="text-purple-500">Better Approach</span>**
 
-To overcome these limitations, we can introduce a two-layered scheduler architecture where we can 
-query the **Job Execution** table for jobs that are due for execution in the next `5 minutes` and 
-and push them to a message queue, ordered by `execution_time`. Workers will then pull jobs from the 
-queue in order and execute the job.
+We can introduce a two-layered scheduler architecture. Instead of querying the **Job Execution** table 
+every second, the scheduler periodically queries the database for all executions scheduled to run 
+within the next `5 minutes` and loads them into an **message queue** ordered by `execution_time`.
+
+The scheduler periodically peeks the job at the head of the queue (the job with the earliest 
+`execution_time`). As soon as a job reaches its scheduled execution time, it is removed from the queue 
+and dispatched to the execution layer, where worker nodes can consume and execute it.
+
+Since the database is queried only once every few minutes, database load is significantly reduced, 
+and the scheduler can still dispatch jobs with sub-second precision.
+
+However, this approach introduces a new challenge. **<span className="bg-yellow-100">How to handle new 
+execution instances that are created after the scheduler has loaded the next `5 minutes` of executions 
+into memory?</span>**
+
+For example, suppose the scheduler queries the database at `2:00 PM` and loads all executions 
+scheduled between `2:00 PM` and `2:05 PM`. If a new execution is created at `2:03 PM` with a 
+scheduled execution time of `2:04 PM`, it will never be loaded into the message queue.
 
 #### **<span className="text-purple-500">Suitable Approach</span>**
+
+If a new execution record is created whose `execution_time` falls within the current scheduling window, 
+it should not only be persisted to the **Job Execution** table but also inserted immediately into the 
+in-memory queue. This ensures that newly created executions are considered by the scheduler without 
+waiting for the next database refresh.
+
+However, a traditional FIFO queue is not suitable because it preserves insertion order rather than 
+scheduled execution time. As a result, a newly created execution that is scheduled to run earlier than 
+existing entries would still be placed at the end of the queue, causing it to execute later than intended.
+
+To solve this, we maintain the in-memory scheduling queue as a Redis Sorted Set, using the execution_time as the score. The sorted set automatically orders executions by their scheduled execution time, regardless of when they are inserted. This ensures that the scheduler always retrieves and dispatches the execution that is due next while continuing to satisfy the 1–2 second execution latency requirement.
+
+
+
+
 
 
 
