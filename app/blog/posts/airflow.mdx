@@ -158,24 +158,14 @@ delayed delivery like Amazon SQS Delay Queue.*/}
 The scheduler itself **does not execute ETL jobs**. Its responsibility is to determine when a 
 job should run and delegate the actual execution to worker nodes.
 
-Whenever a new execution of a job is created, the scheduler inserts a new record into the **Job 
-Execution Metadata** table with the initial state **Waiting on Dependencies** and and dispatches it to 
-a worker node.
-
-For worker nodes setup, we can different setups:
+For worker nodes setup, we can have different setups:
 
 ##### **<span className="text-purple-500">Naive Approach</span>**
 
-We maintain a fleet of server. When a worker node is available to execute jobs, it simply queries the 
-Executions table for entries where:
-
-- `execution_time` is within the next few minutes
-- `status` is "PENDING"
-
-The worker can then look up the full job details in the Jobs table and execute the task.
-
-A straightforward approach is for the scheduler to **directly dispatch jobs to available 
-worker nodes**.
+A straightforward approach is to maintain a fixed fleet of worker servers. Whenever the scheduler 
+determines that a job is due for execution, it selects an available worker based on factors such as 
+CPU utilization, memory usage, or the number of currently running jobs, and directly dispatches the 
+job to that worker.
 
 ```
                  Scheduler
@@ -211,8 +201,7 @@ difficult.
 
 ##### **<span className="text-purple-500">Better Approach</span>**
 
-To overcome these limitations, we can introduce a message queue between the scheduler 
-and the workers.
+To decouple scheduling from execution, introduce an execution queue (e.g., Kafka or RabbitMQ).
 
 ```
                  Scheduler
@@ -220,7 +209,7 @@ and the workers.
       Detects jobs ready to run
                       │
                       ▼
-              Message Jobs Queue
+                Message Queue
            (Kafka / RabbitMQ / SQS)
                       │
         ┌─────────────┼─────────────┐
@@ -231,20 +220,74 @@ and the workers.
  Execute ETL     Execute ETL    Execute ETL
 ```
 
-Instead of dispatching jobs directly, the scheduler simply publishes ready-to-run jobs to 
-the queue. All worker nodes subscribe to the queue and compete to consume available jobs. 
-The worker that successfully consumes a job becomes responsible for executing it.
+Instead of selecting a worker, the scheduler simply publishes the execution to the queue. Worker 
+nodes continuously consume jobs from the queue and execute them.
+
+This approach offers several advantages:
+
+- The scheduler no longer needs to track worker availability or perform load balancing.
+
+- Workers pull jobs only when they have capacity, naturally balancing the load.
+
+- The scheduler and execution layer can scale independently.
+
+- The queue provides buffering during traffic spikes, preventing the scheduler from overwhelming 
+workers.
+
+However, this approach still relies on a **fixed fleet of worker servers**. Scaling the execution 
+layer requires provisioning additional machines, and multiple ETL jobs running on the same worker 
+may compete for CPU and memory resources. {/*Can lead to out of memory errors???*/}
 
 ##### **<span className="text-purple-500">Suitable Approach</span>**
 
-(the worker nodes need to be spunned up (docker container on kubernetes or lambda functions) to 
-execute jobs) - think about this - how worker nodes would be configured?
+Instead of maintaining a fixed fleet of workers, use Kubernetes as the execution platform.
+
+```
+                 Scheduler
+                      │
+                      ▼
+           Execution Queue
+                      │
+                      ▼
+            Execution Service
+                      │
+        Create Kubernetes Job
+                      │
+                      ▼
+        ┌─────────────┼─────────────┐
+        ▼             ▼             ▼
+      Pod 1         Pod 2         Pod 3
+        │             │             │
+        ▼             ▼             ▼
+ Execute ETL     Execute ETL    Execute ETL
+```
+
+An Execution Service continuously consumes jobs from the execution queue. For each job, it creates a 
+**Kubernetes Job (or Pod)** that runs the ETL task inside an isolated container.
+
+This architecture provides several benefits:
+
+- **Elastic Scaling**: Kubernetes automatically schedules pods across available nodes and can scale 
+the cluster as demand increases.
+
+- **Resource Isolation**: Each ETL execution runs in its own container with configurable CPU and 
+memory limits, preventing one job from affecting others.
+
+- **Fault Recovery**: If a pod or node fails, Kubernetes automatically recreates the workload on 
+another healthy node.
+
+> **<span className="bg-yellow-100">NOTE: As an alternative to Kubernetes, the execution layer 
+can be implemented using serverless compute such as AWS Lambda. This approach eliminates the need to 
+manage servers, automatically scales with demand, and follows a pay-per-use pricing model. However, 
+serverless platforms have limitations such as maximum execution duration, memory constraints, cold 
+starts, and limited support for long-running or resource-intensive ETL pipelines.</span>**
 
 #### <span className="text-emerald-500">Q. How does the job scheduler track the execution status of a job?</span>
 
 Since the scheduler acts as the orchestrator, it needs to get status updates from workers to 
-know if the job completed successfully or not. **<span className="bg-yellow-100">There are multiple 
-ways to get status updates from workers back to the scheduler.</span>**
+know if the job completed successfully or not. 
+
+There are multiple ways to get status updates from workers back to the scheduler.
 
 ##### **<span className="text-purple-500">Naive Approach</span>**
 
@@ -320,10 +363,6 @@ thousands of concurrent HTTP requests.
 - **Scalability**: Both workers and scheduler instances can scale horizontally without changing the 
 communication model.
 
-#### **<span className="text-emerald-500">Q. How retries are automatically handled by the scheduler?</span>**
-
-
-
 #### **<span className="text-emerald-500">Q. How status logs are saved for auditing and monitoring?</span>**
 
 The possible job states are:
@@ -381,6 +420,14 @@ the response body.
 
 How will the scheduler get upcoming jobs to execute?
 
+#### Job Service 
+
+#### Scheduler Service
+
+#### Dispatcher Service
+
+#### Executor Service
+
 ---
 
 ### Data Model Design
@@ -416,5 +463,7 @@ heavy load. We'll address this with write sharding in the scaling deep dive.
 Q. How will cancellation of an executing job work?
 
 Q. Do we need to revered the changes of a cancelled job?
+
+Q. What to do when a batch processing fails after uploading 60% of the data?
 
 ---
