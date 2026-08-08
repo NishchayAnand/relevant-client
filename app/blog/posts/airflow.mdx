@@ -363,28 +363,67 @@ thousands of concurrent HTTP requests.
 - **Scalability**: Both workers and scheduler instances can scale horizontally without changing the 
 communication model.
 
-#### **<span className="text-emerald-500">Q. How status logs are saved for auditing and monitoring?</span>**
+#### <span className="text-emerald-500">Q. How does the scheduler persist and track the lifecycle of a job execution for auditing and monitoring?</span>
 
-The possible job states are:
-
-| **State**                   | **Description**                                                                                                                                                                                             |
-| --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Waiting on Dependencies** | The job is waiting for its scheduled time or one or more upstream jobs to complete successfully before it can be scheduled for execution.                                                                   |
-| **Active**                  | The job has been dispatched to a worker and is currently being executed.                                                                                                                                    |
-| **Completed Normally**      | The job finished successfully without any errors.                                                                                                                                                           |
-| **Completed Abnormally**    | The job terminated unexpectedly due to an execution issue, such as a timeout, worker crash, process termination, or infrastructure failure. Depending on the retry policy, the scheduler may retry the job. |
-| **Paused**                  | The job has been temporarily suspended by a user. The job remains paused until it is explicitly resumed by the user or the scheduler initiates a new execution.                                             |
-| **Cancelled**               | The job has been explicitly cancelled by a user before completion. This is a terminal state.                                                                                                                |
-
-The scheduler needs to maintain the lifecycle of every job so that users can monitor 
-progress and troubleshoot issues. Instead of storing the current state in the **Job Execution 
-Metadata** table, treat every state transition as an execution event.
-
-- **Loss of State Transition History**: Since the same row is continuously updated, only 
+The records in the **Job Execution** table are continuously updated to track the status of the 
+execution as it progresses. However, since the same row is continuously updated, only 
 the latest state is retained. We cannot determine the exact sequence of events that led to 
 the current state or how long the job remained in each state.
 
-Can use append-only logs to store the execution history of a job.
+
+The possible job states are:
+
+| **State**                | **Description**                                                                                                                                                                                             |
+| ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Waiting**              | The job is waiting for its scheduled time before it can be scheduled for execution.                                                                                                                         |
+| **Active**               | The job has been dispatched to a worker and is currently being executed.                                                                                                                                    |
+| **Completed Normally**   | The job finished successfully without any errors.                                                                                                                                                           |
+| **Completed Abnormally** | The job terminated unexpectedly due to an execution issue, such as a timeout, worker crash, process termination, or infrastructure failure. Depending on the retry policy, the scheduler may retry the job. |
+
+The scheduler needs to maintain the lifecycle of every job execution so that users can monitor 
+progress, troubleshoot failures, and perform audits.
+
+Possible approaches to maintain the lifecycle of a job execution are:
+
+#### **<span className="text-purple-500">Naive Approach</span>**
+
+Maintain a Job Execution History table. Every time the execution changes state, insert a new row.
+
+This provides a complete audit trail. However, as the number of executions grows, this table becomes 
+write-intensive. Running analytical queries on this table can impact the scheduler's write 
+performance.
+
+#### **<span className="text-purple-500">Better Approach</span>**
+
+Instead of writing directly to the execution history table, publish every state transition 
+as an execution event.
+
+```
+Worker
+    │
+ExecutionCompleted
+    ▼
+Kafka
+    │
+    ├──────────────┐
+    ▼              ▼
+Scheduler     Audit Service
+    │              │
+Update         Append-only
+JobExecution   Event Store
+```
+
+Every state transition becomes an immutable event.
+
+Benefits:
+
+- Scheduler performs only operational updates.
+- Auditing is completely decoupled.
+- Multiple downstream consumers (monitoring, dashboards, alerts, analytics) can consume the same 
+event stream.
+- No contention between operational writes and analytical queries.
+
+<br/>
 
 ---
 
