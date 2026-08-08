@@ -85,22 +85,30 @@ might look like this:
 }
 ```
 
-Since this data is highly structured and requires transactional guarantees, a relational database 
-such as **PostgreSQL** or **MySQL** is a suitable choice.
+<br/>
+
+> <span className="bg-yellow-100">**NOTE**: Since this data is highly structured and requires transactional guarantees, a relational database 
+such as **PostgreSQL** or **MySQL** is a suitable choice.</span>
 
 #### **<span className="text-emerald-500">Q. How does the job scheduler create execution instances?</span>**
 
 To persist the execution status of a job, maintain a **Job Execution** table that stores one record 
 for every execution (run) of a job. The initial execution record for a job can be created 
-immediately when the job is created. 
-
-which database would be efficient for this?
+immediately when the job is created.
 
 Once that specific execution instance runs and completes, the scheduler calculates the next scheduled 
 time based on the cron expression and inserts a new entry into the **Job Execution** table for the 
 subsequent run.
 
+> NOTE: which database would be efficient for this?
+
 #### **<span className="text-emerald-500">Q. How does the job scheduler identify jobs that are due for execution?</span>**
+
+The scheduler needs to identify jobs that are due for execution to dispatch them to the execution layer.
+This is a critical operation that needs to be performed efficiently to meet the high throughput 
+requirement.
+
+There are multiple ways to identify jobs that are due for execution.
 
 ##### **<span className="text-purple-500">Naive Approach</span>**
 
@@ -120,58 +128,30 @@ can become a bottleneck.
 them to workers, and begin execution. This processing overhead further reduces the available `1-2`
 second scheduling window.
 
-##### **<span className="text-purple-500">Better Approach</span>**
+##### **<span className="text-purple-500">Suitable Approach</span>**
 
 We can introduce a two-layered scheduler architecture. Instead of querying the **Job Execution** table 
 every second, the scheduler periodically queries the database for all executions scheduled to run 
-within the next `5 minutes` and loads them into an **message queue** ordered by `execution_time`.
+within the next `5 minutes` and loads them into an in-memory store (like Redis Sorted Set) ordered by 
+`execution_time`.
 
-The scheduler periodically peeks the job at the head of the queue (the job with the earliest 
-`execution_time`). As soon as a job reaches its scheduled execution time, it is removed from the queue 
-and dispatched to the execution layer, where worker nodes can consume and execute it.
+The scheduler then periodically checks the in-memory store every second for jobs whose execution time 
+has arrived {/* check if this is actually fast */} and dispatches them to the execution layer.
 
-Since the database is queried only once every few minutes, database load is significantly reduced, 
-and the scheduler can still dispatch jobs with sub-second precision.
+Since memory access is orders of magnitude faster than repeatedly executing database queries, the 
+scheduler can efficiently determine which jobs are due for execution while querying the database 
+only once every few minutes to refresh the cache.
 
-However, this approach introduces a new challenge. **<span className="bg-yellow-100">How to handle new 
-execution instances that are created after the scheduler has loaded the next `5 minutes` of executions 
-into memory?</span>**
+> **NOTE**: If a new execution record is created whose `execution_time` falls within the current 
+scheduling window, it should not only be persisted to the **Job Execution** table but also inserted 
+immediately into the in-memory store. This ensures that newly created executions are considered by the 
+scheduler without waiting for the next database refresh.
 
-For example, suppose the scheduler queries the database at `2:00 PM` and loads all executions 
-scheduled between `2:00 PM` and `2:05 PM`. If a new execution is created at `2:03 PM` with a 
-scheduled execution time of `2:04 PM`, it will never be loaded into the message queue.
+{/*Ehe scheduler is constantly polling the in-memory store every second even if no jobs are due. Also, 
+you would need to maintain Redis infrastructure.
 
-#### **<span className="text-purple-500">Suitable Approach</span>**
-
-If a new execution record is created whose `execution_time` falls within the current scheduling window, 
-it should not only be persisted to the **Job Execution** table but also inserted immediately into the 
-in-memory queue. This ensures that newly created executions are considered by the scheduler without 
-waiting for the next database refresh.
-
-However, a traditional FIFO queue is not suitable because it preserves insertion order rather than 
-scheduled execution time. As a result, a newly created execution that is scheduled to run earlier than 
-existing entries would still be placed at the end of the queue, causing it to execute later than intended.
-
-To solve this, we maintain the in-memory scheduling queue as a Redis Sorted Set, using the execution_time as the score. The sorted set automatically orders executions by their scheduled execution time, regardless of when they are inserted. This ensures that the scheduler always retrieves and dispatches the execution that is due next while continuing to satisfy the 1–2 second execution latency requirement.
-
-
-
-
-
-
-
----
-
-Instead of relying solely on PostgreSQL as the scheduling queue, introduce an in-memory delay 
-queue (e.g., Redis Sorted Set or a timing wheel).
-
-Redis maintains only the upcoming executions ordered by execution time.
-
-Considering we need to support a high throughput of `10,000` jobs 
-per second and the jobs need to be executed withing `1-2 seconds` of their scheduled execution time, 
-
-(talk about the database to use - Load estimation for job creation and storage required)
-
+Instead of using an in-memory store like Redis Sorted Set, we can use a message queue that supports 
+delayed delivery like Amazon SQS Delay Queue.*/}
 
 #### **<span className="text-emerald-500">Q. How does the job scheduler execute an ETL job?</span>**
 
