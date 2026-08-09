@@ -431,7 +431,7 @@ event stream.
 
 Let's break down the sequence flow of few of the major use cases:
 
-#### Schedule a New Job
+#### Create a New Job
 
 1. The client makes a `POST /jobs` request to the `scheduler-service` with the job 
 definition (`name`, `type`, `command`, `schedule`, `parameters`, `retries`, `retryDelay`, 
@@ -450,9 +450,11 @@ exists, it returns **`409 Conflict`**. If an unexpected server-side error occurs
 
 <ScheduleJobSequenceVisualizer />
 
-#### Track the Status of Scheduled Jobs
+#### Schedule a Job
 
-#### Execute a Scheduled Jobs
+#### Execute a Scheduled Job
+
+#### Track the Status of a Scheduled Job
 
 ---
 

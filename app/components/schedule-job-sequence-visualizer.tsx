@@ -61,6 +61,8 @@ type Message = {
   type: MessageType;
   status?: Status;
   detail: string;
+  /** Realistic p50 latency for this step, in milliseconds. */
+  durationMs: number;
 };
 
 type Scenario = {
@@ -88,6 +90,7 @@ const SCENARIOS: Scenario[] = [
         type: "call",
         detail:
           "Client submits the job definition (name, type, command, schedule, ...) as a JSON payload.",
+        durationMs: 30,
       },
       {
         from: "scheduler",
@@ -97,6 +100,7 @@ const SCENARIOS: Scenario[] = [
         status: "error",
         detail:
           "Validation fails — required fields missing, bad cron expression, or unsupported job type. The scheduler short-circuits before opening a transaction.",
+        durationMs: 2,
       },
       {
         from: "scheduler",
@@ -105,6 +109,7 @@ const SCENARIOS: Scenario[] = [
         type: "return",
         status: "error",
         detail: "Scheduler responds with 400. No side effects on the DB.",
+        durationMs: 30,
       },
     ],
   },
@@ -123,6 +128,7 @@ const SCENARIOS: Scenario[] = [
         type: "call",
         detail:
           "Client submits the job definition (name, type, command, schedule, ...) as a JSON payload.",
+        durationMs: 30,
       },
       {
         from: "scheduler",
@@ -131,6 +137,7 @@ const SCENARIOS: Scenario[] = [
         type: "self",
         status: "success",
         detail: "Validation passes. The scheduler proceeds to persist the job.",
+        durationMs: 2,
       },
       {
         from: "scheduler",
@@ -139,6 +146,7 @@ const SCENARIOS: Scenario[] = [
         type: "call",
         detail:
           "Open a transaction so the two inserts commit atomically — either both succeed or neither is visible.",
+        durationMs: 5,
       },
       {
         from: "scheduler",
@@ -147,6 +155,7 @@ const SCENARIOS: Scenario[] = [
         type: "call",
         detail:
           "Persist the immutable job definition row (schedule, command, retry policy, owner, ...).",
+        durationMs: 15,
       },
       {
         from: "scheduler",
@@ -155,6 +164,7 @@ const SCENARIOS: Scenario[] = [
         type: "call",
         detail:
           "Create the first execution row with Status = Waiting and the next scheduled execution_time.",
+        durationMs: 15,
       },
       {
         from: "scheduler",
@@ -163,7 +173,8 @@ const SCENARIOS: Scenario[] = [
         type: "call",
         status: "success",
         detail:
-          "Both writes succeeded — commit the transaction. Now the job is durably stored.",
+          "Both writes succeeded — commit the transaction. WAL fsync dominates the cost here.",
+        durationMs: 25,
       },
       {
         from: "scheduler",
@@ -173,6 +184,7 @@ const SCENARIOS: Scenario[] = [
         status: "success",
         detail:
           "Return the generated jobId. The client can now query, cancel, or track the job.",
+        durationMs: 30,
       },
     ],
   },
@@ -191,6 +203,7 @@ const SCENARIOS: Scenario[] = [
         type: "call",
         detail:
           "Client submits the job definition (name, type, command, schedule, ...) as a JSON payload.",
+        durationMs: 30,
       },
       {
         from: "scheduler",
@@ -199,6 +212,7 @@ const SCENARIOS: Scenario[] = [
         type: "self",
         status: "success",
         detail: "Validation passes.",
+        durationMs: 2,
       },
       {
         from: "scheduler",
@@ -207,6 +221,7 @@ const SCENARIOS: Scenario[] = [
         type: "call",
         detail:
           "Open a transaction so the two inserts commit atomically.",
+        durationMs: 5,
       },
       {
         from: "scheduler",
@@ -214,6 +229,7 @@ const SCENARIOS: Scenario[] = [
         label: "Insert into Job Definition",
         type: "call",
         detail: "First write succeeds.",
+        durationMs: 15,
       },
       {
         from: "scheduler",
@@ -223,6 +239,7 @@ const SCENARIOS: Scenario[] = [
         status: "error",
         detail:
           "Second write fails — could be a constraint violation, deadlock, or connection timeout.",
+        durationMs: 15,
       },
       {
         from: "scheduler",
@@ -232,6 +249,7 @@ const SCENARIOS: Scenario[] = [
         status: "error",
         detail:
           "Roll back the transaction. The earlier Job Definition insert is undone — no partial state remains.",
+        durationMs: 5,
       },
       {
         from: "scheduler",
@@ -240,10 +258,38 @@ const SCENARIOS: Scenario[] = [
         type: "return",
         status: "error",
         detail: "Return a 500 to the client. Safe to retry.",
+        durationMs: 30,
       },
     ],
   },
 ];
+
+// ─── Playback timing ──────────────────────────────────────────────────────────
+
+/**
+ * Wall-clock time (ms) shown to the user per real ms of latency. Scaling makes
+ * each step observable while preserving proportion — a network hop still feels
+ * an order of magnitude slower than validation.
+ */
+const PLAY_SCALE = 25;
+
+/** Minimum visible time per step so a 2 ms validation doesn't blip past. */
+const PLAY_MIN_MS = 220;
+
+/** Target p99 API SLO — used as a reference budget in the UI. */
+const SLO_TARGET_MS = 200;
+
+function scenarioTotalMs(s: Scenario): number {
+  return s.messages.reduce((sum, m) => sum + m.durationMs, 0);
+}
+
+function elapsedMsUpTo(s: Scenario, stepIdx: number): number {
+  // stepIdx is 0-based index of the *last shown* message.
+  if (stepIdx < 0) return 0;
+  return s.messages
+    .slice(0, stepIdx + 1)
+    .reduce((sum, m) => sum + m.durationMs, 0);
+}
 
 // ─── Layout ───────────────────────────────────────────────────────────────────
 
@@ -252,7 +298,7 @@ const HEADER_Y = 30;
 const HEADER_H = 48;
 const LIFELINE_TOP = HEADER_Y + HEADER_H;
 const ROW_START_Y = LIFELINE_TOP + 40;
-const ROW_H = 62;
+const ROW_H = 70;
 const SVG_BOTTOM_PAD = 30;
 
 function scenarioHeight(s: Scenario) {
@@ -415,6 +461,13 @@ function MessageArrow({
           lines={labelLines}
           fill={colors.text}
         />
+        <DurationChip
+          x={x + loopWidth + 12}
+          y={y + 4 + (labelLines.length - 1) * 13 + 14}
+          durationMs={msg.durationMs}
+          anchor="start"
+          active={active}
+        />
       </g>
     );
   }
@@ -447,6 +500,57 @@ function MessageArrow({
         lines={labelLines}
         fill={colors.text}
       />
+      <DurationChip
+        x={midX}
+        y={y + 26}
+        durationMs={msg.durationMs}
+        anchor="middle"
+        active={active}
+      />
+    </g>
+  );
+}
+
+function DurationChip({
+  x,
+  y,
+  durationMs,
+  anchor,
+  active,
+}: {
+  x: number;
+  y: number;
+  durationMs: number;
+  anchor: "start" | "middle" | "end";
+  active: boolean;
+}) {
+  const label = `~${durationMs} ms`;
+  const width = Math.max(38, label.length * 6);
+  const chipX =
+    anchor === "middle" ? x - width / 2 : anchor === "end" ? x - width : x;
+  return (
+    <g>
+      <rect
+        x={chipX}
+        y={y - 8}
+        width={width}
+        height={14}
+        rx={4}
+        fill={active ? "#111827" : "#f9fafb"}
+        stroke={active ? "#111827" : "#e5e7eb"}
+        strokeWidth={1}
+      />
+      <text
+        x={anchor === "middle" ? x : anchor === "end" ? x - width / 2 : x + width / 2}
+        y={y + 2}
+        textAnchor="middle"
+        fontFamily="ui-monospace, SFMono-Regular, monospace"
+        fontSize={9}
+        fontWeight={600}
+        fill={active ? "#fff" : "#6b7280"}
+      >
+        {label}
+      </text>
     </g>
   );
 }
@@ -678,12 +782,26 @@ export default function ScheduleJobSequenceVisualizer() {
       setIsPlaying(false);
       return;
     }
-    const t = setTimeout(() => setStep(s => s + 1), 1100);
+    // Wall-clock delay before the next arrow appears is derived from the
+    // real latency of the message that is currently on screen. Step 0 uses
+    // a short priming delay so the sequence doesn't jump instantly.
+    const currentDuration =
+      step === 0
+        ? 12 // priming (12 ms real → ~300 ms with scale + floor)
+        : scenario.messages[step - 1]?.durationMs ?? 30;
+    const wait = Math.max(PLAY_MIN_MS, currentDuration * PLAY_SCALE);
+    const t = setTimeout(() => setStep(s => s + 1), wait);
     return () => clearTimeout(t);
-  }, [isPlaying, step, total]);
+  }, [isPlaying, step, total, scenario]);
 
   const currentMessage =
     currentIdx >= 0 && currentIdx < total ? scenario.messages[currentIdx] : null;
+
+  const totalMs = useMemo(() => scenarioTotalMs(scenario), [scenario]);
+  const elapsedMs =
+    step === 0 ? 0 : elapsedMsUpTo(scenario, Math.min(step - 1, total - 1));
+  const sloPct = Math.min(100, (elapsedMs / SLO_TARGET_MS) * 100);
+  const sloExceeded = elapsedMs > SLO_TARGET_MS;
 
   const stepBadge = (() => {
     if (step === 0)
@@ -770,14 +888,30 @@ export default function ScheduleJobSequenceVisualizer() {
 
           {currentMessage && (
             <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-[11px] font-mono flex flex-col gap-1">
-              <div className="flex items-center gap-1.5 text-gray-500">
-                <span className="text-gray-400">from</span>
-                <span className="font-semibold text-gray-700">
-                  {PARTICIPANTS.find(p => p.id === currentMessage.from)?.label}
-                </span>
-                <span className="text-gray-400">→</span>
-                <span className="font-semibold text-gray-700">
-                  {PARTICIPANTS.find(p => p.id === currentMessage.to)?.label}
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-1.5 text-gray-500 min-w-0">
+                  <span className="text-gray-400">from</span>
+                  <span className="font-semibold text-gray-700 truncate">
+                    {
+                      PARTICIPANTS.find(p => p.id === currentMessage.from)
+                        ?.label
+                    }
+                  </span>
+                  <span className="text-gray-400">→</span>
+                  <span className="font-semibold text-gray-700 truncate">
+                    {PARTICIPANTS.find(p => p.id === currentMessage.to)?.label}
+                  </span>
+                </div>
+                <span
+                  className="shrink-0 px-1.5 py-0.5 rounded text-[10px] font-semibold tabular-nums"
+                  style={{
+                    background: "#fff",
+                    border: "1px solid #d1d5db",
+                    color: "#374151",
+                  }}
+                  title="Realistic p50 latency for this step"
+                >
+                  ~{currentMessage.durationMs} ms
                 </span>
               </div>
               <div
@@ -796,6 +930,68 @@ export default function ScheduleJobSequenceVisualizer() {
             </div>
           )}
 
+          {/* Latency panel */}
+          <div className="rounded-lg border border-gray-200 bg-white px-3 py-2 flex flex-col gap-2">
+            <div className="flex items-baseline justify-between">
+              <span className="text-[10px] text-gray-400 uppercase tracking-wide">
+                Request Latency
+              </span>
+              <span className="text-[9px] text-gray-400 font-mono">
+                p99 target &lt; {SLO_TARGET_MS} ms
+              </span>
+            </div>
+            <div className="flex items-baseline gap-2">
+              <span
+                className="text-2xl font-bold tabular-nums font-mono"
+                style={{
+                  color: sloExceeded
+                    ? "#dc2626"
+                    : elapsedMs > 0
+                      ? "#065f46"
+                      : "#9ca3af",
+                }}
+              >
+                {elapsedMs}
+              </span>
+              <span className="text-xs text-gray-400 font-mono">
+                / {totalMs} ms
+              </span>
+              <span className="text-[10px] text-gray-400 ml-auto">
+                elapsed
+              </span>
+            </div>
+            {/* SLO gauge */}
+            <div className="relative h-1.5 bg-gray-100 rounded-full overflow-hidden">
+              <div
+                className="h-full rounded-full transition-all duration-200"
+                style={{
+                  width: `${sloPct}%`,
+                  background: sloExceeded ? "#ef4444" : "#10b981",
+                }}
+              />
+              {/* SLO marker: only visible if the scenario budget fits */}
+              {totalMs <= SLO_TARGET_MS && (
+                <div
+                  className="absolute top-0 bottom-0 w-px bg-gray-400"
+                  style={{
+                    left: `${(totalMs / SLO_TARGET_MS) * 100}%`,
+                  }}
+                  title={`Scenario total: ${totalMs} ms`}
+                />
+              )}
+            </div>
+            <p className="text-[10px] text-gray-500 leading-relaxed">
+              Playback runs at {PLAY_SCALE}× real time so each step is visible.
+              At this per-request latency, sustaining the{" "}
+              <span className="font-mono">10K jobs/sec</span> throughput NFR
+              needs roughly{" "}
+              <span className="font-mono">
+                {Math.ceil(10000 / (1000 / totalMs))}
+              </span>{" "}
+              concurrent in-flight requests across the scheduler fleet.
+            </p>
+          </div>
+
           {isDone && (
             <div
               className="rounded-lg px-3 py-2 text-xs"
@@ -808,8 +1004,13 @@ export default function ScheduleJobSequenceVisualizer() {
                 color: scenario.outcome === "success" ? "#065f46" : "#991b1b",
               }}
             >
-              <div className="font-mono font-bold mb-1">
-                {scenario.outcomeLabel}
+              <div className="flex items-baseline justify-between mb-1">
+                <div className="font-mono font-bold">
+                  {scenario.outcomeLabel}
+                </div>
+                <div className="font-mono text-[11px] tabular-nums">
+                  {totalMs} ms total
+                </div>
               </div>
               <div className="leading-relaxed">{scenario.outcomeDetail}</div>
             </div>
