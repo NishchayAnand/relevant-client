@@ -448,33 +448,7 @@ generated `jobId`. If any validation fails, it returns **`400 Bad Request`**. If
 exists, it returns **`409 Conflict`**. If an unexpected server-side error occurs, it returns 
 **`500 Internal Server Error`**.
 
-```mermaid
-sequenceDiagram
-    actor Client
-    participant Scheduler as Scheduler Service
-    participant DB as Database
-
-    Client->>Scheduler: POST /jobs
-
-    Scheduler->>Scheduler: Validate Request
-
-    alt Invalid Request
-        Scheduler-->>Client: 400 Bad Request
-    else Valid Request
-        Scheduler->>DB: BEGIN TRANSACTION
-
-        Scheduler->>DB: Insert into Job Definition
-        Scheduler->>DB: Insert into Job Execution\n(Status = Waiting)
-
-        alt Database Error
-            Scheduler->>DB: ROLLBACK
-            Scheduler-->>Client: 500 Internal Server Error
-        else Success
-            Scheduler->>DB: COMMIT
-            Scheduler-->>Client: 201 Created\n{ jobId }
-        end
-    end
-```
+<ScheduleJobSequenceVisualizer />
 
 #### Track the Status of Scheduled Jobs
 
