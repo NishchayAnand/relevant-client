@@ -378,7 +378,7 @@ The possible job states are:
 | **Waiting**              | The job is waiting for its scheduled time before it can be scheduled for execution.                                                                                                                         |
 | **Active**               | The job has been dispatched to a worker and is currently being executed.                                                                                                                                    |
 | **Completed Normally**   | The job finished successfully without any errors.                                                                                                                                                           |
-| **Completed Abnormally** | The job terminated unexpectedly due to an execution issue, such as a timeout, worker crash, process termination, or infrastructure failure. Depending on the retry policy, the scheduler may retry the job. |
+| **Completed Abnormally** | The job terminated unexpectedly due to an execution issue, such as a timeout, worker crash, process termination, or infrastructure failure.                                                                 |
 
 The scheduler needs to maintain the lifecycle of every job execution so that users can monitor 
 progress, troubleshoot failures, and perform audits.
@@ -415,7 +415,7 @@ JobExecution   Event Store
 
 Every state transition becomes an immutable event.
 
-Benefits:
+**Benefits**:
 
 - Scheduler performs only operational updates.
 - Auditing is completely decoupled.
@@ -431,27 +431,54 @@ event stream.
 
 Let's break down the sequence flow of few of the major use cases:
 
-#### Schedule a Job
+#### Schedule a New Job
 
 1. The client makes a `POST /jobs` request to the `scheduler-service` with the job 
 definition (`name`, `type`, `command`, `schedule`, `parameters`, `retries`, `retryDelay`, 
 `timeout`, `owner`) passed as **JSON payload** in the request body.
 
-2. The `scheduler-service` validates the request body {/* what validations? */}, stores 
-the job definition in the database and sends a `201 Created` response with the `job ID` in 
-the response body.
+2. The `scheduler-service` performs the following steps within a single database transaction:
+   - Validates the request body {/* what validations? */}.
+   - Perists the job definition in the `job-definition` table.
+   - Creates the initial execution record in the `job-execution` table with the state **Waiting** and 
+   the first scheduled `execution_time`.
 
-3. How does the job is displayed to the client once scheduled?
+3. If the transaction completes successfully, the service returns **`201 Created`** along with the 
+generated `jobId`. If any validation fails, it returns **`400 Bad Request`**. If the job already 
+exists, it returns **`409 Conflict`**. If an unexpected server-side error occurs, it returns 
+**`500 Internal Server Error`**.
+
+```mermaid
+sequenceDiagram
+    actor Client
+    participant Scheduler as Scheduler Service
+    participant DB as Database
+
+    Client->>Scheduler: POST /jobs
+
+    Scheduler->>Scheduler: Validate Request
+
+    alt Invalid Request
+        Scheduler-->>Client: 400 Bad Request
+    else Valid Request
+        Scheduler->>DB: BEGIN TRANSACTION
+
+        Scheduler->>DB: Insert into Job Definition
+        Scheduler->>DB: Insert into Job Execution\n(Status = Waiting)
+
+        alt Database Error
+            Scheduler->>DB: ROLLBACK
+            Scheduler-->>Client: 500 Internal Server Error
+        else Success
+            Scheduler->>DB: COMMIT
+            Scheduler-->>Client: 201 Created\n{ jobId }
+        end
+    end
+```
 
 #### Track the Status of Scheduled Jobs
 
 #### Execute a Scheduled Jobs
-
-#### Allow Users to Trigger Jobs
-
-#### Allow Users to Pause/Resume jobs
-
-#### Retry Failed Jobs Automatically
 
 ---
 
