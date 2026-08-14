@@ -14,7 +14,8 @@ publishedAt: '2026-06-21'
 Design a stock trading platform like Zerodha that features real-time market data and basic order 
 management.
 
-1. Users can see live prices of stocks.
+1. Users can see live prices of stocks. The system receives live market data and continuously updates 
+the price, bid/ask, volume, and order book.
 
 2. Users can manage their stock orders (market / limit orders).
 
@@ -57,6 +58,32 @@ unidirectional and goes over HTTP instead of a separate protocol. However, this 
 with its own set of challenges. The load balancer needs to be configured to support "sticky sessions"
 so that a user and server can maintain a connection to promote data transfer. 
 
+```
+NASDAQ
+   │
+   │ Market events
+   ▼
+Market Data Gateway
+   │
+   │ Normalized events
+   ▼
+Kafka
+   │
+   ├───────────────┐
+   ▼               ▼
+Trade Processor   Order Book Processor
+   │               │
+   ▼               ▼
+Redis             Order Book State
+   │               │
+   └───────┬───────┘
+           ▼
+      WebSocket API
+           │
+           ▼
+     Trading Dashboard
+```
+
 #### How to create or cancel order via the exchange?
 
 - **Bad Solution**: Any orders issued by the client are directly submitted to the exchange. While 
@@ -75,6 +102,18 @@ their order, or for our service to start more machines up to scale up given incr
 - **Best Approach**: This approach involves sending our orders directly from the order service to 
 an order dispatch gateway. The gateway would enable external internet communication with the 
 exchange via the order service. **What is this???**
+
+---
+
+### Sequence Flow
+
+#### Display Live Prices
+
+
+
+
+
+
 
 ---
 
@@ -118,15 +157,31 @@ Response: Order[] (paginated)
 
 ---
 
+### Data Model Design
+
+---
+
+### High-Level Architecture 
+
+---
+
 ### Extra
 
 Stock brokers are paid by stock exchanges for the order flow.
 
+
+
 ---
 
-### Similar Case Studies
+### Follow-up Questions
 
-1. Design a Stock Exchange like BSE, NSE.
+#### Design a Stock Exchange like BSE, NSE
 
-2. Design a Buy / Sell order book.
+#### Design a Buy / Sell order book
+
+#### Design a high-throughput data pipeline for processing real-time stock market data
+
+
+
+---
 
