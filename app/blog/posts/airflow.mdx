@@ -508,4 +508,16 @@ Q. Do we need to revered the changes of a cancelled job?
 
 Q. What to do when a batch processing fails after uploading 60% of the data?
 
+**<span className="text-emerald-500">Q. A downstream risk calculation is delayed because one upstream 
+pipeline failed. How would you design the pipeline to minimize downstream impact?</span>**
+
+A resilient data pipeline should use fallback data to protect downstream tasks from hanging. Two 
+common techniques to define fallback data are:
+
+1. **Stale Data**: Serve the last known good data from local cache or database. Downstream tasks 
+run on slightly old data instead of waiting for the upstream to complete.
+
+2. **Default or Synthetic Data**: Use safe default values, zero, or estimated averages. This keeps 
+the downstream tasks running while the upstream is fixed.
+
 ---

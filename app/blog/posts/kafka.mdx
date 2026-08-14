@@ -389,3 +389,87 @@ the workers can handle just makes the line grow without limit.
 
 ---
 
+### Follow Up Questions
+
+#### **<span className="text-emerald-500">Q. A Kafka consumer may reprocess the same event after a restart. How would you ensure that the corresponding database transaction is executed exactly once, even if the event is redelivered?</span>**
+
+
+Suppose Kafka sends this event:
+
+```
+PaymentCompleted
+----------------
+payment_id: P123
+account_id: A456
+amount: 1000
+```
+
+The consumer receives it and executes:
+
+```sql
+UPDATE account
+SET balance = balance + 1000
+WHERE account_id = 'A456';
+```
+
+Initially, the account balance was `₹1000`. After the update, the balance becomes `₹2000`.
+Now imagine the consumer crashes **after the database transaction commits but before the kafka 
+offset is committed**.
+
+```
+Kafka
+  │
+  │ Payment P123
+  ↓
+Consumer
+  │
+  ↓
+DB transaction
+  │
+  ├── balance += 1000
+  │
+  └── COMMIT ✓
+          │
+          ↓
+       CRASH 💥
+          │
+          ↓
+Kafka offset was NOT committed
+```
+
+Kafka assumes the message wasn't processed sucessfully and redelivers it after restart. Now
+the balance becomes `₹3000`. The payment was effectively processed twice.
+
+**<span className="bg-yellow-100">We need an idempotency mechanism that is atomically coupled with 
+the business transaction.</span>** Two approaches can be used to ensure exactly-once processing:
+
+##### **<span className="text-purple-500">Make the business operation idempotent</span>**
+
+
+##### **<span className="text-purple-500">Idempotency Key</span>**
+
+To ensure an event is processed exactly once from a business perspective, we can attach a unique, 
+stable **idempotency key** to every event and maintain a `processed_events` table with the 
+idempotency key as a unique/primary key. 
+```
+CREATE TABLE processed_events (
+    event_id VARCHAR PRIMARY KEY,
+    processed_at TIMESTAMP
+);
+```
+
+When processing an event, we insert its key into this table and perform the corresponding business 
+database operation within the same database transaction. If the consumer crashes after the 
+transaction commits but before the Kafka offset is committed, Kafka may redeliver the event. 
+However, the idempotency key already exists, so we detect the duplicate and skip the business 
+operation. 
+
+This prevents the business effect from being applied twice.
+
+
+
+
+
+
+
+

@@ -1,5 +1,5 @@
 ---
-title: 'System Design (PostgreSQL): Relational Database'
+title: 'System Design (PostgreSQL): Distruted Relational Database'
 publishedAt: '2026-06-22'
 ---
 
@@ -10,7 +10,9 @@ Think of this like a notebook where you write entries as they come, one after an
 
 ---
 
-### What is a Data Page?
+### Design Rationale
+
+#### <span className="text-emerald-500">What is a Data Page?</span>
 
 A database does not store one row at a time on disk. Instead, it groups multiple rows together into a fixed-size block 
 called a page (also called a block in Oracle).
@@ -20,9 +22,7 @@ The database always reads and writes entire pages, not individual rows.
 Depending on the specific DBMS architecture, page sizes are pre-determined and usually range from 4KB to 64KB. 
 For instance, PostgreSQL defaults to 8KB. 
 
----
-
-### What is Indexing?
+#### <span className="text-emerald-500">What is Indexing?</span>
 
 Indexes help the database locate rows quickly without scanning the entire table.
 
@@ -32,7 +32,7 @@ in the index, the database still has to fetch the corresponding rows from the ta
 If we are performing order by operation on a column which has a index on it, the database
 does not run a sorting operation on the data since the index is already sorted.
 
-#### B-Tree Indexes
+##### **B-Tree Indexes**
 
 Maintains a balanced tree structure that minimizes the number of disk reads needed to find any piece of data.
 
@@ -56,15 +56,13 @@ indexes are all B-trees.
 
 ---
 
-### What is Query Execution Plan?
+#### <span className="text-emerald-500">What is Query Execution Plan?</span>
 
 A **Query Execution Plan (QEP)** is the strategy chosen by the database optimizer to execute a SQL query.
 For the same query, the database may choose different execution plans depending on the **table size**,
 **available indexes**, **data distribution**, **statistics** and **join conditions**.
 
----
-
-### What are Database statistics?
+#### <span className="text-emerald-500">What are Database statistics?</span>
 
 Database statistics are metadata collected by the database about tables and indexes, such as the total number 
 of rows, number of distinct values, data distribution, NULL counts, and index cardinality. The query optimizer 
@@ -75,6 +73,8 @@ If the statistics become outdated after significant data changes, the optimizer 
 leading to slower query performance. Updating statistics allows the optimizer to make better decisions.
 
 ---
+
+### Follow-up Questions
 
 **<span className="text-emerald-500"> Q1. You have a table storing market price curves.</span>**
 
@@ -112,8 +112,6 @@ index on the `curve_id` and `trade_date` columns.
 data lake.
 
 3. **Partition Table**: Partition the table by `trade_date` (yearly or monthtly).
-
----
 
 **<span className="text-emerald-500"> Q2. A query that consistently executed in `100 ms` suddenly started taking `5 seconds`, 
 even though no application code changes were deployed. What could be the probable reason?</span>**
@@ -157,8 +155,6 @@ The optimizer decides that scanning the table is cheaper than performing million
 For example, create a composite index using additional filter columns (e.g., curve_id, trade_date) 
 to improve selectivity.
 <br/>
----
-
 
 **<span className="text-emerald-500"> Q3. How to optimize query performance?</span>**
 
@@ -166,8 +162,6 @@ to improve selectivity.
 2. Create or Optimize Indexes
 3. Reduce the Amount of Data Read: Partition Large Tables, Archive Historical Data
 4. Optimize JOIN Operations: Join indexed columns, Filter data before joining.
-
----
 
 **<span className="text-emerald-500"> Q4. How to write an optimized query?</span>**
 
@@ -179,13 +173,92 @@ to improve selectivity.
 6. Create Composite Indexes for Multiple Filters
 7. Join on Indexed Columns
 
-
----
-
 Q5. So when might indexes actually hurt more than help? 
 
 The classic case is a table with frequent writes but infrequent reads. 
 
----
+**<span className="text-emerald-500">Q. Write a SQL query to identify customers whose account balance decreased by more than 30% 
+compared to the previous month.</span>**
+
+**<span className="text-emerald-500">Q. How would you partition a large transaction table to improve 
+query performance while maintaining balanced data distribution?</span>**
+
+We can use **time-based partitioning**, usually by **transaction date**, and combine it with 
+**hash/sub-partitioning** if a single time partition becomes too large.
+
+The following steps can be taken to partition the table:
+
+1. Start with the query patttern. If most queries look like the one below, then `transaction_time`
+is a natural partition key.
+
+<br/>
+
+```sql
+SELECT * 
+FROM transactions
+WHERE transaction_time >= '2026-01-01'
+    AND transaction_time < '2026-02-01'
+    AND account_id = 123456
+```
+
+<br/>
+
+2. Create monthly or daily partitions depending on the volume. For example:
+
+<br/>
+
+```
+transactions
+|
+|--- transactions_2026_01
+|--- transactions_2026_02
+|___ ...
+```
+
+<br/>
+
+3. Time partitioning alone can become unbalanced if transaction volumes vary significantly by 
+month. For example:
+
+<br/>
+
+```
+Januuary -> 100M rows
+February -> 101M rows
+March    -> 105M rows
+...
+December -> 900M rows
+```
+
+A huge December partition could become a hotspot. To avoid this, we can use **composite partitioning**.
+For example, each monthly partition can be further partitioned using a hash of `account_id`.
+
+```
+             transactions
+                   │
+             RANGE by date
+                   │
+       ┌───────────┼───────────┐
+       ↓           ↓           ↓
+     Aug-26      Sep-26      Oct-26
+       │           │           │
+    HASH         HASH        HASH
+ account_id    account_id   account_id
+       │
+ ┌─────┼─────┐
+ ↓     ↓     ↓
+ P0    P1    P2 ... P15
+```
+
+
+
+
+
+
+
+
+
+
+
 
 
