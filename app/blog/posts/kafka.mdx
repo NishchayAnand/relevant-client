@@ -445,12 +445,62 @@ the business transaction.</span>** Two approaches can be used to ensure exactly-
 
 ##### **<span className="text-purple-500">Make the business operation idempotent</span>**
 
+If the event naturally corresponds to a unique business entity, instead of treating the event as 
+`"Add ₹1,000 to account"`, we treat it as a specific business operation like `"Apply payment P123"`.
 
-##### **<span className="text-purple-500">Idempotency Key</span>**
+Our database might have:
 
-To ensure an event is processed exactly once from a business perspective, we can attach a unique, 
-stable **idempotency key** to every event and maintain a `processed_events` table with the 
-idempotency key as a unique/primary key. 
+```sql
+CREATE TABLE payments (
+    payment_id VARCHAR(50) PRIMARY KEY,
+    account_id VARCHAR(50),
+    amount DECIMAL(10, 2),
+    status VARCHAR(50),
+);
+```
+
+The `payment_id PRIMARY KEY` guarantees that `P123` can exist only once.
+
+The consumer receives:
+
+```
+payment_id: P123
+account_id: A456
+amount: 1000
+```
+
+It performs:
+
+```sql
+BEGIN;
+
+INSERT INTO payments (
+    payment_id,
+    account_id,
+    amount,
+    status
+)
+VALUES (
+    'P123',
+    'A456',
+    1000,
+    'COMPLETED'
+);
+
+UPDATE account
+SET balance = balance + 1000
+WHERE account_id = 'A456';
+
+COMMIT;
+```
+
+<br/>
+
+##### **<span className="text-purple-500">Create a Processed Event Table</span>**
+
+If there isn't necessarily a natural business entity representing the operation, we can maintain a 
+`processed_events` table with the idempotency key as a unique/primary key. 
+
 ```
 CREATE TABLE processed_events (
     event_id VARCHAR PRIMARY KEY,
@@ -464,10 +514,23 @@ transaction commits but before the Kafka offset is committed, Kafka may redelive
 However, the idempotency key already exists, so we detect the duplicate and skip the business 
 operation. 
 
-This prevents the business effect from being applied twice.
+**<span className="bg-yellow-100">Both the approaches prevent the business effect from being applied 
+twice.</span>** So the choice is:
 
+```
+Does the business operation have a natural unique identifier?
+                 │
+          ┌──────┴──────┐
+         YES            NO
+          │              │
+          ↓              ↓
+Use business        Use separate
+ID as idempotency   idempotency
+key                 table
+```
 
-
+> **NOTE**: An **idempotency key is simply a value that allows us to recognize that two requests/events
+represent the **same logical operation**. 
 
 
 
