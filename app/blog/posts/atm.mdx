@@ -36,6 +36,29 @@ and deposits update the account balance.
 
 ---
 
+### Design Rationale
+
+An account number could be `"0012345678"`. If stored as an integer, the leading zeros have no meaning and are lost.
+
+To store the pin as a simple plain text, anyone who can get access to the database can access your pin.
+
+Using a hash function to store the pin is a good way to store the pin.
+
+Who will validate the pin? The ATM itself or the bank?
+
+Rather than maintaining a transaction ledger for accountability and deriving the balance from it, 
+as is typically in real-world banking, we simplify the system by directly updating the account 
+balance during each transaction.
+
+The bank class stores account objects and links them to cards for fast retrieval, enabling 
+efficient card and PIN validation for authentication, account access for transactions, and funds 
+availability checks for withdrawals.
+
+Why have transaction as a class?
+
+
+---
+
 ### Sequence Flow
 
 ---
@@ -50,13 +73,10 @@ Account class manages critical information, including:
 - associated card number
 while using an account type enum to distinguish between account types like current or savings.
 
-An account number could be `"0012345678"`. If stored as an integer, the leading zeros have no meaning and are lost.
-
 #### Card Class
 
 - the PIN  
 
-To store the pin as a simple plain text, anyone who can get access to the database can access your pin.
 
 ---
 
