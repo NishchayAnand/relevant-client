@@ -1,0 +1,41 @@
+---
+title: 'Level Level Design: Automated Teller Machine (ATM) System'
+publishedAt: '2026-05-22'
+---
+
+The primary purpose of an ATM is to automate banking tasks for users, 
+allowing them to check balances, withdraw cash, and deposit funds.
+
+Behind the scenes, the ATM coordinates with the bank, manages account 
+transactions, and interacts with hardware like the card reader and 
+cash dispenser.
+
+Including a limit of three pin attempts before locking the card is a 
+good security measure.
+
+For transactions, the ATM should handle withdraw and deposit operations.
+
+withdrawals check for sufficient funds and deposit update the balance.
+
+> <span className="bg-red-100">**NOTE**: To try the ATM visualizer below, insert the card, enter the PIN (`1234`), 
+pick an account,choose withdrawal or deposit, and see cash dispensed or received. 
+Three wrong PIN attempts will retain the card, matching the security policy above.</span>
+
+<AtmSystemVisualizer />
+
+---
+
+### Functional Requirements
+
+First, authenticate users via debit card and PIN.
+
+Users should have an ability to select their current or savings account for transactions.
+
+Support withdraw and deposit transactions, ensuring withdrawals validate sufficient funds and deposits update the account balance.
+
+---
+
+
+
+
+

@@ -71,6 +71,7 @@ import ConsistentHashingVisualizer from './consistent-hashing-visualizer';
 import CycleDetectionDFSVisualizer from './cycle-detection-dfs-visualizer';
 import TopologicalSortBFSVisualizer from './topological-sort-bfs-visualizer';
 import ScheduleJobSequenceVisualizer from './schedule-job-sequence-visualizer';
+import AtmSystemVisualizer from './atm-system-visualizer';
 
 hljs.registerLanguage('javascript', javascript);
 
@@ -281,6 +282,7 @@ let components = {
   CycleDetectionDFSVisualizer: CycleDetectionDFSVisualizer,
   TopologicalSortBFSVisualizer: TopologicalSortBFSVisualizer,
   ScheduleJobSequenceVisualizer: ScheduleJobSequenceVisualizer,
+  AtmSystemVisualizer: AtmSystemVisualizer,
   Image: RoundedImage,
   a: CustomLink,
   code: Code,
