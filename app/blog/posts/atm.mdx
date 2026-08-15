@@ -31,9 +31,35 @@ First, authenticate users via debit card and PIN.
 
 Users should have an ability to select their current or savings account for transactions.
 
-Support withdraw and deposit transactions, ensuring withdrawals validate sufficient funds and deposits update the account balance.
+Support withdraw and deposit transactions, ensuring withdrawals validate sufficient funds 
+and deposits update the account balance.
 
 ---
+
+### Sequence Flow
+
+---
+
+### Object-Model Design
+
+#### Account Class
+
+Account class manages critical information, including:
+- the account balance
+- account number
+- associated card number
+while using an account type enum to distinguish between account types like current or savings.
+
+An account number could be `"0012345678"`. If stored as an integer, the leading zeros have no meaning and are lost.
+
+#### Card Class
+
+- the PIN  
+
+To store the pin as a simple plain text, anyone who can get access to the database can access your pin.
+
+---
+
 
 
 
