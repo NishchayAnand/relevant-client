@@ -49,14 +49,16 @@ receive similar playback performance**.
 
 ### Design Rationale
 
-Suppose you have a `.mp4` file stored on your SDD/HDD. When you double click on it, a video player 
-opens the file and starts reading its bytes from disk.
+Video streaming involves several key concepts that are essential to understand before designing an 
+efficient and scalable video streaming system. Let's break down these concepts one by one.
 
-> NOTE: An `.mp4` file is a container, not the actual video encoding. It contains a video stream 
-(H.264) and an audio stream (AAC). The video player first demultiplexes (demuxes) the container to 
-separate the video and audio data.
+##### **<span className="text-emerald-500">Q. What is a video?</span>**
 
-The video stream (H.264) is compressed. The video player consists of a video decoder that coverts 
+A video is essentially a **sequence of images (frames) played over time, combined with audio**. 
+For example, an `.mp4` file is a container, not the actual video encoding. It contains a video 
+stream (H.264) and an audio stream (AAC). 
+
+The video player consists of a video decoder that coverts 
 compressed data into frames that can be displayed. Similary, the audio stream (AAC) is compressed. 
 The video player consists of an audiodecoder that coverts compressed data into PCM audio samples 
 that can be played.
@@ -65,6 +67,44 @@ The player combines the video and audio frames to display the video and play the
 needs to make sure the video and audio are synchronized. This is done using **timestamps** 
 accociated with the audio/video streams.
 
+> <span className="bg-yellow-100">**NOTE**: For a **30 FPS** video, `30` frames are captured every second. A single `1920 x 1080` RGB frame 
+requires approximately `1920 x 1080 x 3 bytes ≈ 6 MB`. At `30 FPS`, a 10-minute video would 
+require `10 minutes x 60 seconds/minute x 30 frames/second x 6 MB/frame ≈ 110 GB` of memory just 
+for the video frames. This is why video compression is so essential.</span>
+
+<br/>
+
+##### **<span className="text-emerald-500">Q. How does a video player work in your local machine?</span>**
+
+When `play()` is called:
+
+```
+play()
+  │
+  ▼
+PlaybackController
+  │
+  ├── Start PlaybackClock
+  │
+  ├── Demux video/audio packets
+  │
+  ├── Decode video
+  │
+  ├── Decode audio
+  │
+  ├── Put decoded data into buffers
+  │
+  ├── Synchronizer checks timestamps
+  │
+  ├── VideoRenderer displays correct frame
+  │
+  └── AudioRenderer plays corresponding audio
+```
+
+<VideoPlaybackPipelineVisualizer />
+
+---
+ 
 When you move from this simple local-player scenario to YouTube, the fundamental playback mechanism 
 stays similar. YouTube simply adds a huge infrastructure layer before the player receives the 
 video data.
@@ -101,6 +141,19 @@ The player can switch from high bitrate to low bitrate. To do this, the platform
 versions of the video.
 
 ---
+
+Assuming the **average video size is `500MB`**:
+
+```
+ 1M video uploads per day means 100,000 / 86,400 ≈ 10 uploads per second:
+
+    = Storage Capacity: 100,000 x 500MB = 50,000,000MB = 50TB of data storage per day 
+                                        = 50TB per day x 365 days ≈ 18PB of data storage per year.
+
+    = Average Ingress (upload bandwidth) per second = 10 uploads per second x 500MB = 5GBps  
+```  
+
+100M video watched per day means:
 
 **<span className="text-emerald-500"> Q1. How to handle different video configurations during upload? </span>**
 
@@ -164,19 +217,9 @@ will attempt to download more compressed, lower resolution segments to avoid any
 
 ### API Design
 
-Assuming the **average video size is `500MB`**:
+#### VideoPlayingService
 
-```
- 1M video uploads per day means 100,000 / 86,400 ≈ 10 uploads per second:
 
-    = Storage Capacity: 100,000 x 500MB = 50,000,000MB = 50TB of data storage per day 
-                                        = 50TB per day x 365 days ≈ 18PB of data storage per year.
-
-    = Average Ingress (upload bandwidth) per second = 10 uploads per second x 500MB = 5GBps  
-    
-
-100M video watched per day means:
-```
 
 ---
 
@@ -195,6 +238,16 @@ Assuming the **average video size is `500MB`**:
 ### Similar Case Studies
 
 1. Design Spotify
+
+The audio is also sampled thousands of times per second. For example, CD-quality audio uses 
+44,100 samples/second. So a 10-second video would require `10 seconds x 44,100 samples/second x 2 bytes/sample = 0.882 GB` 
+of memory.
+
+| Component                                    |    10 seconds |
+| -------------------------------------------- | ------------: |
+| Uncompressed 1080p video @ 30 FPS            |  **~1.86 GB** |
+| Uncompressed stereo audio (44.1 kHz, 16-bit) |  **~1.76 MB** |
+| **Total**                                    | **~1.862 GB** |
 
 2. Design Live Streaming Platform
 

@@ -72,6 +72,7 @@ import CycleDetectionDFSVisualizer from './cycle-detection-dfs-visualizer';
 import TopologicalSortBFSVisualizer from './topological-sort-bfs-visualizer';
 import ScheduleJobSequenceVisualizer from './schedule-job-sequence-visualizer';
 import AtmSystemVisualizer from './atm-system-visualizer';
+import VideoPlaybackPipelineVisualizer from './video-playback-pipeline-visualizer';
 
 hljs.registerLanguage('javascript', javascript);
 
@@ -283,6 +284,7 @@ let components = {
   TopologicalSortBFSVisualizer: TopologicalSortBFSVisualizer,
   ScheduleJobSequenceVisualizer: ScheduleJobSequenceVisualizer,
   AtmSystemVisualizer: AtmSystemVisualizer,
+  VideoPlaybackPipelineVisualizer: VideoPlaybackPipelineVisualizer,
   Image: RoundedImage,
   a: CustomLink,
   code: Code,
