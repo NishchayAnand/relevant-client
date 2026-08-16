@@ -30,36 +30,77 @@ network conditions.
 
 ### Non-Functional Requirements
 
-The video streaming platform needs to support **`~1M` video uploads (i.e., `100,000 / 86,400` ≈ 
-`10` uploads per second)** and `~100M` video watched per day. 
+The system should meet the following non-functional requirements:
 
-Assuming the **average video size is `500MB`**, we need `100,000 x 500MB = 50,000,000MB = 50TB` of 
-storage per day and an **average ingress (upload bandwidth) of `10 x 500MB = 5GB` per second**.
+1. Support **`~1M` video uploads** and **`~100M` video watched** per day.
 
-To ensure a seamless user experience at this scale, the system should meet the following non-functional 
-requirements:
-
-1. Prioritize availability over strict consistency. For example, if a data center in 
+2. Prioritize **availability over strict consistency**. For example, if a data center in 
 Europe goes down, the traffic should automatically be routed to another region so that users can 
 continue watching videos with minimal disruption.
 
-2. The system should allow for low latency streaming of videos, even in low bandwidth environments.
-Videos should start playing within a few seconds and continue smoothly with minimal buffering.
+2. Handle for **low latency streaming of videos, even in low bandwidth environments**. Videos should 
+start playing within a few seconds and continue smoothly with minimal buffering.
 
-3. Videos may be uploaded in one country but viewed globally. Users from anywhere in the world should 
-receive similar playback performance.
+3. Videos may be uploaded in one country but viewed globally. Users from **anywhere in the world should 
+receive similar playback performance**.
 
 <br/>
 ---
 
 ### Design Rationale
 
-Simply implementing upload and playback is not sufficient at YouTube scale. We need to design the 
-system to handle diverse video formats, billions of video streams, varying network conditions, and 
-global users while maintaining low latency and high availability. 
+Suppose you have a `.mp4` file stored on your SDD/HDD. When you double click on it, a video player 
+opens the file and starts reading its bytes from disk.
 
-The following design decisions explain how these challenges are addressed and why certain 
-architectural choices are made.
+> NOTE: An `.mp4` file is a container, not the actual video encoding. It contains a video stream 
+(H.264) and an audio stream (AAC). The video player first demultiplexes (demuxes) the container to 
+separate the video and audio data.
+
+The video stream (H.264) is compressed. The video player consists of a video decoder that coverts 
+compressed data into frames that can be displayed. Similary, the audio stream (AAC) is compressed. 
+The video player consists of an audiodecoder that coverts compressed data into PCM audio samples 
+that can be played.
+
+The player combines the video and audio frames to display the video and play the audio. The player 
+needs to make sure the video and audio are synchronized. This is done using **timestamps** 
+accociated with the audio/video streams.
+
+When you move from this simple local-player scenario to YouTube, the fundamental playback mechanism 
+stays similar. YouTube simply adds a huge infrastructure layer before the player receives the 
+video data.
+
+##### **<span className="text-emerald-500">Q. How does the upload process work?</span>**
+
+A 2 GB video can be divided into chunks:
+
+```
+┌──────┬──────┬──────┬──────┬──────┐
+│ 100MB│ 100MB│ 100MB│ 100MB│ ...  │
+└──────┴──────┴──────┴──────┴──────┘
+```
+
+The chunks give us resumability. It should be asynchronous process. Once the upload is complete,
+the system should generate an event. The user shouldn't have to wait for the entire upload to 
+complete. 
+
+##### **<span className="text-emerald-500">Q. Why do we need to process videos?</span>**
+
+The original uploaded video is not necessarily in a format that is suitable for streaming to 
+every user. For example, a creater might upload a `4k, 60 fps, 20Mbps` video. But a user may have 
+different network speeds. A user on a slow connection can watch 360p, while someone on a fast 
+connection can watch 4k.
+
+ Different devices and browsers suppport different codecs (what??) and formats.
+
+ Transcoding generally means converting an already encoded video into another encoded 
+ representation. For example, `H.264 4K → H.264 1080p`.
+
+##### **<span className="text-emerald-500">Q. Suppose you're watching `1080p` and your network suddenly becomes slow from `20 Mbps` to `2 Mbps`. What happens?</span>**
+
+The player can switch from high bitrate to low bitrate. To do this, the platform needs multiple 
+versions of the video.
+
+---
 
 **<span className="text-emerald-500"> Q1. How to handle different video configurations during upload? </span>**
 
@@ -123,6 +164,20 @@ will attempt to download more compressed, lower resolution segments to avoid any
 
 ### API Design
 
+Assuming the **average video size is `500MB`**:
+
+```
+ 1M video uploads per day means 100,000 / 86,400 ≈ 10 uploads per second:
+
+    = Storage Capacity: 100,000 x 500MB = 50,000,000MB = 50TB of data storage per day 
+                                        = 50TB per day x 365 days ≈ 18PB of data storage per year.
+
+    = Average Ingress (upload bandwidth) per second = 10 uploads per second x 500MB = 5GBps  
+    
+
+100M video watched per day means:
+```
+
 ---
 
 ### Data Model Design
@@ -130,6 +185,9 @@ will attempt to download more compressed, lower resolution segments to avoid any
 ---
 
 ### High-Level Design
+
+
+#### Playing Service
 
 
 ---
