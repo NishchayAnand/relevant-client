@@ -768,7 +768,7 @@ export default function VideoPlaybackPipelineVisualizer() {
           </div>
           <div className="flex flex-col leading-tight">
             <span className="text-sm font-semibold text-gray-800">
-              PlaybackController
+              Video Player
             </span>
             <span className="text-[10px] text-gray-500 font-mono">
               tick {state.tick} · {formatClock(state.clockMs)}

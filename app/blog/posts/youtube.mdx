@@ -54,52 +54,35 @@ efficient and scalable video streaming system. Let's break down these concepts o
 
 ##### **<span className="text-emerald-500">Q. What is a video?</span>**
 
-A video is essentially a **sequence of images (frames) played over time, combined with audio**. 
-For example, an `.mp4` file is a container, not the actual video encoding. It contains a video 
-stream (H.264) and an audio stream (AAC). 
+A video is essentially a **sequence of images (frames) played over time, combined with audio**.
+For example, an `.mp4` file is a **container** that packages different streams together. It typically 
+contains a **video stream** encoded using a codec such as `H.264` and an **audio stream** encoded 
+using a codec such as `AAC`.
 
-The video player consists of a video decoder that coverts 
-compressed data into frames that can be displayed. Similary, the audio stream (AAC) is compressed. 
-The video player consists of an audiodecoder that coverts compressed data into PCM audio samples 
-that can be played.
+The video stream contains a sequence of compressed video frames, while the audio stream contains 
+compressed audio data. The container also stores important information such as **timestamps**, 
+**duration**, **frame rate**, **resolution**, and **codec information**, which helps the video 
+player correctly decode and synchronize the audio and video during playback.
 
-The player combines the video and audio frames to display the video and play the audio. The player 
-needs to make sure the video and audio are synchronized. This is done using **timestamps** 
-accociated with the audio/video streams.
-
-> <span className="bg-yellow-100">**NOTE**: For a **30 FPS** video, `30` frames are captured every second. A single `1920 x 1080` RGB frame 
-requires approximately `1920 x 1080 x 3 bytes ≈ 6 MB`. At `30 FPS`, a 10-minute video would 
-require `10 minutes x 60 seconds/minute x 30 frames/second x 6 MB/frame ≈ 110 GB` of memory just 
-for the video frames. This is why video compression is so essential.</span>
-
-<br/>
+<Note>
+For a **30 FPS** video, `30` frames are captured every second. A single `1920 x 1080` RGB frame
+requires approximately `1920 x 1080 x 3 bytes ≈ 6 MB`. At `30 FPS`, a 10-minute video would
+require `10 minutes x 60 seconds/minute x 30 frames/second x 6 MB/frame ≈ 110 GB` of memory just
+for the video frames. This is why video compression is so essential.
+</Note>
 
 ##### **<span className="text-emerald-500">Q. How does a video player work in your local machine?</span>**
 
-When `play()` is called:
+When a video player opens a local video file, it first **demultiplexes (demuxes)** the container to
+separate the video and audio streams. The video decoder then converts the compressed `H.264` data 
+into raw video frames that can be displayed. Similarly, the audio decoder converts the compressed 
+`AAC` data into PCM audio samples that can be played through the speakers.
 
-```
-play()
-  │
-  ▼
-PlaybackController
-  │
-  ├── Start PlaybackClock
-  │
-  ├── Demux video/audio packets
-  │
-  ├── Decode video
-  │
-  ├── Decode audio
-  │
-  ├── Put decoded data into buffers
-  │
-  ├── Synchronizer checks timestamps
-  │
-  ├── VideoRenderer displays correct frame
-  │
-  └── AudioRenderer plays corresponding audio
-```
+The decoded video frames and audio samples are temporarily stored in buffers so that decoding and 
+playback can happen smoothly. The player then uses a playback clock along with the timestamps 
+associated with the audio and video streams to determine when each video frame should be displayed 
+and when the corresponding audio samples should be played. This keeps the audio and video 
+synchronized throughout playback.
 
 <VideoPlaybackPipelineVisualizer />
 
@@ -231,6 +214,31 @@ will attempt to download more compressed, lower resolution segments to avoid any
 
 
 #### Playing Service
+
+When `play()` is called:
+
+```
+play()
+  │
+  ▼
+PlaybackController
+  │
+  ├── Start PlaybackClock
+  │
+  ├── Demux video/audio packets
+  │
+  ├── Decode video
+  │
+  ├── Decode audio
+  │
+  ├── Put decoded data into buffers
+  │
+  ├── Synchronizer checks timestamps
+  │
+  ├── VideoRenderer displays correct frame
+  │
+  └── AudioRenderer plays corresponding audio
+```
 
 
 ---

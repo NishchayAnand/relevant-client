@@ -6,6 +6,7 @@ import hljs from 'highlight.js';
 import javascript from 'highlight.js/lib/languages/javascript';
 import React from 'react';
 import remarkGfm from "remark-gfm";
+import { Info } from 'lucide-react';
 import RemoveElementVisualizer from './remove-element-visualizer';
 import TwoPointerVisualizer from './two-pointer-visualizer';
 import MajorityElementFrequencyMapVisualizer from './majority-element-frequency-map';
@@ -156,6 +157,41 @@ function RoundedImage(props: React.ComponentProps<typeof Image>) {
 }
 
 /**
+ * Blue callout for additional facts, notes, and asides.
+ *
+ * Usage in MDX:
+ *
+ * ```mdx
+ * <Note>
+ * For a **30 FPS** video, `30` frames are captured every second...
+ * </Note>
+ *
+ * <Note title="Heads up">Optional title override.</Note>
+ * ```
+ */
+function Note({
+  children,
+  title = 'Note',
+}: {
+  children?: React.ReactNode;
+  title?: string;
+}) {
+  return (
+    <div className="my-6 rounded-lg border border-blue-200 bg-blue-50/60 px-4 py-3 [&_p]:my-0 [&_p]:text-blue-900 [&_p]:text-sm [&_p]:leading-relaxed [&_code]:bg-blue-100/70 [&_code]:text-blue-900">
+      <div className="flex items-center gap-1.5 mb-1.5">
+        <Info size={14} className="text-blue-500 shrink-0" />
+        <span className="text-[11px] font-semibold uppercase tracking-wide text-blue-700">
+          {title}
+        </span>
+      </div>
+      <div className="text-sm leading-relaxed text-blue-900">
+        {children}
+      </div>
+    </div>
+  );
+}
+
+/**
  * Renders a highlighted inline code element.
  *
  * Converts the provided children to a string, passes it to a `highlight` function to produce
@@ -286,6 +322,7 @@ let components = {
   AtmSystemVisualizer: AtmSystemVisualizer,
   VideoPlaybackPipelineVisualizer: VideoPlaybackPipelineVisualizer,
   Image: RoundedImage,
+  Note,
   a: CustomLink,
   code: Code,
   Table,
