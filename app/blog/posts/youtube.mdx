@@ -3,8 +3,10 @@ title: 'System Design (YouTube): Video Streaming Platform'
 publishedAt: '2026-06-17'
 ---
 
-Design a video streaming service like YouTube that can handle millions of users and 
-billions of video streams every day.
+A **video streaming platform like YouTube** allows users to upload and watch videos seamlessly. But 
+beneath this seemingly simple experience lies an engineering marvel that enables us to store, 
+process, and stream gigabytes of video data to millions of users with minimal latency and 
+buffering.
 
 <br/>
 ![youtube](/youtube/youtube.svg)
@@ -14,11 +16,13 @@ billions of video streams every day.
 
 ### Functional Requirements
 
-1. Users should be able to upload videos from various devices. Since different devices may produce 
+Design a video streaming platform that allows:
+
+1. Users to **upload videos** from various devices. Since different devices may produce 
 videos with different configurations (e.g., file formats, resolutions, frame rates, etc), the system 
 should support a wide range of input formats.
 
-2. Users should be able to watch uploaded videos seamlessly across different devices (web, mobile, 
+2. Users to **watch uploaded videos** seamlessly across different devices (web, mobile, 
 tablet, and smart TVs). The system should provide a smooth viewing experience regardless of 
 network conditions.
 
@@ -26,7 +30,16 @@ network conditions.
 
 ### Non-Functional Requirements
 
-1. The system should prioritize availability over strict consistency. For example, if a data center in 
+The video streaming platform needs to support **`~1M` video uploads (i.e., `100,000 / 86,400` ≈ 
+`10` uploads per second)** and `~100M` video watched per day. 
+
+Assuming the **average video size is `500MB`**, we need `100,000 x 500MB = 50,000,000MB = 50TB` of 
+storage per day and an **average ingress (upload bandwidth) of `10 x 500MB = 5GB` per second**.
+
+To ensure a seamless user experience at this scale, the system should meet the following non-functional 
+requirements:
+
+1. Prioritize availability over strict consistency. For example, if a data center in 
 Europe goes down, the traffic should automatically be routed to another region so that users can 
 continue watching videos with minimal disruption.
 
@@ -37,17 +50,6 @@ Videos should start playing within a few seconds and continue smoothly with mini
 receive similar playback performance.
 
 <br/>
----
-
-### Load Estimation
-
-Daily Active Users = 5 Million
-
----
-
-### High Level Design
-
-
 ---
 
 ### Design Rationale
@@ -127,13 +129,18 @@ will attempt to download more compressed, lower resolution segments to avoid any
 
 ---
 
+### High-Level Design
+
+
+---
+
 ### Similar Case Studies
 
 1. Design Spotify
 
 2. Design Live Streaming Platform
 
-3. Design File Storage System like Dropbox or Google Drive
+3. Design Netflix
 
 
 
