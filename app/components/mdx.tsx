@@ -74,6 +74,7 @@ import TopologicalSortBFSVisualizer from './topological-sort-bfs-visualizer';
 import ScheduleJobSequenceVisualizer from './schedule-job-sequence-visualizer';
 import AtmSystemVisualizer from './atm-system-visualizer';
 import VideoPlaybackPipelineVisualizer from './video-playback-pipeline-visualizer';
+import HttpRangeRequestVisualizer from './http-range-request-visualizer';
 
 hljs.registerLanguage('javascript', javascript);
 
@@ -321,6 +322,7 @@ let components = {
   ScheduleJobSequenceVisualizer: ScheduleJobSequenceVisualizer,
   AtmSystemVisualizer: AtmSystemVisualizer,
   VideoPlaybackPipelineVisualizer: VideoPlaybackPipelineVisualizer,
+  HttpRangeRequestVisualizer: HttpRangeRequestVisualizer,
   Image: RoundedImage,
   Note,
   a: CustomLink,

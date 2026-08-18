@@ -93,9 +93,11 @@ as a local video player, but the major difference is that the **video data is ob
 network** rather than directly from the local disk.
 
 When a webpage contains a `<video>` element, the browser's media subsystem requests the video from 
-the specified URL. For a simple MP4 video, the <span className="bg-amber-100 rounded-md p-1">**browser 
+the specified URL. For a simple MP4 video, the <span className="bg-red-100 rounded-md p-1">**browser 
 can use HTTP to download the media, often using HTTP Range Requests to retrieve only the required 
-portions of the file.**</span> 
+portions of the file.**</span>
+
+<HttpRangeRequestVisualizer />
 
 The downloaded data is placed into a buffer, after which the browser's media pipeline demultiplexes 
 the container, separates the audio and video streams, and sends them to the appropriate decoders.
