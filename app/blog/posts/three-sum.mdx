@@ -26,55 +26,95 @@ The distinct triplets are [-1,0,1] and [-1,-1,2].
 
 ---
 
-### Approach 1: Nested Loops
+### Design Rationale
+
+The following are the key concepts to consider when designing an efficient algorithm for this problem:
+
+#### <span className="text-emerald-500">Q. How to make sure no triplets with the same set of numbers are added to the result?</span>
+
+A simple approach is to sort the array. Once sorted, identical triplets will have the same
+ordered representation. For example:
+
+```
+Before sorting: nums = [-1,0,1,2,-1,-4]
+After sorting: nums = [-4,-1,-1,0,1,2]
+
+- nums[1] + nums[3] + nums[4] = (-1) + 0 + 1 = 0
+- nums[2] + nums[3] + nums[4] = (-1) + 0 + 1 = 0  <- duplicate triplet
+```
+
+<br/>
+
+---
+
+### Approach 1: Sorting + Nested Loops
 
 Use three nested loops to iterate through all possible triplets and keep track of the unique 
 ones whose sum is `0`.
 
 #### Algorithm
 
-```
 1. Initialize an empty set to store the unique triplets.
-2. Iterate through the array using three pointers: i, j, and k:
-    - For each triplet, check if the sum is equal to 0:
-        - If the sum is equal to 0, store the triplet in a set and add it to the result set.
-        - If the sum is not equal to 0, continue to the next triplet.
+2. Iterate through the array using three pointers i, j, and k:
+    - For each triplet, check if nums[i] + nums[j] + nums[k] == 0:
+        - If the sum is equal to 0, store the triplet to the result set.
 3. Convert the result set into list and return it.
-```
 
 #### Implementation
 
 ```java
 public List<List<Integer>> threeSum(int[] nums) {
-    Set<Set<Integer>> resultSet = new HashSet<>();
+    // 1. Sort the input array
+    Arrays.sort(nums);
+
+    // 2. Iterate over the sorted set of triplets
+    Set<List<Integer>> resultSet = new HashSet<>();
     for(int i = 0; i < nums.length - 2; i++) {
         for(int j = i + 1; j < nums.length - 1; j++) {
             for(int k = j + 1; k < nums.length; k++) {
                 if (nums[i] + nums[j] + nums[k] == 0) {
-                    Set<Integer> triplet = Set.of(nums[i], nums[j], nums[k]);
-                    if(!resultSet.contains(triplet)) {
-                        resultSet.add(triplet);
-                    }
+                    List<Integer> triplet = List.of(nums[i], nums[j], nums[k]);
+                    resultSet.add(triplet);
                 }
             }
         }
     }
     
-    List<List<Integer>> resultList = new ArrayList<>();
-    for(Set<Integer> triplet : resultSet) {
-        resultList.add(new ArrayList<>(triplet));
-    }
-    return resultList;
+    return new ArrayList<>(resultSet);
 }
 ```
 
-#### Time Complexity 
+#### Time Complexity
+
+Sorting the array takes `O(n log n)` time. The nested loops take `O(n^3)` time. Hence, the 
+overall time complexity is `O(n^3)`.
 
 #### Space Complexity
 
+In the worst case, for each element `i`, there can be multiple unique triplets starting 
+with `nums[i]`. Since there are `O(n)` choices for the first element and `O(n²)` possible 
+combinations for the remaining two elements, the total number of unique triplets can be 
+`O(n³)`. Hence, the overall space complexity is `O(n³)`.
 
 ---
 
+### Approach 2: Sorting + Two Pointers
+
+For every element `i`, we can use two pointers `j` and `k` to find the other two elements 
+such that `nums[j] + nums[k] + nums[i] == 0`.
+
+#### Algorithm
+
+
+#### Implementation
+
+
+#### Time Complexity
+
+
+#### Space Complexity
+
+---
 
 
 
