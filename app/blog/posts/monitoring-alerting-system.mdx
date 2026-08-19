@@ -28,6 +28,24 @@ of unexpected failures.
 
 #### <span className="text-emerald-500">Q. How does log aggregation work?</span>
 
+```
+Applications
+     ↓
+Log Agents
+     ↓
+Kafka / Buffer
+     ↓
+Log Ingestion Service
+     ↓
+┌──────────────────────────────┐
+│      Central Log System      │
+│                              │
+│  Parsing → Indexing → Store  │
+└──────────────┬───────────────┘
+               ↓
+        Search / Analytics
+```
+
 You typically install an agent on each machine or run a collector alongside your workloads. For example:
 
 ```
@@ -79,6 +97,40 @@ Server 4 ──┤
 Server 5 ──┘
 ```
 
+The central platform perform certain level of parsing to convert raw text into structured key 
+value pairs. The system also create indexes so that the searches are fast.
+
+The actual log data is stored separately from the index
+
+```
+             Log System
+                 │
+        ┌────────┴────────┐
+        ↓                 ↓
+   Log Storage         Indexes
+   "actual data"       "where to find it"
+```
+
+#### <span className="text-emerald-500">Q. What is the significance of correlation ID?</span>
+
+A request could generate logs across `5` services. If we attach a correlation ID to the request,
+every service logs it:
+
+```
+API Gateway
+correlationId=ABC123
+
+Order Service
+correlationId=ABC123
+
+Payment Service
+correlationId=ABC123
+
+Banking Service
+correlationId=ABC123
+```
+
+Now searching `correlationId=ABC123` will give you an idea of the entire request journey.
 
 ---
 

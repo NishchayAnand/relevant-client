@@ -2,3 +2,60 @@
 title: 'AI-Driven System Design: OCR PDF Extractor System'
 publishedAt: '2026-07-12'
 ---
+
+classification is required. A PDF may contain multiple pages. Some pages may not contain relevant 
+information. We need an agent to identify and discard such pages.
+
+---
+
+### Design Rationale
+
+Q. Why the output of OCR should have coordinates?
+
+OCR might produce:
+
+```
+"Invoice"     bbox = [100, 100, 150, 125]
+"Number:"     bbox = [155, 100, 220, 125]
+"INV-12345"   bbox = [230, 100, 330, 125]
+
+"Invoice"     bbox = [100, 140, 150, 165]
+"Date:"       bbox = [155, 140, 195, 165]
+"18-Aug-2026" bbox = [230, 140, 330, 165]
+```
+
+We can group words whose vertical positions are approximately the same.
+
+```
+Invoice     y = 100
+Number:     y = 101
+INV-12345   y = 100
+```
+
+A simple algorithm can do this:
+
+```
+For every OCR token:
+
+    Find existing line whose Y-range overlaps
+
+    If overlap is high:
+        add token to line
+
+    Otherwise:
+        create new line
+```
+
+So we transform:
+
+```
+WORD WORD WORD WORD WORD...
+```
+
+into:
+
+```
+LINE 1 → Invoice Number: INV-12345
+LINE 2 → Invoice Date: 18-Aug-2026
+LINE 3 → Customer: ABC Ltd
+```
