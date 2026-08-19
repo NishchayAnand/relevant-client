@@ -1,15 +1,117 @@
 ---
-title: 'System Design (Datadog): Metrics Monitoring & Alerting System'
+title: 'System Design (Splunk): Logs Aggregation & Alerting System'
 publishedAt: '2026-06-24'
+---
+
+Log aggregation is the process of collecting logs from many different machines/services and 
+sending them to a central system where they can be searched, analyzed, visualized, and 
+alerted on.
+ 
+![Logs Aggregation & Alerting System](/splunk/splunk.svg)
+
+---
+
+### Functional Requirements
+
+Design a logs aggregation system that: 
+
+---
+
+### Non-Functional Requirements
+
+1. Entire System generates `100,000` logs/second. But should be able `1M` logs/second spikes in case 
+of unexpected failures.
+
+---
+
+### Design Rationale
+
+#### <span className="text-emerald-500">Q. How does log aggregation work?</span>
+
+You typically install an agent on each machine or run a collector alongside your workloads. For example:
+
+```
+EC2
+│
+├── payment-service.log
+├── nginx.log
+└── system.log
+       │
+       ↓
+   Fluent Bit
+       │
+       ↓
+   Central system
+```
+
+The Collector (Fluent Bit) collects logs from the servers and sends them to the central system.
+Suppose your application produces `"Payment failed: Insufficient balance"` message. That's 
+not very useful by itself. THe collector can enrcih it with information such as:
+
+```
+{
+  "message": "Payment failed",
+  "timestamp": "2026-08-19T13:20:05Z",
+  "service": "payment-service",
+  "environment": "production",
+  "host": "ip-10-20-1-15",
+  "region": "ap-southeast-2",
+  "pod": "payment-7d8f9",
+  "level": "ERROR"
+}
+```
+
+Now you can search:
+
+```
+service = payment-service
+environment = production
+level = ERROR
+```
+
+The simplest mental model is:
+
+```
+Server 1 ──┐
+Server 2 ──┤
+Server 3 ──┼──→ Log Collector ──→ Log Storage/Index ──→ Search/Dashboard
+Server 4 ──┤
+Server 5 ──┘
+```
+
+
 ---
 
 Q. How and when to scale metrics collector?
 
 Q. How adding queuing system help with handling time series db failure?
 
+Q. Workflow of Splunk?
 
+```
+Fluent Bit
+     ↓
+Kafka
+     ↓
+Log Processing
+     ↓
+Elasticsearch
+```
 
----
+equivalent to:
+
+```
+Application
+    ↓
+Fluent Bit
+    ↓
+Splunk
+```
+
+Q. What is Index in Splunk?
+
+Used to specify which index (data repository) to search and store in. When data is added, it is
+stored in index for efficient searching.
 
 **<span className="text-emerald-500">Q1. An API that consistently responded within 200 ms before 
 deployment now takes 4-5 seconds after a new release. CPU, memory, and disk utilization remain 
