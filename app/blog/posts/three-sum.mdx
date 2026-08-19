@@ -54,11 +54,14 @@ ones whose sum is `0`.
 
 #### Algorithm
 
-1. Initialize an empty set to store the unique triplets.
-2. Iterate through the array using three pointers i, j, and k:
+```
+1. Sort the input array.
+Initialize an empty set to store the unique triplets.
+3. Iterate through the array using three pointers i, j, and k:
     - For each triplet, check if nums[i] + nums[j] + nums[k] == 0:
         - If the sum is equal to 0, store the triplet to the result set.
-3. Convert the result set into list and return it.
+4. Convert the result set into list and return it.
+```
 
 #### Implementation
 
@@ -105,6 +108,14 @@ such that `nums[j] + nums[k] + nums[i] == 0`.
 
 #### Algorithm
 
+```
+1. Sort the input array.
+2. Iterate through the array using a pointer i:
+    - For each element i, use two pointers j and k to find the other two elements 
+    such that nums[j] + nums[k] + nums[i] == 0.
+    - If the sum is equal to 0, store the triplet to the result set.
+3. Convert the result set into list and return it.
+```
 
 #### Implementation
 
