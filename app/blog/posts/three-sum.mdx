@@ -63,6 +63,12 @@ Initialize an empty set to store the unique triplets.
 4. Convert the result set into list and return it.
 ```
 
+<Note>
+During traversal, skip a value if it is the same as the value processed in the previous 
+iteration. **Processing the same value again can only reproduce triplets we've already 
+considered**. Skipping it avoids duplicate work and duplicate results.
+</Note>
+
 #### Implementation
 
 ```java
@@ -73,8 +79,20 @@ public List<List<Integer>> threeSum(int[] nums) {
     // 2. Iterate over the sorted set of triplets
     Set<List<Integer>> resultSet = new HashSet<>();
     for(int i = 0; i < nums.length - 2; i++) {
+
+        // Optimization: Skip duplicates
+        if (i > 0 && nums[i] == nums[i - 1]) continue;
+
         for(int j = i + 1; j < nums.length - 1; j++) {
+
+            // Optimization: Skip duplicates
+            if (j > i + 1 && nums[j] == nums[j - 1]) continue;
+
             for(int k = j + 1; k < nums.length; k++) {
+
+                // Optimization: Skip duplicates
+                if (k > j + 1 && nums[k] == nums[k - 1]) continue;
+
                 if (nums[i] + nums[j] + nums[k] == 0) {
                     List<Integer> triplet = List.of(nums[i], nums[j], nums[k]);
                     resultSet.add(triplet);
@@ -94,10 +112,14 @@ overall time complexity is `O(n^3)`.
 
 #### Space Complexity
 
-In the worst case, for each element `i`, there can be multiple unique triplets starting 
-with `nums[i]`. Since there are `O(n)` choices for the first element and `O(n²)` possible 
-combinations for the remaining two elements, the total number of unique triplets can be 
-`O(n³)`. Hence, the overall space complexity is `O(n³)`.
+There are `n(n-1)(n-2)/6 ~ O(n³)` possible combinations of three elements, but the 
+`sum = 0` constraint greatly limits how many of those combinations can actually be valid.
+
+Once we choose two numbers a and b, the third number is completely determined: `c = −(a+b)`.
+So we don't have O(n) choices for the third element anymore. That's the key reason the 
+number of valid unique triplets is bounded by O(n²).
+
+So the overall space complexity is `O(n²)`.
 
 ---
 
@@ -111,19 +133,59 @@ such that `nums[j] + nums[k] + nums[i] == 0`.
 ```
 1. Sort the input array.
 2. Iterate through the array using a pointer i:
-    - For each element i, use two pointers j and k to find the other two elements 
-    such that nums[j] + nums[k] + nums[i] == 0.
-    - If the sum is equal to 0, store the triplet to the result set.
+    - For each element i, let j = i + 1 and k = nums.length - 1:
+        - while j < k:
+            - if nums[i] + nums[j] + nums[k] == 0:
+                - store the triplet to the result set.
+            - else if nums[i] + nums[j] + nums[k] < 0:
+                - increment j.
+            - else:
+                - decrement k.
 3. Convert the result set into list and return it.
 ```
 
 #### Implementation
 
+```java
+public List<List<Integer>> threeSum(int[] nums) {
+    // 1. Sort the input array
+    Arrays.sort(nums);
+
+    // 2. Iterate over each element i in the sorted array
+    Set<List<Integer>> resultSet = new HashSet<>();
+    for(int i = 0; i < nums.length - 2; i++) {
+        // Optimization: Skip duplicates
+        if (i > 0 && nums[i] == nums[i - 1]) continue;
+
+        int j = i + 1;
+        int k = nums.length - 1;
+        while (j < k) {
+            if (nums[i] + nums[j] + nums[k] == 0) {
+                resultSet.add(List.of(nums[i], nums[j], nums[k]));
+                j++;
+                k--;
+            } else if (nums[i] + nums[j] + nums[k] < 0) {
+                j++;
+            } else {
+                k--;
+            }
+        }
+    }
+
+    return new ArrayList<>(resultSet);
+}
+```
 
 #### Time Complexity
 
+Sorting the array takes `O(n log n)` time. The nested loop perform a linear search 
+through the remaining elements for each `i`, resulting in `O(n²)` time. Hence, the 
+overall time complexity is `O(n log n) + O(n²) = O(n²)`.
 
 #### Space Complexity
+
+There are `O(n²)` possible combinations of two elements. Hence, the overall space 
+complexity is `O(n²)`.
 
 ---
 
