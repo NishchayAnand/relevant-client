@@ -39,3 +39,40 @@ max area of water the container can contain is 49.
 > **Solve Here:** [Leetcode 11](https://leetcode.com/problems/container-with-most-water/description/)
 
 ---
+
+### Basic Intuition
+
+Two vertical lines of height `h1` and `h2`, separated by a distance of `d`, can hold a
+maximum of `min(h1, h2) * d` units of water.
+
+---
+
+### Approach 1: Nested Loops
+
+Use two nested loops to iterate over all possible pairs of vertical lines and calculate 
+the area of the container formed by the two lines and the `x-axis`. Keep track of the 
+maximum area found.
+
+#### Algorithm:
+
+```
+1. Initialize a variable to store the maximum area found.
+2. Iterate over all pairs of vertical lines using two nested loops.
+3. For each pair, calculate the area of the container formed by the two lines and the `x-axis`.
+4. Update the maximum area if the current area is greater.
+5. Return the maximum area found.
+```
+
+add visualization here...
+
+#### Java Implementation
+
+```java
+
+```
+
+#### Time Complexity
+
+#### Space Complexity
+
+---
