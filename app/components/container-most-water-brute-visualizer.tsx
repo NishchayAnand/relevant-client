@@ -169,7 +169,7 @@ function simulate(heights: number[]): Step[] {
     kind: "done",
     maxArea,
     bestPair,
-    activeLines: [10],
+    activeLines: [11],
     label: `return ${maxArea}`,
   });
 
@@ -185,13 +185,14 @@ const CODE: CodeLine[] = [
   { line: 2, text: "int maxArea = 0;", indent: 1 },
   { line: 3, text: "for (int i = 0; i < height.length; i++) {", indent: 1 },
   { line: 4, text: "for (int j = i + 1; j < height.length; j++) {", indent: 2 },
-  { line: 5, text: "int width = j - i;", indent: 3 },
-  { line: 6, text: "int minH  = Math.min(height[i], height[j]);", indent: 3 },
-  { line: 7, text: "int area  = minH * width;", indent: 3 },
-  { line: 8, text: "maxArea   = Math.max(maxArea, area);", indent: 3 },
-  { line: 9, text: "} }", indent: 1 },
-  { line: 10, text: "return maxArea;", indent: 1 },
-  { line: 11, text: "}", indent: 0 },
+  { line: 5, text: "int width    = j - i;", indent: 3 },
+  { line: 6, text: "int minH     = Math.min(height[i], height[j]);", indent: 3 },
+  { line: 7, text: "int area     = minH * width;", indent: 3 },
+  { line: 8, text: "maxArea      = Math.max(maxArea, area);", indent: 3 },
+  { line: 9, text: "}", indent: 2 },
+  { line: 10, text: "}", indent: 1 },
+  { line: 11, text: "return maxArea;", indent: 1 },
+  { line: 12, text: "}", indent: 0 },
 ];
 
 function colorize(text: string): React.ReactNode {
@@ -217,38 +218,17 @@ function colorize(text: string): React.ReactNode {
   return parts;
 }
 
-function CodePanel({
-  activeLines,
-  stepIdx,
-  total,
-  currentLabel,
-}: {
-  activeLines: number[];
-  stepIdx: number;
-  total: number;
-  currentLabel: string;
-}) {
+function CodePanel({ activeLines }: { activeLines: number[] }) {
   const activeSet = new Set(activeLines);
   return (
-    <div className="rounded-lg border border-gray-200 bg-white font-mono overflow-hidden h-full flex flex-col">
-      {/* Title bar with step counter */}
-      <div className="flex items-center justify-between px-3 py-2 border-b border-gray-200 bg-gray-50">
-        <div className="flex items-center gap-2">
-          <span className="text-[10px] text-gray-600 font-mono">
-            {currentLabel}
-          </span>
-        </div>
-        <span className="text-[10px] text-gray-400 tabular-nums font-mono">
-          step {stepIdx + 1} / {total}
-        </span>
-      </div>
-      <div className="flex-1 py-4 text-[13.5px] leading-[1.85]">
+    <div className="font-mono">
+      <div className="py-4 text-[13.5px] leading-[1.9] overflow-x-auto">
         {CODE.map(({ line, text, indent }) => {
           const isActive = activeSet.has(line);
           return (
             <div
               key={line}
-              className="flex items-start px-3 relative"
+              className="flex items-start pr-3 relative"
               style={{
                 background: isActive
                   ? "rgba(16, 185, 129, 0.10)"
@@ -258,9 +238,9 @@ function CodePanel({
               }}
             >
               <span
-                className="tabular-nums select-none pr-3 text-right"
+                className="tabular-nums select-none pr-3 text-right pl-3"
                 style={{
-                  width: 28,
+                  width: 36,
                   color: isActive ? "#059669" : "#9ca3af",
                   fontWeight: isActive ? 700 : 400,
                 }}
@@ -639,109 +619,73 @@ function ContainerVisualizer({
 
 // ─── Variables panel ──────────────────────────────────────────────────────────
 
-function VariablesPanel({
-  step,
-  heights,
-}: {
-  step: Step;
-  heights: number[];
-}) {
-  const rows: { label: string; value: React.ReactNode; accent?: string }[] = [
+function VariablesPanel({ step }: { step: Step; heights: number[] }) {
+  const empty = <span className="text-gray-300">—</span>;
+
+  const items: { label: string; value: React.ReactNode }[] = [
     {
       label: "i",
       value:
         step.i !== undefined ? (
-          <span>
-            <span className="text-amber-600 font-bold">{step.i}</span>
-            <span className="text-gray-400"> → height[i] = </span>
-            <span className="font-bold">{heights[step.i]}</span>
-          </span>
+          <span className="text-amber-600">{step.i}</span>
         ) : (
-          <span className="text-gray-400 italic">—</span>
+          empty
         ),
     },
     {
       label: "j",
       value:
         step.j !== undefined ? (
-          <span>
-            <span className="text-purple-600 font-bold">{step.j}</span>
-            <span className="text-gray-400"> → height[j] = </span>
-            <span className="font-bold">
-              {step.j !== undefined ? heights[step.j] : ""}
-            </span>
-          </span>
+          <span className="text-purple-600">{step.j}</span>
         ) : (
-          <span className="text-gray-400 italic">—</span>
+          empty
         ),
     },
     {
       label: "width",
       value:
         step.width !== undefined ? (
-          <span className="font-bold">{step.width}</span>
+          <span className="text-gray-800">{step.width}</span>
         ) : (
-          <span className="text-gray-400 italic">—</span>
+          empty
         ),
     },
     {
       label: "minH",
       value:
         step.minHeight !== undefined ? (
-          <span className="font-bold">{step.minHeight}</span>
+          <span className="text-gray-800">{step.minHeight}</span>
         ) : (
-          <span className="text-gray-400 italic">—</span>
+          empty
         ),
     },
     {
       label: "area",
       value:
         step.area !== undefined ? (
-          <span
-            className={`font-bold ${
-              step.updated ? "text-emerald-600" : "text-sky-600"
-            }`}
-          >
+          <span className={step.updated ? "text-emerald-600" : "text-sky-600"}>
             {step.area}
           </span>
         ) : (
-          <span className="text-gray-400 italic">—</span>
+          empty
         ),
     },
     {
       label: "maxArea",
-      value: (
-        <span className="font-bold text-emerald-700">
-          {step.maxArea}
-          {step.bestPair && (
-            <span className="text-gray-400 font-normal">
-              {" "}
-              (from i={step.bestPair[0]}, j={step.bestPair[1]})
-            </span>
-          )}
-        </span>
-      ),
+      value: <span className="text-emerald-700">{step.maxArea}</span>,
     },
   ];
 
   return (
-    <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
-      <div className="px-3 py-1.5 border-b border-gray-200 bg-gray-50">
-        <span className="text-[10px] uppercase font-semibold tracking-wide text-gray-500">
-          Variables
+    <div className="flex flex-wrap items-baseline gap-x-5 gap-y-1 px-4 py-2 border-t border-gray-200 bg-gray-50/60 text-[12px] font-mono">
+      {items.map(item => (
+        <span key={item.label} className="inline-flex items-baseline gap-1.5">
+          <span className="text-gray-400 uppercase tracking-wide text-[10px]">
+            {item.label}
+          </span>
+          <span className="font-semibold tabular-nums">{item.value}</span>
         </span>
-      </div>
-      <div className="divide-y divide-gray-100">
-        {rows.map(row => (
-          <div
-            key={row.label}
-            className="px-3 py-1.5 flex items-baseline gap-3 text-[12px] font-mono"
-          >
-            <span className="text-gray-500 w-16 shrink-0">{row.label}</span>
-            <span className="text-gray-800">{row.value}</span>
-          </div>
-        ))}
-      </div>
+      ))}
     </div>
   );
 }
@@ -809,90 +753,75 @@ export default function ContainerMostWaterBruteVisualizer() {
   }, [presetId]);
 
   return (
-    <div className="my-6 rounded-2xl border border-gray-200 bg-white overflow-hidden">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-4 py-3 border-b border-gray-200 bg-gradient-to-r from-sky-50 to-white">
-        <div>
-          <div className="text-[11px] text-gray-500 mt-0.5">
-            Use the presets to pick an input array, then hit <strong>Play</strong> or <strong>Step</strong> to start the dry run.
+    <div className="my-6 flex flex-col gap-4">
+      {/* ── Algorithm section (top, full width) ─────────────────────────── */}
+      <div className="rounded-2xl border border-gray-200 bg-white overflow-hidden">
+        <CodePanel activeLines={step.activeLines} />
+      </div>
+
+      {/* ── Visualization section (bottom, full width) ──────────────────── */}
+      <div className="rounded-2xl border border-gray-200 bg-white overflow-hidden">
+        {/* Preset selector */}
+        <div className="px-4 py-2.5 border-b border-gray-100 bg-white flex justify-between items-center">
+          <div>
+          <div className="text-[10px] uppercase font-semibold tracking-wide text-gray-400 mb-1.5">
+            Input
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {PRESETS.map(p => (
+              <button
+                key={p.id}
+                onClick={() => setPresetId(p.id)}
+                className={`text-xs px-2.5 py-1 rounded-full border transition ${
+                  p.id === presetId
+                    ? "bg-sky-600 text-white border-sky-600"
+                    : "bg-white text-gray-700 border-gray-300 hover:border-sky-400"
+                }`}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
+          </div>
+
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => setIsPlaying(p => !p)}
+              disabled={isDone && !isPlaying}
+              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-medium bg-gray-900 text-white hover:bg-gray-800 disabled:opacity-40 disabled:cursor-not-allowed transition"
+            >
+              {isPlaying ? <Pause size={12} /> : <Play size={12} />}
+              {isPlaying ? "Pause" : "Play"}
+            </button>
+            <button
+              onClick={goNext}
+              disabled={isDone}
+              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-medium bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
+            >
+              <SkipForward size={12} />
+              Step
+            </button>
+            <button
+              onClick={reset}
+              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-medium bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 transition"
+            >
+              <RotateCcw size={12} />
+              Reset
+            </button>
           </div>
         </div>
-        <div className="flex items-center gap-1.5">
-          <button
-            onClick={() => setIsPlaying(p => !p)}
-            disabled={isDone && !isPlaying}
-            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-medium bg-gray-900 text-white hover:bg-gray-800 disabled:opacity-40 disabled:cursor-not-allowed transition"
-          >
-            {isPlaying ? <Pause size={12} /> : <Play size={12} />}
-            {isPlaying ? "Pause" : "Play"}
-          </button>
-          <button
-            onClick={goNext}
-            disabled={isDone}
-            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-medium bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
-          >
-            <SkipForward size={12} />
-            Step
-          </button>
-          <button
-            onClick={reset}
-            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-medium bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 transition"
-          >
-            <RotateCcw size={12} />
-            Reset
-          </button>
-        </div>
-      </div>
 
-      {/* Preset selector */}
-      <div className="px-4 py-2.5 border-b border-gray-100 bg-white">
-        <div className="text-[10px] uppercase font-semibold tracking-wide text-gray-400 mb-1.5">
-          Input
-        </div>
-        <div className="flex flex-wrap gap-1.5">
-          {PRESETS.map(p => (
-            <button
-              key={p.id}
-              onClick={() => setPresetId(p.id)}
-              className={`text-xs px-2.5 py-1 rounded-full border transition ${
-                p.id === presetId
-                  ? "bg-sky-600 text-white border-sky-600"
-                  : "bg-white text-gray-700 border-gray-300 hover:border-sky-400"
-              }`}
-            >
-              {p.label}
-            </button>
-          ))}
-          <span className="ml-auto text-[10px] text-gray-500 font-mono self-center">
-            Expected maxArea ={" "}
-            <span className="text-gray-800 font-semibold">{preset.expected}</span>
-          </span>
-        </div>
-      </div>
-
-      {/* Main grid: code (left, wider) · visual + variables (right) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 p-4">
-        {/* Left column: full-height code panel */}
-        <div className="lg:col-span-7 min-h-[420px]">
-          <CodePanel
-            activeLines={step.activeLines}
-            stepIdx={currentIdx}
-            total={total}
-            currentLabel={step.label}
-          />
-        </div>
-
-        {/* Right column: SVG on top, Variables below */}
-        <div className="lg:col-span-5 flex flex-col gap-3">
-          <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
+        {/* SVG (full width); minimal footer with variable status sits flush below */}
+        <div className="p-4">
+          <div className="rounded-lg bg-white overflow-hidden">
             <ContainerVisualizer
               heights={preset.heights}
               step={step}
               maxH={maxH}
             />
           </div>
-          <VariablesPanel step={step} heights={preset.heights} />
         </div>
+        <VariablesPanel step={step} heights={preset.heights} />
       </div>
     </div>
   );
