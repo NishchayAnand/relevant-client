@@ -6,7 +6,7 @@ import hljs from 'highlight.js';
 import javascript from 'highlight.js/lib/languages/javascript';
 import React from 'react';
 import remarkGfm from "remark-gfm";
-import { Info } from 'lucide-react';
+import { Info, ListOrdered } from 'lucide-react';
 import RemoveElementVisualizer from './remove-element-visualizer';
 import TwoPointerVisualizer from './two-pointer-visualizer';
 import MajorityElementFrequencyMapVisualizer from './majority-element-frequency-map';
@@ -75,6 +75,7 @@ import ScheduleJobSequenceVisualizer from './schedule-job-sequence-visualizer';
 import AtmSystemVisualizer from './atm-system-visualizer';
 import VideoPlaybackPipelineVisualizer from './video-playback-pipeline-visualizer';
 import HttpRangeRequestVisualizer from './http-range-request-visualizer';
+import ContainerMostWaterBruteVisualizer from './container-most-water-brute-visualizer';
 
 hljs.registerLanguage('javascript', javascript);
 
@@ -188,6 +189,46 @@ function Note({
       <div className="text-sm leading-relaxed text-blue-900">
         {children}
       </div>
+    </div>
+  );
+}
+
+/**
+ * Structured container for algorithm steps / procedures.
+ *
+ * Sits under an existing `#### Algorithm` heading (no internal title by
+ * default) and gives the enclosed ordered/unordered lists a distinct
+ * "procedure block" look with a slate background and an indigo accent bar.
+ */
+function Algorithm({
+  children,
+  title,
+}: {
+  children?: React.ReactNode;
+  title?: string;
+}) {
+  return (
+    <div
+      className={
+        'my-5 rounded-lg border border-slate-200 border-l-4 border-l-indigo-400 bg-slate-50/70 pl-5 pr-4 py-3 ' +
+        '[&_ol]:my-0 [&_ol]:pl-5 [&_ol]:list-decimal ' +
+        '[&_ol>li]:my-1.5 [&_ol>li]:text-slate-800 [&_ol>li]:leading-relaxed ' +
+        '[&_ul]:my-1 [&_ul]:pl-5 [&_ul]:list-disc ' +
+        '[&_ul>li]:my-1 [&_ul>li]:text-slate-700 [&_ul>li]:leading-relaxed ' +
+        '[&_p]:my-1 [&_p]:text-slate-800 [&_p]:leading-relaxed ' +
+        '[&_li>p]:my-0 ' +
+        '[&_code]:bg-white [&_code]:border [&_code]:border-slate-200 [&_code]:text-slate-800'
+      }
+    >
+      {title && (
+        <div className="flex items-center gap-1.5 mb-2 -ml-1">
+          <ListOrdered size={14} className="text-indigo-500 shrink-0" />
+          <span className="text-[11px] font-semibold uppercase tracking-wide text-indigo-700">
+            {title}
+          </span>
+        </div>
+      )}
+      {children}
     </div>
   );
 }
@@ -323,8 +364,10 @@ let components = {
   AtmSystemVisualizer: AtmSystemVisualizer,
   VideoPlaybackPipelineVisualizer: VideoPlaybackPipelineVisualizer,
   HttpRangeRequestVisualizer: HttpRangeRequestVisualizer,
+  ContainerMostWaterBruteVisualizer: ContainerMostWaterBruteVisualizer,
   Image: RoundedImage,
   Note,
+  Algorithm,
   a: CustomLink,
   code: Code,
   Table,

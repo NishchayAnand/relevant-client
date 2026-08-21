@@ -53,23 +53,26 @@ Use two nested loops to iterate over all possible pairs of vertical lines and ca
 the area of the container formed by the two lines and the `x-axis`. Keep track of the 
 maximum area found.
 
-#### Algorithm:
-
-```
-1. Initialize a variable to store the maximum area found.
-2. Iterate over all pairs of vertical lines using two nested loops.
-3. For each pair, calculate the area of the container formed by the two lines and the `x-axis`.
-4. Update the maximum area if the current area is greater.
-5. Return the maximum area found.
-```
-
-add visualization here...
-
-#### Java Implementation
+#### Algorithm
 
 ```java
-
+public int maxArea(int[] height) {
+    int maximumHeight = 0;
+    for(int i = 0; i <= height.length - 2; i++) {
+        for(int j = i + 1; j <= height.length - 1; j++) {
+            int currentContainerHeight = Math.min(height[i],height[j]) * (j-i);
+            maximumHeight = Math.max(maximumHeight, currentContainerHeight);
+        }
+            
+    }
+        
+    return maximumHeight;        
+}
 ```
+
+#### Visualization
+
+<ContainerMostWaterBruteVisualizer />
 
 #### Time Complexity
 
