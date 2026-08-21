@@ -55,23 +55,6 @@ maximum area found.
 
 #### Algorithm
 
-```java
-public int maxArea(int[] height) {
-    int maximumHeight = 0;
-    for(int i = 0; i <= height.length - 2; i++) {
-        for(int j = i + 1; j <= height.length - 1; j++) {
-            int currentContainerHeight = Math.min(height[i],height[j]) * (j-i);
-            maximumHeight = Math.max(maximumHeight, currentContainerHeight);
-        }
-            
-    }
-        
-    return maximumHeight;        
-}
-```
-
-#### Visualization
-
 <ContainerMostWaterBruteVisualizer />
 
 #### Time Complexity

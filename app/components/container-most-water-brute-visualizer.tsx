@@ -35,7 +35,15 @@ const PRESETS: Preset[] = [
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type StepKind = "init" | "outer" | "pair" | "done";
+type StepKind =
+  | "init"
+  | "outer"
+  | "pair-enter"
+  | "pair-width"
+  | "pair-minh"
+  | "pair-area"
+  | "pair-update"
+  | "done";
 
 type Step = {
   kind: StepKind;
@@ -46,9 +54,11 @@ type Step = {
   area?: number;
   maxArea: number;
   bestPair: [number, number] | null;
+  /** True only on the pair-update step where maxArea actually changed. */
   updated?: boolean;
+  /** Exactly one line is active per step (except init/outer/done which map 1:1). */
   activeLines: number[];
-  narration: string;
+  label: string;
 };
 
 // ─── Simulation ───────────────────────────────────────────────────────────────
@@ -63,8 +73,7 @@ function simulate(heights: number[]): Step[] {
     maxArea: 0,
     bestPair: null,
     activeLines: [2],
-    narration:
-      "Initialize maxArea = 0. This variable will track the largest container we have seen so far.",
+    label: "init maxArea",
   });
 
   for (let i = 0; i < heights.length - 1; i++) {
@@ -74,20 +83,54 @@ function simulate(heights: number[]): Step[] {
       maxArea,
       bestPair,
       activeLines: [3],
-      narration: `Outer loop: pick i = ${i} (height[${i}] = ${heights[i]}). Now try every j > i.`,
+      label: `outer i = ${i}`,
     });
 
     for (let j = i + 1; j < heights.length; j++) {
       const width = j - i;
       const minHeight = Math.min(heights[i], heights[j]);
       const area = minHeight * width;
-      const updated = area > maxArea;
-      if (updated) {
-        maxArea = area;
-        bestPair = [i, j];
-      }
+      const willUpdate = area > maxArea;
+
+      // Line 4 — inner loop enters with j.
       steps.push({
-        kind: "pair",
+        kind: "pair-enter",
+        i,
+        j,
+        maxArea,
+        bestPair,
+        activeLines: [4],
+        label: `inner j = ${j}`,
+      });
+
+      // Line 5 — compute width.
+      steps.push({
+        kind: "pair-width",
+        i,
+        j,
+        width,
+        maxArea,
+        bestPair,
+        activeLines: [5],
+        label: `width = ${width}`,
+      });
+
+      // Line 6 — compute minH.
+      steps.push({
+        kind: "pair-minh",
+        i,
+        j,
+        width,
+        minHeight,
+        maxArea,
+        bestPair,
+        activeLines: [6],
+        label: `minH = ${minHeight}`,
+      });
+
+      // Line 7 — compute area for this pair.
+      steps.push({
+        kind: "pair-area",
         i,
         j,
         width,
@@ -95,13 +138,29 @@ function simulate(heights: number[]): Step[] {
         area,
         maxArea,
         bestPair,
-        updated,
-        activeLines: updated ? [4, 5, 6, 7, 8] : [4, 5, 6, 7],
-        narration: `Pair (i=${i}, j=${j}): width = ${j} − ${i} = ${width}, minHeight = min(${heights[i]}, ${heights[j]}) = ${minHeight}, area = ${minHeight} × ${width} = ${area}. ${
-          updated
-            ? `New maxArea = ${maxArea}!`
-            : `maxArea stays at ${maxArea}.`
-        }`,
+        activeLines: [7],
+        label: `area = ${area}`,
+      });
+
+      // Line 8 — update maxArea (or leave it).
+      if (willUpdate) {
+        maxArea = area;
+        bestPair = [i, j];
+      }
+      steps.push({
+        kind: "pair-update",
+        i,
+        j,
+        width,
+        minHeight,
+        area,
+        maxArea,
+        bestPair,
+        updated: willUpdate,
+        activeLines: [8],
+        label: willUpdate
+          ? `maxArea := ${maxArea}`
+          : `maxArea stays ${maxArea}`,
       });
     }
   }
@@ -111,9 +170,7 @@ function simulate(heights: number[]): Step[] {
     maxArea,
     bestPair,
     activeLines: [10],
-    narration: `Return maxArea = ${maxArea}${
-      bestPair ? ` (best pair: i = ${bestPair[0]}, j = ${bestPair[1]}).` : "."
-    }`,
+    label: `return ${maxArea}`,
   });
 
   return steps;
@@ -148,7 +205,7 @@ function colorize(text: string): React.ReactNode {
       parts.push(text.slice(lastIdx, match.index));
     }
     parts.push(
-      <span key={`kw-${match.index}`} style={{ color: "#a855f7" }}>
+      <span key={`kw-${match.index}`} style={{ color: "#7c3aed", fontWeight: 500 }}>
         {match[0]}
       </span>,
     );
@@ -160,41 +217,71 @@ function colorize(text: string): React.ReactNode {
   return parts;
 }
 
-function CodePanel({ activeLines }: { activeLines: number[] }) {
+function CodePanel({
+  activeLines,
+  stepIdx,
+  total,
+  currentLabel,
+}: {
+  activeLines: number[];
+  stepIdx: number;
+  total: number;
+  currentLabel: string;
+}) {
   const activeSet = new Set(activeLines);
   return (
-    <div className="rounded-lg bg-neutral-950 text-neutral-200 text-[12px] font-mono leading-[1.55] py-3 overflow-hidden">
-      {CODE.map(({ line, text, indent }) => {
-        const isActive = activeSet.has(line);
-        return (
-          <div
-            key={line}
-            className="flex items-start px-2 relative"
-            style={{
-              background: isActive ? "rgba(16, 185, 129, 0.14)" : "transparent",
-              borderLeft: `2px solid ${isActive ? "#10b981" : "transparent"}`,
-              transition: "background 0.15s",
-            }}
-          >
-            <span
-              className="tabular-nums select-none pr-2 text-right"
-              style={{ width: 24, color: isActive ? "#10b981" : "#525252" }}
-            >
-              {line}
-            </span>
-            <span
+    <div className="rounded-lg border border-gray-200 bg-white font-mono overflow-hidden h-full flex flex-col">
+      {/* Title bar with step counter */}
+      <div className="flex items-center justify-between px-3 py-2 border-b border-gray-200 bg-gray-50">
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] text-gray-600 font-mono">
+            {currentLabel}
+          </span>
+        </div>
+        <span className="text-[10px] text-gray-400 tabular-nums font-mono">
+          step {stepIdx + 1} / {total}
+        </span>
+      </div>
+      <div className="flex-1 py-4 text-[13.5px] leading-[1.85]">
+        {CODE.map(({ line, text, indent }) => {
+          const isActive = activeSet.has(line);
+          return (
+            <div
+              key={line}
+              className="flex items-start px-3 relative"
               style={{
-                paddingLeft: indent * 14,
-                whiteSpace: "pre",
-                minHeight: 18,
-                display: "inline-block",
+                background: isActive
+                  ? "rgba(16, 185, 129, 0.10)"
+                  : "transparent",
+                borderLeft: `3px solid ${isActive ? "#10b981" : "transparent"}`,
+                transition: "background 0.15s",
               }}
             >
-              {colorize(text)}
-            </span>
-          </div>
-        );
-      })}
+              <span
+                className="tabular-nums select-none pr-3 text-right"
+                style={{
+                  width: 28,
+                  color: isActive ? "#059669" : "#9ca3af",
+                  fontWeight: isActive ? 700 : 400,
+                }}
+              >
+                {line}
+              </span>
+              <span
+                style={{
+                  paddingLeft: indent * 16,
+                  whiteSpace: "pre",
+                  display: "inline-block",
+                  color: isActive ? "#0f172a" : "#334155",
+                  fontWeight: isActive ? 600 : 400,
+                }}
+              >
+                {colorize(text)}
+              </span>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -662,7 +749,7 @@ function VariablesPanel({
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export default function ContainerMostWaterBruteVisualizer() {
-  const [presetId, setPresetId] = useState<string>(PRESETS[1].id);
+  const [presetId, setPresetId] = useState<string>(PRESETS[0].id);
   const [stepIdx, setStepIdx] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
 
@@ -695,8 +782,23 @@ export default function ContainerMostWaterBruteVisualizer() {
       setIsPlaying(false);
       return;
     }
-    // Pair steps get a slightly longer beat than outer-loop transitions
-    const wait = step.kind === "pair" ? 900 : step.kind === "outer" ? 650 : 800;
+    // Auto-play pacing per step kind. The moment-of-truth (pair-update) gets
+    // a longer beat so the reader can see the maxArea change; setup lines
+    // (pair-enter, pair-width, pair-minh) advance a bit faster.
+    const wait =
+      step.kind === "pair-update"
+        ? 900
+        : step.kind === "pair-area"
+          ? 700
+          : step.kind === "pair-minh"
+            ? 600
+            : step.kind === "pair-width"
+              ? 500
+              : step.kind === "pair-enter"
+                ? 500
+                : step.kind === "outer"
+                  ? 550
+                  : 700;
     const t = setTimeout(goNext, wait);
     return () => clearTimeout(t);
   }, [isPlaying, isDone, step.kind, goNext]);
@@ -711,8 +813,8 @@ export default function ContainerMostWaterBruteVisualizer() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-4 py-3 border-b border-gray-200 bg-gradient-to-r from-sky-50 to-white">
         <div>
-          <div className="text-[11px] text-gray-500">
-          Press Play or Step to start the dry run.
+          <div className="text-[11px] text-gray-500 mt-0.5">
+            Use the presets to pick an input array, then hit <strong>Play</strong> or <strong>Step</strong> to start the dry run.
           </div>
         </div>
         <div className="flex items-center gap-1.5">
@@ -768,100 +870,29 @@ export default function ContainerMostWaterBruteVisualizer() {
         </div>
       </div>
 
-      {/* Main grid: SVG (left) + Code + Variables (right) */}
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 p-4">
-        {/* Left: visual */}
-        <div className="lg:col-span-3 rounded-lg border border-gray-200 bg-white overflow-hidden">
-          <ContainerVisualizer heights={preset.heights} step={step} maxH={maxH} />
+      {/* Main grid: code (left, wider) · visual + variables (right) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 p-4">
+        {/* Left column: full-height code panel */}
+        <div className="lg:col-span-7 min-h-[420px]">
+          <CodePanel
+            activeLines={step.activeLines}
+            stepIdx={currentIdx}
+            total={total}
+            currentLabel={step.label}
+          />
         </div>
 
-        {/* Right: code + variables */}
-        <div className="lg:col-span-2 flex flex-col gap-3">
-          <CodePanel activeLines={step.activeLines} />
+        {/* Right column: SVG on top, Variables below */}
+        <div className="lg:col-span-5 flex flex-col gap-3">
+          <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
+            <ContainerVisualizer
+              heights={preset.heights}
+              step={step}
+              maxH={maxH}
+            />
+          </div>
           <VariablesPanel step={step} heights={preset.heights} />
         </div>
-      </div>
-
-      {/* Narration */}
-      <div className="px-4 pb-4">
-        <div
-          className="rounded-lg border px-3 py-2 flex items-start gap-2"
-          style={{
-            background:
-              step.kind === "pair" && step.updated
-                ? "#ecfdf5"
-                : step.kind === "pair"
-                  ? "#f0f9ff"
-                  : step.kind === "outer"
-                    ? "#fff7ed"
-                    : step.kind === "done"
-                      ? "#f0fdf4"
-                      : "#f9fafb",
-            borderColor:
-              step.kind === "pair" && step.updated
-                ? "#86efac"
-                : step.kind === "pair"
-                  ? "#7dd3fc"
-                  : step.kind === "outer"
-                    ? "#fdba74"
-                    : step.kind === "done"
-                      ? "#86efac"
-                      : "#e5e7eb",
-          }}
-        >
-          <StepBadge step={step} stepIdx={currentIdx} total={total} />
-          <div className="text-[12px] leading-relaxed text-gray-800 flex-1">
-            {step.narration}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function StepBadge({
-  step,
-  stepIdx,
-  total,
-}: {
-  step: Step;
-  stepIdx: number;
-  total: number;
-}) {
-  const label =
-    step.kind === "init"
-      ? "INIT"
-      : step.kind === "outer"
-        ? "OUTER"
-        : step.kind === "pair"
-          ? step.updated
-            ? "NEW MAX"
-            : "PAIR"
-          : "DONE";
-  const color =
-    step.kind === "init"
-      ? "#6b7280"
-      : step.kind === "outer"
-        ? "#d97706"
-        : step.kind === "pair"
-          ? step.updated
-            ? "#059669"
-            : "#0284c7"
-          : "#059669";
-  return (
-    <div className="flex-shrink-0 mt-0.5">
-      <div
-        className="text-[9px] font-mono font-bold uppercase tracking-wider px-1.5 py-0.5 rounded"
-        style={{
-          background: "#fff",
-          border: `1px solid ${color}`,
-          color,
-        }}
-      >
-        {label}
-        <span className="ml-1 text-gray-400 font-normal">
-          {stepIdx + 1}/{total}
-        </span>
       </div>
     </div>
   );
