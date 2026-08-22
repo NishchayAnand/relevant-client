@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation';
 import { CustomMDX } from '@/app/components/mdx';
+import { Tags } from '@/app/components/tags';
 import { formatDate, getBlogPosts } from '@/app/blog/utils';
 
 export async function generateStaticParams() {
@@ -25,10 +26,16 @@ export default async function Blog({ params }: { params: Promise<{ slug: string 
       <h1 className="title font-semibold text-2xl tracking-tighter">
         {post.metadata.title}
       </h1>
-      <div className="mt-2 mb-8 text-sm">
+      <div className="mt-2 mb-8 flex flex-wrap items-center gap-2 text-sm">
         <p className="text-sm text-neutral-600 dark:text-neutral-400">
           {formatDate(post.metadata.publishedAt, false)}
         </p>
+        {post.metadata.tags?.length ? (
+          <>
+            <span className="text-neutral-400">|</span>
+            <Tags tags={post.metadata.tags} />
+          </>
+        ) : null}
       </div>
       <article className="prose">
         <CustomMDX source={post.content} />

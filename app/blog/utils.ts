@@ -2,12 +2,21 @@
 import fs from 'fs';
 import path from 'path';
 
-type Metadata = {
+export type Metadata = {
     title: string,
     publishedAt: string,
     summary: string,
-    image?: string
+    image?: string,
+    tags?: string[]
 };
+
+function parseTags(value: string): string[] {
+  const unwrapped = value.replace(/^\[(.*)\]$/, '$1');
+  return unwrapped
+    .split(',')
+    .map((tag) => tag.trim().replace(/^['"]|['"]$/g, ''))
+    .filter(Boolean);
+}
 
 function parseFrontmatter(fileContent: string) {
   let frontmatterRegex = /---\s*([\s\S]*?)\s*---/;
@@ -19,9 +28,23 @@ function parseFrontmatter(fileContent: string) {
 
   frontMatterLines.forEach((line) => {
     let [key, ...valueArr] = line.split(': ');
+    const field = key.trim();
     let value = valueArr.join(': ').trim();
     value = value.replace(/^['"](.*)['"]$/, '$1'); // Remove quotes
-    metadata[key.trim() as keyof Metadata] = value;
+
+    if (field === 'tags') {
+      const tags = parseTags(value);
+      if (tags.length > 0) {
+        metadata.tags = tags;
+      }
+    } else if (
+      field === 'title' ||
+      field === 'publishedAt' ||
+      field === 'summary' ||
+      field === 'image'
+    ) {
+      metadata[field] = value;
+    }
   })
 
   return { metadata: metadata as Metadata, content };
