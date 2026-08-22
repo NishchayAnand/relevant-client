@@ -1,6 +1,5 @@
 import Link from 'next/link';
 import { formatDate, getBlogPosts } from '@/app/blog/utils';
-import { Tags } from '@/app/components/tags';
 
 export function BlogPosts() {
   let allBlogs = getBlogPosts();
@@ -22,18 +21,10 @@ export function BlogPosts() {
             className="flex flex-col space-y-1 mb-4"
             href={`/blog/${post.slug}`}
           >
-            <div className="w-full flex flex-col md:flex-row md:items-center space-x-0 md:space-x-2">
-              <div className="flex flex-wrap items-center gap-2">
-                <p className="text-neutral-600 dark:text-neutral-400 tabular-nums">
-                  {formatDate(post.metadata.publishedAt, false)}
-                </p>
-                {post.metadata.tags?.length ? (
-                  <>
-                    <span className="text-neutral-400">|</span>
-                    <Tags tags={post.metadata.tags} size="sm" />
-                  </>
-                ) : null}
-              </div>
+            <div className="w-full flex flex-col md:flex-row space-x-0 md:space-x-2">
+              <p className="text-neutral-600 dark:text-neutral-400 tabular-nums">
+                {formatDate(post.metadata.publishedAt, false)}
+              </p>
               <p className="text-neutral-900 dark:text-neutral-100 tracking-tight">
                 {post.metadata.title}
               </p>
