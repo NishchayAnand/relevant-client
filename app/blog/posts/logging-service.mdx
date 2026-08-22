@@ -53,39 +53,31 @@ the same log message from being delivered to other configured destinations.
 ### Sequence Flow
 
 A logging service acts as an abstraction between the application and the actual 
-destination where logs are stored/printed. Whenever an application wants to log an event, 
-it calls the logger with a message 
+destination where logs are stored/printed. 
 
----
+1. Whenever an application wants to log an event, it **calls the logger** with a **message** 
+and an appropriate **severity level**. 
 
-`Logger` holds many `Destination` instances, fixed at construction. Each `Destination` 
-holds exactly one `Formatter`. 
+2. The logger creates a **log record** containing information such as **timestamp**, **severity level**, 
+**message**, and **emitting thread name**.
 
-`Logger` creates a `LogRecord` per `log()` call and hands the same record to every 
-destination. Each destination independently checks the level, formats the record 
-(or doesn't, if filtered out), and writes.
+3. The **log record** is then passed to the logging pipeline, where it is first checked 
+against the configured log level. For example, if the application is configured to log only
+`INFO` and above, `DEBUG` messages will be discarded immediately. Valid logs are then 
+passed to the configured destinations (commomly called **appenders**) such as **console**,
+**file**, **database**, or **remote logging system**.
 
-#### Destination Writes to output
-
-1. Drop the record if its level is below the destination's threshold.
-2. Format the record using the formatter.
-3. Acquire the per-destination lock.
-4. Hand the formatted string to the sink.
-5. Release the lock (always, even if the sink throws).
-
-<br/>
+<LoggingSequenceVisualizer />
 
 ---
 
 ### Design Rationale
 
-```mermaid
-sequenceDiagram
-    Alice->>+John: Hello John, how are you?
-    Alice->>+John: John, can you hear me?
-    John-->>-Alice: Hi Alice, I can hear you!
-    John-->>-Alice: I feel great!
-```
+In a production system, this processing is often performed asynchronously. Instead of 
+making the application wait while a log is written to a file or sent over the network, the 
+logger places the record into an in-memory queue. A background worker consumes records from 
+the queue, formats or serializes them as required, and sends them to the configured 
+destinations.
 
 ##### **<span className="text-emerald-700">Q. Different processes in an application print logs simultaneously. How to handle this?</span>**
 
