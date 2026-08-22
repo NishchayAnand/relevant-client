@@ -868,3 +868,68 @@ DELETE /employees/{id}
 #### Specify Content Types
 
 ---
+
+### Important System Design Patterns
+
+20 patterns (save now):
+
+
+1 API Gateway
+↳ Single entry point that routes client requests to right services
+
+2 Database per Service
+↳ Each service owns its data store, so no other service reads it directly
+
+3 Circuit-Breaker
+↳ Stops calling a failing dependency so the failure does not cascade
+
+4 Event-Driven Messaging
+↳ Services talk asynchronously through a broker instead of direct calls
+
+5 Service Discovery
+↳ A registry lets services find each other's addresses without hardcoding
+
+6 Retry with Backoff
+↳ Retries a failed call with growing delays to survive "transient" errors
+
+7 Anti-Corruption Layer
+↳ A translation layer that keeps a legacy model from leaking into a new one
+
+8 Saga
+↳ Splits a distributed transaction into local steps with compensating rollbacks
+
+9 Health Check API
+↳ An endpoint reporting service health so orchestrators can restart/reroute
+
+10 Distributed Tracing
+↳ Tag requests with a trace ID to follow them across service hops
+
+11 Event Sourcing
+↳ Store state as an append-only event log and NOT current values
+
+12 API Composition
+↳ Queries several services & then joins results
+
+13 Transactional Outbox
+↳ Write events to a table in the same transaction, then publish them separately
+
+14 REST/gRPC
+↳ Synchronous request-response communication over HTTP/Protocol Buffers
+
+15 Backends for Frontends
+↳ Separate tailored backend per client type (web, mobile, desktop)
+
+16 Bulkhead
+↳ Isolate resource pools so an overloaded component does not affect the rest
+
+17 Idempotent Consumer
+↳ Processes duplicate messages safely
+
+18 Strangler Fig
+↳ Incremental replacement of a monolith by routing traffic to new services
+
+19 CQRS
+↳ Separate write model & read model so each can scale on its own
+
+20 Sidecar/Service Mesh
+↳ Move networking, retries & mTLS into a proxy beside each service

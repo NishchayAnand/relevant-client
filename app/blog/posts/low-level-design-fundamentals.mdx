@@ -3,13 +3,18 @@ title: 'Low Level Design: Fundamentals'
 publishedAt: '2026-05-01'
 ---
 
-### Role of OOP in Low-Level Design
-
 Object-Oriented Programming (OOP) is the foundation of Low-Level Design (LLD). OOP helps model 
 real-world systems into classes, objects, behaviors, and relationships. This is essential 
 for building scalable and maintainable software.
 
 > **NOTE:** LLD is essentially applying OOP principles to design maintainable software.
+
+#### <span className="text-emerald-700">Q. How to decide when to create a new class?</span>
+
+Look for nouns in your requirements, but don't turn every one into a class. Some are 
+fields on other classes. Some are enums. Some are just strings passed between methods. 
+The filter is whether the noun owns state, enforces a rule, or has its own lifecycle. If 
+it doesn't, it doesn't deserve a class.
 
 ---
 
