@@ -19,7 +19,7 @@ export function Tags({
         <span
           key={tag}
           className={cn(
-            'inline-flex items-center rounded-full bg-gray-700 text-white font-medium',
+            'inline-flex items-center rounded-full bg-emerald-700 text-white font-medium',
             size === 'sm' ? 'px-2 py-0.5 text-[10px]' : 'px-2.5 py-0.5 text-xs'
           )}
         >
