@@ -29,27 +29,79 @@ destinations without changing the business logic.
 
 Design a `logger` library that:
 
-1. Support different log levels (`INFO`, `DEBUG`, `WARN`, or `ERROR`) and allow the 
+1. Each log record should display **timestamp**, **level**, **message**, and **emitting 
+thread name**.
+
+2. Support different log levels (`INFO`, `DEBUG`, `WARN`, or `ERROR`) and allow the 
 application to configure the minimum severity level that should be recorded.
 
-2. Support multiple output destinations simultaneously. For example, an `ERROR` log could 
+3. Support multiple output destinations simultaneously. For example, an `ERROR` log could 
 be written to both a file and a database.
 
-3. The logging destinations should be extensible so that a new destination can be added 
+4. The logging destinations should be extensible so that a new destination can be added 
 without modifying the core logging logic.
 
-4. Logging should have minimal impact on the application's performance. Where 
+5. Logging should have minimal impact on the application's performance. Where 
 appropriate, log messages should be processed asynchronously rather than blocking the 
 application thread.
 
-5. A failure in one logging destination should not bring down the application or prevent 
+6. A failure in one logging destination should not bring down the application or prevent 
 the same log message from being delivered to other configured destinations.
 
-6. Each record carries **timestamp**, **level**, **message**, **emitting thread name**.
+---
+
+### Sequence Flow
+
+A logging service acts as an abstraction between the application and the actual 
+destination where logs are stored/printed. Whenever an application wants to log an event, 
+it calls the logger with a message 
+
+---
+
+`Logger` holds many `Destination` instances, fixed at construction. Each `Destination` 
+holds exactly one `Formatter`. 
+
+`Logger` creates a `LogRecord` per `log()` call and hands the same record to every 
+destination. Each destination independently checks the level, formats the record 
+(or doesn't, if filtered out), and writes.
+
+#### Destination Writes to output
+
+1. Drop the record if its level is below the destination's threshold.
+2. Format the record using the formatter.
+3. Acquire the per-destination lock.
+4. Hand the formatted string to the sink.
+5. Release the lock (always, even if the sink throws).
+
+<br/>
 
 ---
 
 ### Design Rationale
+
+```mermaid
+classDiagram
+    Animal <|-- Duck
+    Animal <|-- Fish
+    Animal <|-- Zebra
+    Animal : +int age
+    Animal : +String gender
+    Animal: +isMammal()
+    Animal: +mate()
+    class Duck{
+      +String beakColor
+      +swim()
+      +quack()
+    }
+    class Fish{
+      -int sizeInFeet
+      -canEat()
+    }
+    class Zebra{
+      +bool is_wild
+      +run()
+    }
+```
 
 ##### **<span className="text-emerald-700">Q. Different processes in an application print logs simultaneously. How to handle this?</span>**
 
@@ -121,27 +173,6 @@ write(record):
 This is what production loggers actually do. Log4j has a StatusLogger that writes to 
 stderr when an appender fails. Python's logging defaults to writing to sys.stderr when 
 handlers raise. It balances "don't crash the caller" with "don't fail silently."
-
----
-
-### Sequence Flow
-
-`Logger` holds many `Destination` instances, fixed at construction. Each `Destination` 
-holds exactly one `Formatter`. 
-
-`Logger` creates a `LogRecord` per `log()` call and hands the same record to every 
-destination. Each destination independently checks the level, formats the record 
-(or doesn't, if filtered out), and writes.
-
-#### Destination Writes to output
-
-1. Drop the record if its level is below the destination's threshold.
-2. Format the record using the formatter.
-3. Acquire the per-destination lock.
-4. Hand the formatted string to the sink.
-5. Release the lock (always, even if the sink throws).
-
-<br/>
 
 ---
 
