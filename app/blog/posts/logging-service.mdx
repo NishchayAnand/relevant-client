@@ -47,7 +47,13 @@ the same log message from being delivered to other configured destinations.
 
 ---
 
-### Logger Interface
+### Design Rationale
+
+#### <span className="text-emerald-700">Different processes in an application print logs simultaneously. How to handle this?</span>
+
+### Low-Level Design
+
+#### Logger Interface
 
 ```
 interface Logger { 
