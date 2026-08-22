@@ -3,8 +3,70 @@ title: 'Low Level Design: Logging Service'
 publishedAt: '2026-05-07'
 ---
 
-Design a logger system that receives a stream of messages along with their timestamps. 
-Each unique message should only be printed`{" "}` at most every 10 seconds (i.e. a message 
-printed at timestamp `t` will prevent other identical messages from being printed until 
-timestamp `t + 10`).
+Every application, whether it is a banking system, an e-commerce platform, or a social 
+media service, needs a reliable way to record what is happening internally while it is 
+running. These records, called **logs**, help developers and operations teams understand 
+application behavior, diagnose failures, trace important business events, and monitor the 
+health of the system without directly inspecting the running code.
+
+Scattering `System.out.println()` statements throughout the code quickly becomes difficult 
+to manage. Different teams may produce logs in different formats, important information 
+may be missing, and changing the output destination later would require modifying 
+application code in multiple places.
+
+The application developer should not need to worry about how a message is formatted, where 
+it is stored, or whether multiple destinations are configured. By introducing a **logging 
+abstraction**, the application can have a consistent logging format, configurable log 
+levels, a reusable API, and the flexibility to route the same log message to multiple 
+destinations without changing the business logic.
+
+![logging-service](/logging-service/logging-service.png)
+
+--- 
+
+### Functional Requirements
+
+Design a `logger` library that:
+
+1. Support different log levels (`INFO`, `DEBUG`, `WARN`, or `ERROR`) and allow the 
+application to configure the minimum severity level that should be recorded.
+
+2. Support multiple output destinations simultaneously. For example, an `ERROR` log could 
+be written to both a file and a database.
+
+3. The logging destinations should be extensible so that a new destination can be added 
+without modifying the core logging logic.
+
+4. Logging should have minimal impact on the application's performance. Where 
+appropriate, log messages should be processed asynchronously rather than blocking the 
+application thread.
+
+5. A failure in one logging destination should not bring down the application or prevent 
+the same log message from being delivered to other configured destinations.
+
+---
+
+### Logger Interface
+
+```
+interface Logger { 
+	/**
+	* When a process starts, it calls 'start' with processId and startTime.
+	*/
+	void start(String processId, long startTime);
+	
+	/**
+	* When the same process ends, it calls 'end' with processId and endTime.
+	*/
+	void end(String processId, long endTime);
+
+	/**
+	* Prints the logs of this system sorted by the start time of processes in the below format
+	* {processId} started at {startTime} and ended at {endTime}
+	*/
+	void print();
+}
+```
+
+
 
