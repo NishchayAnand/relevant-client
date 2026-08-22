@@ -76,6 +76,7 @@ import AtmSystemVisualizer from './atm-system-visualizer';
 import VideoPlaybackPipelineVisualizer from './video-playback-pipeline-visualizer';
 import HttpRangeRequestVisualizer from './http-range-request-visualizer';
 import ContainerMostWaterBruteVisualizer from './container-most-water-brute-visualizer';
+import { Mermaid } from './mermaid';
 
 hljs.registerLanguage('javascript', javascript);
 
@@ -254,6 +255,36 @@ function Algorithm({
  * @example
  * <Code className="inline-code">const x = 42;</Code>
  */
+function codeText(node: React.ReactNode): string {
+  if (typeof node === 'string' || typeof node === 'number') {
+    return String(node);
+  }
+  if (Array.isArray(node)) {
+    return node.map(codeText).join('');
+  }
+  if (React.isValidElement<{ children?: React.ReactNode }>(node)) {
+    return codeText(node.props.children);
+  }
+  return '';
+}
+
+function isMermaidCode(
+  node: React.ReactNode
+): node is React.ReactElement<{ className?: string; children?: React.ReactNode }> {
+  if (!React.isValidElement<{ className?: string; children?: React.ReactNode }>(node)) {
+    return false;
+  }
+  return (node.props.className ?? '').includes('language-mermaid');
+}
+
+function Pre({ children, ...props }: React.HTMLAttributes<HTMLPreElement>) {
+  const child = React.Children.toArray(children)[0];
+  if (isMermaidCode(child)) {
+    return <Mermaid chart={codeText(child.props.children)} />;
+  }
+  return <pre {...props}>{children}</pre>;
+}
+
 export function Code({ children, ...props }: { children?: React.ReactNode } & React.HTMLAttributes<HTMLElement>) {
   const childStr = String(children ?? '');
   let codeHTML = highlight(childStr);
@@ -368,7 +399,9 @@ let components = {
   Image: RoundedImage,
   Note,
   Algorithm,
+  Mermaid,
   a: CustomLink,
+  pre: Pre,
   code: Code,
   Table,
   table: (props: React.TableHTMLAttributes<HTMLTableElement>) => (
