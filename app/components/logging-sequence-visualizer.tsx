@@ -520,9 +520,6 @@ export default function LoggingSequenceVisualizer() {
             <Bug size={16} className="text-indigo-600" />
           </div>
           <div>
-            <div className="text-sm font-semibold text-gray-800">
-              Logging pipeline · sequence walkthrough
-            </div>
             <div className="text-[11px] text-gray-500">
               Configured minimum level is {MIN_LEVEL}. Step through call, record, filter, and append.
             </div>
