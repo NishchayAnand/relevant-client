@@ -463,4 +463,52 @@ in `Logger`, data in `LogRecord`, classification in `LogLevel`, serialization in
 
 ##### **<span className="text-emerald-700">Q. How would you make log() non-blocking?</span>**
 
+The current design holds a per-destination lock around sink.write(). That's correct, but it 
+means a slow file write or a flaky network destination blocks the calling thread for as 
+long as the I/O takes. For a logger that fires from tens of thousands of call sites, that 
+adds up to real latency in the application.
+
+"I'd put a bounded blocking queue in front of each destination's sink. log() enqueues the 
+record and returns immediately, and a dedicated worker thread per destination drains the 
+queue and does the actual write. Concurrent producers, single consumer per resource, which 
+means the consumer side doesn't even need a lock anymore."
+
+```
+class Destination:
+    - formatter, minLevel, sink
+    - queue: BlockingQueue<LogRecord>    // bounded
+    - worker: Thread
+
+    + Destination(formatter, minLevel, sink, capacity):
+        this.queue  = new BlockingQueue(capacity)
+        this.worker = startThread(drain)
+
+    + write(record):
+        if record.level < minLevel: return
+        queue.put(record)                // blocks if full (or drop / throw)
+
+    - drain():                            // runs on the worker thread
+        while running:
+            record    = queue.take()
+            formatted = formatter.format(record)
+            sink.write(formatted)         // single consumer, no lock needed
+```
+
+- **Worker lifecycle**: Each destination now owns a thread that runs for the life of the application. Shutdown is the tricky part — you have to signal the worker to stop, drain whatever's already in the queue, and wait for it to finish before the process exits. Skip that and you lose every record that was buffered when the JVM (or whatever) died.
+- **Overflow policy**: A bounded queue forces a decision about what happens when it fills up. You've got four reasonable choices and each one is wrong for some workload. block the producer (which defeats the whole point of going async), drop the new record (which silently loses data right when something's going wrong), drop the oldest record (same problem, different end of the queue), or throw an exception (which turns logging back into something callers have to catch). Most production loggers default to drop-newest with a stderr diagnostic, but the right answer depends on whether you care more about not losing records or not blocking callers.
+- **Debuggability**: The actual write now happens on a different thread than the call site. A stack trace at the moment of an I/O failure no longer points back to the code that emitted the record, which makes "why did this log line fail to write?" meaningfully harder to answer. You can mitigate by logging the record's call-site info into the diagnostic, but the gap is real.
+
+##### **<span className="text-emerald-700">Q. How would you support hierarchical named loggers?</span>**
+
+Production loggers don't construct one global Logger and pass it around. They expose 
+`LoggerFactory.getLogger("com.app.service.payments")`, and the returned logger inherits 
+configuration from its parent in the dotted-name tree. The team that owns com.app.service 
+can set its threshold once and have everything underneath pick it up unless overridden.
+
+The factory is a deliberate global. The whole point of the registry is that two callers 
+anywhere in the codebase asking for getLogger("com.app.service") get back the same 
+instance. That's the rare case where shared application state is the requirement, not an 
+accident.
+
+---
 
