@@ -1,11 +1,15 @@
 ---
-title: 'System Design (Splunk): Logs Aggregation & Alerting System'
+title: 'System Design (Splunk): Distributed Logging System'
 publishedAt: '2026-06-24'
 ---
 
 Log aggregation is the process of collecting logs from many different machines/services and 
 sending them to a central system where they can be searched, analyzed, visualized, and 
 alerted on.
+
+Without aggregation, the engineer responding to the incident has to know where every log 
+lives, have access to every host or tool, and line up timestamps by hand. That is slow on 
+a good day and painful during an incident.
  
 ![Logs Aggregation & Alerting System](/splunk/splunk.svg)
 
@@ -187,6 +191,10 @@ collection overhead, database lock contention.
 
 ---
 
+### Extra 
+
+Design a log aggregation service to show the top N errors within a given time period. 
+The time period and N is specified by the caller on each request.
 
 
 
