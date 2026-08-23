@@ -3,5 +3,40 @@ title: 'System Design (Elasticsearch): Distributed Search Engine'
 publishedAt: '2026-06-09'
 ---
 
+Stores search-optimized representation of the data.
+
+Documents = JSON data
+Index = Collection of documents
+Mapping = Schema of the index. You can add whatever data you want in the document, but the mapping 
+defines what data is searchable.
+
+The Elasticsearch query syntax is very similar to that of SQL, and it's also JSON based which makes it very 
+easy to work with.
+
+Apache Lucene, the highly optimized low-level search library.
+
+Elasticsearch handles the distributed systems aspects: cluster coordination, APIs, aggregations, and 
+real-time capabilities while the "heart" of the search functionality is handled by Lucene.
+
+
+A simple query might be to search for books with "Great" in the title:
+
+```json
+// POST /books/_search
+{
+  "query": {
+    "match": {
+      "title": "Great"
+    }
+  }
+}
+```
+
+---
+
+### Follow-up Questions
+
+
+
 
 

@@ -1,7 +1,19 @@
 ---
-title: 'System Design (Flink): Distributed Stream Processing Platform'
+title: 'System Design (Flink): Distributed Stream Processing Engine'
 publishedAt: '2026-06-10'
 ---
 
+Flink gives us tools to slice, transform, aggregate, recombine, and otherwise process streams.
+
+<Note>
+Stream processing is actually hard and expensive to get right. Many problems 
+that seem like stream processing problems can actually be reduced to batch 
+processing problems where you'd use something like Spark or (if you're ancient 
+enough) Hadoop.
+
+Before embarking on a stream processing solution, ask yourself the critical question: "do I really need 
+real-time latencies?". For many problems, the answer is no and the engineers after you will thank you for 
+saving them the ops headache.
+</Note>
 
 
