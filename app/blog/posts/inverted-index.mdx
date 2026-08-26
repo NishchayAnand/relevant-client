@@ -217,4 +217,65 @@ class Document {
 
 ### Low Level Implementation
 
+#### Adding a document
+
+```
+add(document)
+     │
+     ↓
+Tokenizer
+     │
+     ↓
+["the", "quick", "brown", "fox"]
+     │
+     ↓
+For each term
+     │
+     ↓
+Update PostingList
+```
+
+---
+
+### Follow-up Questions
+
+#### **<span class="text-emerald-800">Q. How to support AND queries?</span>**
+
+For:
+
+```
+quick AND fox
+```
+
+we calculate:
+
+```
+{1,4,7}
+       ∩
+{1,3,7}
+
+= {1,7}
+```
+
+So we need a query layer.
+
+```
+class SearchEngine {
+
+    private final InvertedIndex index;
+
+    public List<Document> search(String query) {
+        // parse query
+        // retrieve posting lists
+        // combine postings
+        // rank results
+    }
+}
+```
+
+<Note>
+The inverted index should primarily be responsible for indexing and retrieving postings. Query 
+interpretation and ranking can be separate responsibilities.
+</Note>
+
 ---
