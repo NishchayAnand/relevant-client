@@ -3,3 +3,218 @@ title: 'Low Level Design: Inverted Index'
 publishedAt: '2026-05-30'
 ---
 
+An **inverted index** lets us quickly which documents contain a particular word, instead of scanning every 
+document.
+
+![inverted-index](/inverted-index/inverted-index.png)
+
+---
+
+### Functional Requirements
+
+1. `addDocument(document)`:
+
+2. `search(term)`: Returns a list of document IDs that contain the term.
+
+---
+
+### Design Rationale
+
+#### **<span class="text-emerald-800">Q. What should be the primary data structure for storing "term" -> "document IDs" mapping?</span>**
+
+##### **Naive Approach**
+
+Use `Map<String, Set<DocumentId>>` to store the mapping. For example: 
+
+```
+{
+    "the"   → {1, 2, 3},
+    "quick" → {1},
+    "brown" → {1, 2},
+    "fox"   → {1, 3},
+    "dog"   → {2},
+    "jumps" → {3},
+    ...
+}
+```
+
+But `Set<DocumentId>` is not efficient for searching. Consider:
+
+```
+Document 1:
+"fox fox fox jumps"
+```
+
+Our index would only store `"fox" -> {1}` and `"jumps" -> {1}`. But we don't know how many times "fox" 
+appears in Document 1, whether two words appear close together, etc. For search ranking and phrase queries, 
+this information matters.
+
+##### **Better Approach**
+
+Introduce a `Posting` to store a particular term's occurrence inside one document. For example:
+
+```
+Document 1:
+"The quick brown fox"
+
+The posting for fox could be:
+
+Posting
+----------------
+documentId = 1
+frequency  = 1
+positions   = [3]
+
+Document 2:
+"fox jumps over fox"
+
+Posting
+----------------
+documentId = 2
+frequency  = 2
+positions   = [0, 3]
+```
+
+So:
+
+```java
+class Posting {
+    long documentId;
+    int frequency;
+    List<Integer> positions;
+}
+```
+
+Now one term can occur in many documents. For example:
+
+```
+fox
+ ↓
+PostingList
+
+Posting(documentId=1, frequency=1, positions=[3])
+Posting(documentId=2, frequency=2, positions=[0,3])
+Posting(documentId=7, frequency=1, positions=[5])
+```
+
+So:
+
+```
+class PostingList {
+    List<Posting> postings;
+}
+```
+
+#### **<span class="text-emerald-800">Q. What is the need of a Tokenizer?</span>**
+
+Before putting content into the index, we need to break the document into terms (`why?`). 
+
+```
+"The quick brown fox"
+          ↓
+["the", "quick", "brown", "fox"]
+```
+
+So we create an abstraction (`explain the reason behind using an abstraction`):
+
+```java
+interface Tokenizer {
+    List<String> tokenize(String text);
+}
+```
+
+Implementation:
+
+```java
+class SimpleTokenizer implements Tokenizer {
+
+    @Override
+    public List<String> tokenize(String text) {
+        return Arrays.stream(
+                text.toLowerCase().split("\\W+")
+        ).toList();
+    }
+}
+```
+
+Now the responsibilities are separated:
+
+```
+Document
+    ↓
+Tokenizer
+    ↓
+terms
+    ↓
+InvertedIndex
+```
+
+---
+
+### Object-Model Design
+
+#### InvertedIndex Class
+
+Now the central class becomes:
+
+```
+class InvertedIndex {
+
+    private final Map<String, PostingList> index;
+
+    public void add(Document document) {
+        // ...
+    }
+
+    public PostingList search(String term) {
+        // ...
+    }
+}
+```
+
+Mental Model:
+
+```
+                         InvertedIndex
+                              │
+                    Map<String, PostingList>
+                              │
+          ┌───────────────────┼───────────────────┐
+          ↓                   ↓                   ↓
+        "fox"              "brown"             "dog"
+          │                   │                   │
+          ↓                   ↓                   ↓
+    PostingList         PostingList         PostingList
+      │    │              │    │              │
+      ↓    ↓              ↓    ↓              ↓
+     P1    P2             P1    P2             P2
+```
+
+#### Document Class
+
+```
+class Document {
+
+    private final long id;
+    private final String content;
+
+    public Document(long id, String content) {
+        this.id = id;
+        this.content = content;
+    }
+
+    public long getId() {
+        return id;
+    }
+
+    public String getContent() {
+        return content;
+    }
+}
+```
+
+---
+
+### Low Level Implementation
+
+---
