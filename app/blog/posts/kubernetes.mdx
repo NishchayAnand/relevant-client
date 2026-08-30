@@ -14,6 +14,18 @@ care of scaling and failover for your application, provides deployment patterns,
 
 ---
 
+### Functional Requirements
+
+1. `kube-apiserver`: 
+
+2. `etcd`: Key-value store for storing the state of the cluster.
+
+3. `controller-manager`:
+
+4. `kube-scheduler`:
+
+---
+
 ### Core Features
 
 Kubernetes provides you with:
@@ -36,6 +48,20 @@ or automatically based on CPU usage.
 
 - **Application-centric management:** Raises the level of abstraction from running an OS on 
 virtual hardware to running an application on an OS using logical resources.
+
+---
+
+### Design Rationale
+
+Q. Why pods?
+
+```
+// pod-definition.yaml
+apiVersion: v1
+
+```
+
+
 
 ---
 
@@ -71,6 +97,12 @@ Scheduler Service: Create a `@Service` class annotated with `@EnableScheduling` 
 Docker Client Bean: Configure a `@Configuration` class to initialize the DockerClient object, allowing you to inject it into your services.
 This approach gives you a robust foundation in Java for managing containerized workloads. Remember to handle thread safety (e.g., using AtomicLong or database locking) if you plan to run multiple scheduler instances to avoid race conditions when picking up jobs.
 
+---
 
+### Extra
 
+1. `kubectl get nodes`: get the details of the nodes in the cluster.
 
+2. `kubectl get nodes -o wide`: get operating system details of the nodes.
+
+3.  
