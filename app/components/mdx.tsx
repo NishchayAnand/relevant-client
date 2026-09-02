@@ -19,6 +19,7 @@ import Phase1KStepsVisualizer from './phase1-k-steps-visualizer';
 import RemoveDuplicatesSortedVisualizer from './remove-duplicates-sorted-visualizer';
 import BestTimeStockGreedyVisualizer from './best-time-stock-greedy-visualizer';
 import TwoSumHashMapVisualizer from './two-sum-hashmap-visualizer';
+import TwoSumBruteForceVisualizer from './two-sum-brute-force-visualizer';
 import RotateArrayBruteForceVisualizer from './rotate-array-bruteforce-visualizer';
 import RotateArrayModuloVisualizer from './rotate-array-modulo-visualizer';
 import RotateArrayReverseVisualizer from './rotate-array-reverse-visualizer';
@@ -342,6 +343,7 @@ let components = {
   RemoveDuplicatesSortedVisualizer: RemoveDuplicatesSortedVisualizer,
   BestTimeStockGreedyVisualizer: BestTimeStockGreedyVisualizer,
   TwoSumHashMapVisualizer: TwoSumHashMapVisualizer,
+  TwoSumBruteForceVisualizer: TwoSumBruteForceVisualizer,
   RotateArrayBruteForceVisualizer: RotateArrayBruteForceVisualizer,
   RotateArrayModuloVisualizer: RotateArrayModuloVisualizer,
   RotateArrayReverseVisualizer: RotateArrayReverseVisualizer,

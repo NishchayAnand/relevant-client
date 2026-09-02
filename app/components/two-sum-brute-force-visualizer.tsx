@@ -31,23 +31,18 @@ const PRESETS: Preset[] = [
     nums: [2, 7, 11, 15],
     target: 26,
   },
-  {
-    id: "duplicates",
-    label: "[3,3,4] · target = 6",
-    nums: [3, 3, 4],
-    target: 6,
-  },
 ];
 
 // ─── Code shown on the left ───────────────────────────────────────────────────
 
 const ALGORITHM_LINES = [
   "public int[] twoSum(int[] nums, int target) {",
-  "    Map<Integer, Integer> map = new HashMap<>();",
   "    for (int i = 0; i < nums.length; i++) {",
-  "        if (map.containsKey(target - nums[i]))",
-  "            return new int[]{i, map.get(target - nums[i])};",
-  "        map.put(nums[i], i);",
+  "        for (int j = i + 1; j < nums.length; j++) {",
+  "            if (nums[i] + nums[j] == target) {",
+  "                return new int[]{i, j};",
+  "            }",
+  "        }",
   "    }",
   "    return new int[]{};",
   "}",
@@ -55,133 +50,102 @@ const ALGORITHM_LINES = [
 
 // ─── Simulation ───────────────────────────────────────────────────────────────
 
-type StepKind = "init" | "loop" | "lookup" | "put" | "return_pair" | "return_empty";
+type StepKind = "outer" | "inner" | "check" | "return_pair" | "return_empty";
 
-type MapEntry = { value: number; index: number };
+type TriedPair = {
+  i: number;
+  j: number;
+  sum: number;
+  match: boolean;
+};
 
 type Step = {
   kind: StepKind;
   lines: number[];
   description: string;
   i: number | null;
-  value: number | null;
-  complement: number | null;
-  foundInMap: boolean | null;
-  map: MapEntry[];
-  lookingUp: number | null;
-  inserting: number | null;
-  partnerIndex: number | null;
+  j: number | null;
+  sum: number | null;
+  match: boolean | null;
+  tried: TriedPair[];
   result: [number, number] | null;
 };
 
 function simulate(nums: number[], target: number): Step[] {
   const steps: Step[] = [];
-  const map = new Map<number, number>();
+  const n = nums.length;
+  const tried: TriedPair[] = [];
 
-  const snapshot = (): MapEntry[] =>
-    Array.from(map.entries()).map(([value, index]) => ({ value, index }));
-
-  steps.push({
-    kind: "init",
-    lines: [2],
-    description: "Create an empty HashMap. Keys are values seen so far; values are their indices.",
-    i: null,
-    value: null,
-    complement: null,
-    foundInMap: null,
-    map: [],
-    lookingUp: null,
-    inserting: null,
-    partnerIndex: null,
-    result: null,
-  });
-
-  for (let i = 0; i < nums.length; i++) {
-    const value = nums[i];
-    const complement = target - value;
-
+  for (let i = 0; i < n; i++) {
     steps.push({
-      kind: "loop",
-      lines: [3],
-      description: `i = ${i}. Current value nums[${i}] = ${value}. Need complement ${target} − ${value} = ${complement}.`,
+      kind: "outer",
+      lines: [2],
+      description: `Outer loop: i = ${i}. Fix nums[${i}] = ${nums[i]} and search for a complement to its right.`,
       i,
-      value,
-      complement,
-      foundInMap: null,
-      map: snapshot(),
-      lookingUp: null,
-      inserting: null,
-      partnerIndex: null,
+      j: null,
+      sum: null,
+      match: null,
+      tried: [...tried],
       result: null,
     });
 
-    const found = map.has(complement);
-    const partnerIndex = found ? map.get(complement)! : null;
-
-    steps.push({
-      kind: "lookup",
-      lines: [4],
-      description: found
-        ? `map.containsKey(${complement}) is true — ${complement} was stored at index ${partnerIndex}.`
-        : `map.containsKey(${complement}) is false — ${complement} has not been seen yet.`,
-      i,
-      value,
-      complement,
-      foundInMap: found,
-      map: snapshot(),
-      lookingUp: complement,
-      inserting: null,
-      partnerIndex,
-      result: null,
-    });
-
-    if (found && partnerIndex !== null) {
+    for (let j = i + 1; j < n; j++) {
       steps.push({
-        kind: "return_pair",
-        lines: [5],
-        description: `Return [${i}, ${partnerIndex}] — nums[${i}] (${value}) + nums[${partnerIndex}] (${complement}) = ${target}.`,
+        kind: "inner",
+        lines: [3],
+        description: `Inner loop: j = ${j}. Pair nums[${i}] = ${nums[i]} with nums[${j}] = ${nums[j]}.`,
         i,
-        value,
-        complement,
-        foundInMap: true,
-        map: snapshot(),
-        lookingUp: complement,
-        inserting: null,
-        partnerIndex,
-        result: [i, partnerIndex],
+        j,
+        sum: null,
+        match: null,
+        tried: [...tried],
+        result: null,
       });
-      return steps;
-    }
 
-    map.set(value, i);
-    steps.push({
-      kind: "put",
-      lines: [6],
-      description: `Store {${value} → ${i}} so a later element can find ${value} as its complement.`,
-      i,
-      value,
-      complement,
-      foundInMap: false,
-      map: snapshot(),
-      lookingUp: null,
-      inserting: value,
-      partnerIndex: null,
-      result: null,
-    });
+      const sum = nums[i] + nums[j];
+      const match = sum === target;
+      tried.push({ i, j, sum, match });
+
+      steps.push({
+        kind: "check",
+        lines: [4],
+        description: match
+          ? `nums[${i}] + nums[${j}] = ${nums[i]} + ${nums[j]} = ${sum} == ${target}. Pair found.`
+          : `nums[${i}] + nums[${j}] = ${nums[i]} + ${nums[j]} = ${sum} ≠ ${target}. Keep scanning.`,
+        i,
+        j,
+        sum,
+        match,
+        tried: [...tried],
+        result: null,
+      });
+
+      if (match) {
+        steps.push({
+          kind: "return_pair",
+          lines: [5],
+          description: `Return [${i}, ${j}] — the indices of the pair that sums to ${target}.`,
+          i,
+          j,
+          sum,
+          match: true,
+          tried: [...tried],
+          result: [i, j],
+        });
+        return steps;
+      }
+    }
   }
 
   steps.push({
     kind: "return_empty",
-    lines: [8],
+    lines: [9],
     description: "No pair sums to the target. Return an empty array.",
     i: null,
-    value: null,
-    complement: null,
-    foundInMap: null,
-    map: snapshot(),
-    lookingUp: null,
-    inserting: null,
-    partnerIndex: null,
+    j: null,
+    sum: null,
+    match: null,
+    tried: [...tried],
     result: null,
   });
 
@@ -227,7 +191,7 @@ function AlgorithmPanel({ activeLines }: { activeLines: number[] }) {
   );
 }
 
-// ─── Right: array + map ───────────────────────────────────────────────────────
+// ─── Right: array + dry run ───────────────────────────────────────────────────
 
 const CELL_W = 48;
 const CELL_H = 48;
@@ -236,27 +200,23 @@ const GAP = 6;
 function ArrayDisplay({
   nums,
   i,
-  partnerIndex,
-  foundInMap,
+  j,
+  match,
   result,
-  map,
 }: {
   nums: number[];
   i: number | null;
-  partnerIndex: number | null;
-  foundInMap: boolean | null;
+  j: number | null;
+  match: boolean | null;
   result: [number, number] | null;
-  map: MapEntry[];
 }) {
-  const stored = new Set(map.map((e) => e.index));
-
   return (
     <div className="flex flex-col items-center gap-1">
       <div className="flex" style={{ gap: GAP }}>
         {nums.map((_, idx) => {
           const labels: { text: string; color: string }[] = [];
           if (idx === i) labels.push({ text: "i", color: "#d97706" });
-          if (idx === partnerIndex) labels.push({ text: "seen", color: "#059669" });
+          if (idx === j) labels.push({ text: "j", color: "#7c3aed" });
           return (
             <div
               key={idx}
@@ -286,19 +246,17 @@ function ArrayDisplay({
       <div className="flex" style={{ gap: GAP }}>
         {nums.map((val, idx) => {
           const isI = idx === i;
-          const isPartner = idx === partnerIndex;
+          const isJ = idx === j;
           const inResult = result !== null && (idx === result[0] || idx === result[1]);
-          const inMap = stored.has(idx);
-
           let bg = "#f9fafb";
           let border = "#e5e7eb";
           let color = "#374151";
 
-          if (inResult || (foundInMap === true && (isI || isPartner))) {
+          if (inResult || match === true && (isI || isJ)) {
             bg = "#dcfce7";
             border = "#10b981";
             color = "#065f46";
-          } else if (isI && foundInMap === false) {
+          } else if (match === false && (isI || isJ)) {
             bg = "#fee2e2";
             border = "#f87171";
             color = "#991b1b";
@@ -306,14 +264,10 @@ function ArrayDisplay({
             bg = "#fef3c7";
             border = "#f59e0b";
             color = "#92400e";
-          } else if (isPartner) {
-            bg = "#d1fae5";
-            border = "#10b981";
-            color = "#065f46";
-          } else if (inMap) {
-            bg = "#eef2ff";
-            border = "#c7d2fe";
-            color = "#3730a3";
+          } else if (isJ) {
+            bg = "#ede9fe";
+            border = "#8b5cf6";
+            color = "#5b21b6";
           }
 
           return (
@@ -363,110 +317,100 @@ function ArrayDisplay({
   );
 }
 
-function LookupEquation({
+function Equation({
+  nums,
   target,
-  value,
-  complement,
-  foundInMap,
+  i,
+  j,
+  sum,
+  match,
 }: {
+  nums: number[];
   target: number;
-  value: number | null;
-  complement: number | null;
-  foundInMap: boolean | null;
+  i: number | null;
+  j: number | null;
+  sum: number | null;
+  match: boolean | null;
 }) {
+  const leftReady = i !== null && j !== null;
+  const compared = sum !== null;
+
   return (
     <div className="rounded-lg border border-gray-100 bg-gray-50/70 px-3 py-2.5 font-mono text-sm">
       <div className="flex items-center justify-center gap-2 flex-wrap">
-        <span className="text-gray-400 text-[11px]">need</span>
-        <span className="text-sky-700 font-semibold">{target}</span>
-        <span className="text-gray-400">−</span>
-        <span className={value !== null ? "text-amber-700 font-semibold" : "text-gray-300"}>
-          {value !== null ? value : "nums[i]"}
+        <span className={i !== null ? "text-amber-700 font-semibold" : "text-gray-300"}>
+          {i !== null ? nums[i] : "nums[i]"}
         </span>
-        <span className="text-gray-400">=</span>
+        <span className="text-gray-400">+</span>
+        <span className={j !== null ? "text-violet-700 font-semibold" : "text-gray-300"}>
+          {j !== null ? nums[j] : "nums[j]"}
+        </span>
         <span
-          className={
-            complement !== null ? "text-violet-700 font-semibold" : "text-gray-300"
-          }
-        >
-          {complement !== null ? complement : "?"}
-        </span>
-      </div>
-      {foundInMap !== null && complement !== null && (
-        <div
-          className={`mt-1 text-center text-[11px] font-semibold ${
-            foundInMap ? "text-emerald-700" : "text-rose-600"
+          className={`font-bold ${
+            match === true
+              ? "text-emerald-600"
+              : match === false
+                ? "text-rose-500"
+                : "text-gray-300"
           }`}
         >
-          {foundInMap
-            ? `map has ${complement} → return the pair`
-            : `map has no ${complement} → insert current`}
+          {compared ? (match ? "=" : "≠") : leftReady ? "?" : ""}
+        </span>
+        <span className="text-sky-700 font-semibold">{target}</span>
+      </div>
+      {compared && (
+        <div
+          className={`mt-1 text-center text-[11px] font-semibold ${
+            match ? "text-emerald-700" : "text-rose-600"
+          }`}
+        >
+          {match
+            ? `${sum} == ${target} → return {i, j}`
+            : `${sum} ≠ ${target} → continue`}
         </div>
       )}
     </div>
   );
 }
 
-function MapTable({
-  map,
-  lookingUp,
-  inserting,
-  foundInMap,
+function TriedPairs({
+  nums,
+  tried,
+  current,
 }: {
-  map: MapEntry[];
-  lookingUp: number | null;
-  inserting: number | null;
-  foundInMap: boolean | null;
+  nums: number[];
+  tried: TriedPair[];
+  current: { i: number | null; j: number | null };
 }) {
-  const miss =
-    lookingUp !== null && foundInMap === false
-      ? lookingUp
-      : null;
+  if (tried.length === 0 && current.i === null) return null;
 
   return (
     <div className="flex flex-col gap-1">
       <div className="text-[10px] uppercase tracking-wide text-gray-400 font-semibold">
-        HashMap · value → index
+        Pairs checked
       </div>
-      {map.length === 0 && miss === null ? (
-        <div className="rounded-md border border-dashed border-gray-200 px-2 py-2 text-[11px] text-gray-400 font-mono">
-          map is empty
-        </div>
-      ) : (
-        <div className="flex flex-col gap-1 max-h-[148px] overflow-y-auto pr-1">
-          {map.map((e) => {
-            const isLookup = lookingUp === e.value;
-            const isInsert = inserting === e.value;
-            return (
-              <div
-                key={`${e.value}-${e.index}`}
-                className={`flex items-center justify-between rounded-md px-2 py-1 font-mono text-[11px] border ${
-                  isLookup && foundInMap
-                    ? "bg-emerald-50 border-emerald-200 text-emerald-800"
-                    : isInsert
-                      ? "bg-indigo-50 border-indigo-200 text-indigo-800"
-                      : "bg-white border-gray-100 text-gray-600"
-                }`}
-              >
-                <span>
-                  {e.value} → {e.index}
-                </span>
-                <span className="font-semibold text-[10px] uppercase tracking-wide">
-                  {isLookup && foundInMap ? "hit" : isInsert ? "put" : ""}
-                </span>
-              </div>
-            );
-          })}
-          {miss !== null && (
-            <div className="flex items-center justify-between rounded-md px-2 py-1 font-mono text-[11px] border border-dashed border-rose-200 bg-rose-50 text-rose-700">
-              <span>{miss} → ?</span>
-              <span className="font-semibold text-[10px] uppercase tracking-wide">
-                miss
+      <div className="flex flex-col gap-1 max-h-[148px] overflow-y-auto pr-1">
+        {tried.map((p) => {
+          const isCurrent = p.i === current.i && p.j === current.j;
+          return (
+            <div
+              key={`${p.i}-${p.j}`}
+              className={`flex items-center justify-between rounded-md px-2 py-1 font-mono text-[11px] border ${
+                p.match
+                  ? "bg-emerald-50 border-emerald-200 text-emerald-800"
+                  : isCurrent
+                    ? "bg-rose-50 border-rose-200 text-rose-800"
+                    : "bg-white border-gray-100 text-gray-500"
+              }`}
+            >
+              <span>
+                ({p.i}, {p.j}) · {nums[p.i]} + {nums[p.j]} = {p.sum}
               </span>
+              <span className="font-semibold">{p.match ? "match" : "skip"}</span>
             </div>
-          )}
-        </div>
-      )}
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -493,24 +437,22 @@ function StatPill({
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 const KIND_LABEL: Record<StepKind, string> = {
-  init: "Init map",
-  loop: "Loop",
-  lookup: "Lookup",
-  put: "Insert",
+  outer: "Outer loop",
+  inner: "Inner loop",
+  check: "Compare sum",
   return_pair: "Return",
   return_empty: "Return",
 };
 
 const KIND_COLOR: Record<StepKind, string> = {
-  init: "text-sky-600",
-  loop: "text-amber-600",
-  lookup: "text-violet-600",
-  put: "text-indigo-600",
+  outer: "text-amber-600",
+  inner: "text-violet-600",
+  check: "text-sky-600",
   return_pair: "text-emerald-600",
   return_empty: "text-rose-600",
 };
 
-export default function TwoSumHashMapVisualizer() {
+export default function TwoSumBruteForceVisualizer() {
   const [presetId, setPresetId] = useState(PRESETS[0].id);
   const [step, setStep] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -540,11 +482,11 @@ export default function TwoSumHashMapVisualizer() {
       return;
     }
     const wait =
-      cur?.kind === "return_pair" || cur?.kind === "lookup"
+      cur?.kind === "return_pair" || cur?.kind === "check"
         ? 900
-        : cur?.kind === "put"
-          ? 800
-          : 700;
+        : cur?.kind === "inner"
+          ? 650
+          : 750;
     const t = setTimeout(() => setStep((s) => s + 1), wait);
     return () => clearTimeout(t);
   }, [isPlaying, isDone, step, cur?.kind]);
@@ -555,17 +497,14 @@ export default function TwoSumHashMapVisualizer() {
 
   const description =
     cur?.description ??
-    "Press Play or Step to dry-run the HashMap pass. The highlighted line is the one currently executing.";
+    "Press Play or Step to dry-run the nested loops. The highlighted line is the one currently executing.";
   const lines = cur?.lines ?? [];
   const kind = cur?.kind ?? null;
   const i = cur?.i ?? null;
-  const value = cur?.value ?? null;
-  const complement = cur?.complement ?? null;
-  const foundInMap = cur?.foundInMap ?? null;
-  const map = cur?.map ?? [];
-  const lookingUp = cur?.lookingUp ?? null;
-  const inserting = cur?.inserting ?? null;
-  const partnerIndex = cur?.partnerIndex ?? null;
+  const j = cur?.j ?? null;
+  const sum = cur?.sum ?? null;
+  const match = cur?.match ?? null;
+  const tried = cur?.tried ?? [];
   const result = cur?.result ?? null;
 
   return (
@@ -618,17 +557,18 @@ export default function TwoSumHashMapVisualizer() {
           <ArrayDisplay
             nums={preset.nums}
             i={i}
-            partnerIndex={partnerIndex}
-            foundInMap={foundInMap}
+            j={j}
+            match={match}
             result={result}
-            map={map}
           />
 
-          <LookupEquation
+          <Equation
+            nums={preset.nums}
             target={preset.target}
-            value={value}
-            complement={complement}
-            foundInMap={foundInMap}
+            i={i}
+            j={j}
+            sum={sum}
+            match={match}
           />
 
           <div className="flex flex-wrap gap-x-5 gap-y-1.5">
@@ -638,9 +578,14 @@ export default function TwoSumHashMapVisualizer() {
               labelColor="#d97706"
             />
             <StatPill
-              label="complement"
-              value={complement === null ? "—" : String(complement)}
+              label="j"
+              value={j === null ? "—" : String(j)}
               labelColor="#7c3aed"
+            />
+            <StatPill
+              label="sum"
+              value={sum === null ? "—" : String(sum)}
+              labelColor="#0284c7"
             />
             <StatPill
               label="answer"
@@ -649,11 +594,10 @@ export default function TwoSumHashMapVisualizer() {
             />
           </div>
 
-          <MapTable
-            map={map}
-            lookingUp={lookingUp}
-            inserting={inserting}
-            foundInMap={foundInMap}
+          <TriedPairs
+            nums={preset.nums}
+            tried={tried}
+            current={{ i, j }}
           />
 
           {isDone && result && (
