@@ -3,7 +3,8 @@ title: 'Data Structures & Algorithms (HashMap): Two Sum'
 publishedAt: '2026-01-15'
 ---
 
-Given an array of integers `nums` and an integer `target`, return indices of the two numbers such that they add up to `target`.
+Given an array of integers `nums` and an integer `target`, return indices of the two numbers such that 
+they add up to `target`.
 
 ```
 Example 1:
@@ -17,7 +18,7 @@ Explanation: Because nums[0] + nums[1] == 9, we return [0, 1].
 
 ---
 
-### Brute Force Approach - Nested Loops
+### Brute Force Approach: Nested Loops
 
 Use a nested loop to iterate over all possible pairs and find the first whose sum = `target`.
 
@@ -46,6 +47,32 @@ In the worst case scenario, the algorithm will run for `n^2` times before findin
 #### Space Complexity
 
 We are not using any extra space. Hence, overall space complexity = `O(1)`.
+
+---
+
+### General Observations
+
+##### **<span className="text-emerald-800">Q. Is it guaranteed that there will be exactly one solution?</span>**
+
+A. Yes, you can assume there is only one solution.
+
+<Note>
+**Why this question is relevant?**
+
+If it is guaranteed that there will be exactly one solution, we can immediately return when we find a 
+pair. If there are multiple solutions, the problem might ask us to return all pairs, the first pair 
+closest to the left, or the pair with the smallest index, etc.
+</Note>
+
+##### **<span className="text-emerald-800">Q. Will the input array be always sorted?</span>**
+
+A. No, the input array is not necessarily sorted.
+
+<Note>
+**Why this question is relevant?**
+
+If the input array is sorted, we can use two pointers to find the pair in `O(n)` time.
+</Note>
 
 ---
 
