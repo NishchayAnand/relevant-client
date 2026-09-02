@@ -18,41 +18,12 @@ Explanation: Because nums[0] + nums[1] == 9, we return [0, 1].
 
 ---
 
-### Brute Force Approach: Nested Loops
-
-Use a nested loop to iterate over all possible pairs and find the first whose sum = `target`.
-
-#### Algorithm
-
-```java
-public int[] twoSum(int[] nums, int target) {
-
-    for( int i = 0; i < nums.length; i++ ) {
-        for( int j = i+1; j < nums.length; j++) {
-            if( nums[i] + nums[j] == target ) {
-                return new int[]{i, j};
-            } 
-        }
-    }
-
-    return new int[]{};
-
-}
-```
-
-#### Time Complexity
-
-In the worst case scenario, the algorithm will run for `n^2` times before finding the pair at `[n-2, n-1]` indices. Hence, overall time complexity = `O(n^2)`.
-
-#### Space Complexity
-
-We are not using any extra space. Hence, overall space complexity = `O(1)`.
-
----
-
 ### General Observations
 
-##### **<span className="text-emerald-800">Q. Is it guaranteed that there will be exactly one solution?</span>**
+We need to return the indices of two distinct elements whose sum equals that target. Before diving into 
+the solution, let's consider a few things about the input array.
+
+##### **<span className="text-emerald-800">Q1. Is it guaranteed that there will be exactly one solution?</span>**
 
 A. Yes, you can assume there is only one solution.
 
@@ -64,23 +35,91 @@ pair. If there are multiple solutions, the problem might ask us to return all pa
 closest to the left, or the pair with the smallest index, etc.
 </Note>
 
-##### **<span className="text-emerald-800">Q. Will the input array be always sorted?</span>**
+##### **<span className="text-emerald-800">Q2. Will the input array be always sorted?</span>**
 
 A. No, the input array is not necessarily sorted.
 
 <Note>
 **Why this question is relevant?**
 
-If the input array is sorted, we can use two pointers to find the pair in `O(n)` time.
+If the input array is sorted, we can use two pointers to find the pair in `O(n)` time. However, 
+can cannot use two pointers technique if the input array is not sorted. 
+
+Also, we cannot sort the array since sorting the array will change the order of the elements, which 
+will break the problem statement. For example, if the input array is `[3, 2, 4]` and the target is `6`, 
+the output should be `[1, 2]` but if we sort the array to `[2, 3, 4]`, the output will be `[0, 1]`.
 </Note>
 
 ---
 
-### Optimized Approach: HashMap
+### Brute Force Approach (Nested Loops)
 
-Iterate over `nums` and keep track of every visited number and its index in a `HashMap`. While iterating, if we find a number `nums[i]` such that `target - nums[i]` already exist in `HashMap`, we have found a resultant pair.
+Use a nested loop to iterate over all possible pairs and return the first whose sum = `target`.
 
 #### Algorithm
+
+```
+1. Run an outer loop to iterate over each integer in the range [0, n-1):
+    2. Run an inner loop to iterate over every possible complement integerin the range [i+1, n):
+        3. If the sum of two integers is equal to `target`, return the indices of the two integers.
+4. If no pair is found, return an empty array.
+```
+
+#### Implementation
+
+```java
+public int[] twoSum(int[] nums, int target) {
+    for( int i = 0; i < nums.length; i++ ) {
+        for( int j = i+1; j < nums.length; j++) {
+            if( nums[i] + nums[j] == target ) {
+                return new int[]{i, j};
+            } 
+        }
+    }
+    return new int[]{};
+}
+```
+
+#### Time Complexity
+
+In the worst case scenario, the algorithm will explore all `n^2` pairs before finding one at 
+`[n-2, n-1]` indices. Hence, overall time complexity = `O(n^2)`.
+
+#### Space Complexity
+
+We are not using any extra space. Hence, overall space complexity = `O(1)`.
+
+---
+
+### Optimized Approach (HashMap)
+
+For each integer `nums[i]`, we're really looking for its complement, i.e., `target - nums[i]`. If we can 
+check quickly whether that complement was seen before, we can avoid the inner loop.
+
+We can iterate over the input array once and use an HashMap (gives average `O(1)` lookup) to 
+store every component's `<value, index>`.
+
+#### Algorithm 
+
+```
+1. Run a loop to iterate over each integer in the range [0, n):
+    2. Compute the complement of the current integer, i.e., `target - nums[i]`.
+    3. Check if the complement is already in the HashMap.
+    4. If it is, return the indices of the two integers.
+    5. Otherwise, store the current value and index in the HashMap.
+6. If no pair is found, return an empty array.
+```
+
+<Note>
+
+**Why check before insert?**
+
+To avoid matching the current element with itself and to handle duplicates correctly. For example, if 
+the input array is `[3, 3, 4]` and the target is `6`, the output should be `[0, 1]` but if we store the 
+current value and index in the HashMap before checking, the output will be `[0, 0]`.
+</Note>
+
+#### Implementation
 
 ```java
 public int[] twoSum(int[] nums, int target) {
