@@ -336,7 +336,7 @@ function Equation({
   const compared = sum !== null;
 
   return (
-    <div className="rounded-lg border border-gray-100 bg-gray-50/70 px-3 py-2.5 font-mono text-sm">
+    <div className="rounded-lg border border-gray-100 bg-gray-50/70 px-3 py-2.5 font-mono text-sm h-[58px]">
       <div className="flex items-center justify-center gap-2 flex-wrap">
         <span className={i !== null ? "text-amber-700 font-semibold" : "text-gray-300"}>
           {i !== null ? nums[i] : "nums[i]"}
@@ -358,17 +358,21 @@ function Equation({
         </span>
         <span className="text-sky-700 font-semibold">{target}</span>
       </div>
-      {compared && (
-        <div
-          className={`mt-1 text-center text-[11px] font-semibold ${
-            match ? "text-emerald-700" : "text-rose-600"
-          }`}
-        >
-          {match
+      <div
+        className={`mt-1 text-center text-[11px] font-semibold h-[16px] ${
+          compared
+            ? match
+              ? "text-emerald-700"
+              : "text-rose-600"
+            : "text-transparent"
+        }`}
+      >
+        {compared
+          ? match
             ? `${sum} == ${target} → return {i, j}`
-            : `${sum} ≠ ${target} → continue`}
-        </div>
-      )}
+            : `${sum} ≠ ${target} → continue`
+          : "placeholder"}
+      </div>
     </div>
   );
 }
@@ -382,34 +386,38 @@ function TriedPairs({
   tried: TriedPair[];
   current: { i: number | null; j: number | null };
 }) {
-  if (tried.length === 0 && current.i === null) return null;
-
   return (
-    <div className="flex flex-col gap-1">
-      <div className="text-[10px] uppercase tracking-wide text-gray-400 font-semibold">
+    <div className="flex flex-col gap-1 flex-1 min-h-0">
+      <div className="text-[10px] uppercase tracking-wide text-gray-400 font-semibold shrink-0">
         Pairs checked
       </div>
-      <div className="flex flex-col gap-1 max-h-[148px] overflow-y-auto pr-1">
-        {tried.map((p) => {
-          const isCurrent = p.i === current.i && p.j === current.j;
-          return (
-            <div
-              key={`${p.i}-${p.j}`}
-              className={`flex items-center justify-between rounded-md px-2 py-1 font-mono text-[11px] border ${
-                p.match
-                  ? "bg-emerald-50 border-emerald-200 text-emerald-800"
-                  : isCurrent
-                    ? "bg-rose-50 border-rose-200 text-rose-800"
-                    : "bg-white border-gray-100 text-gray-500"
-              }`}
-            >
-              <span>
-                ({p.i}, {p.j}) · {nums[p.i]} + {nums[p.j]} = {p.sum}
-              </span>
-              <span className="font-semibold">{p.match ? "match" : "skip"}</span>
-            </div>
-          );
-        })}
+      <div className="flex flex-col gap-1 flex-1 min-h-0 overflow-y-auto pr-1">
+        {tried.length === 0 ? (
+          <div className="rounded-md border border-dashed border-gray-200 px-2 py-2 text-[11px] text-gray-400 font-mono">
+            None yet
+          </div>
+        ) : (
+          tried.map((p) => {
+            const isCurrent = p.i === current.i && p.j === current.j;
+            return (
+              <div
+                key={`${p.i}-${p.j}`}
+                className={`flex items-center justify-between rounded-md px-2 py-1 font-mono text-[11px] border ${
+                  p.match
+                    ? "bg-emerald-50 border-emerald-200 text-emerald-800"
+                    : isCurrent
+                      ? "bg-rose-50 border-rose-200 text-rose-800"
+                      : "bg-white border-gray-100 text-gray-500"
+                }`}
+              >
+                <span>
+                  ({p.i}, {p.j}) · {nums[p.i]} + {nums[p.j]} = {p.sum}
+                </span>
+                <span className="font-semibold">{p.match ? "match" : "skip"}</span>
+              </div>
+            );
+          })
+        )}
       </div>
     </div>
   );
@@ -509,7 +517,7 @@ export default function TwoSumBruteForceVisualizer() {
 
   return (
     <div className="border border-gray-200 rounded-2xl overflow-hidden bg-white mt-5 mb-10">
-      <div className="border-b border-gray-100 bg-gray-50/40 px-5 py-3 flex items-center gap-1.5 flex-wrap">
+      <div className="border-b border-gray-100 bg-gray-50/40 px-5 py-3 flex items-center gap-1.5 flex-wrap min-h-[52px]">
         <span className="text-[10px] uppercase tracking-wide text-gray-400 font-semibold mr-1">
           Sample inputs
         </span>
@@ -529,10 +537,10 @@ export default function TwoSumBruteForceVisualizer() {
         ))}
       </div>
 
-      <div className="flex flex-col md:flex-row md:divide-x divide-gray-100">
-        <div className="flex-1 min-w-0 px-5 pt-5 pb-5 flex flex-col gap-3">
+      <div className="flex flex-col md:flex-row md:divide-x divide-gray-100 md:h-[28rem]">
+        <div className="flex-1 min-w-0 px-5 pt-5 pb-5 flex flex-col gap-3 overflow-hidden">
           <AlgorithmPanel activeLines={lines} />
-          <div className="flex flex-col gap-1 mt-auto pt-3 border-t border-gray-200/70">
+          <div className="flex flex-col gap-1 mt-auto pt-3 border-t border-gray-200/70 shrink-0">
             <span
               className={`text-[10px] font-semibold uppercase tracking-wide ${
                 kind ? KIND_COLOR[kind] : "text-gray-400"
@@ -540,11 +548,13 @@ export default function TwoSumBruteForceVisualizer() {
             >
               {kind ? KIND_LABEL[kind] : "Ready"}
             </span>
-            <p className="text-xs text-gray-600 leading-relaxed">{description}</p>
+            <p className="text-xs text-gray-600 leading-relaxed h-[3.75rem] overflow-hidden">
+              {description}
+            </p>
           </div>
         </div>
 
-        <div className="w-full md:w-[380px] shrink-0 px-5 pt-5 pb-5 flex flex-col gap-4 border-t md:border-t-0 border-gray-100">
+        <div className="w-full md:w-[380px] shrink-0 px-5 pt-5 pb-5 flex flex-col gap-4 border-t md:border-t-0 border-gray-100 overflow-hidden">
           <div className="flex items-center justify-between rounded-lg border border-sky-100 bg-sky-50/60 px-3 py-2">
             <span className="text-[10px] uppercase tracking-wide text-sky-600 font-semibold">
               Target
@@ -599,12 +609,6 @@ export default function TwoSumBruteForceVisualizer() {
             tried={tried}
             current={{ i, j }}
           />
-
-          {isDone && result && (
-            <div className="rounded-xl px-4 py-2.5 text-sm font-semibold text-center bg-emerald-50 border border-emerald-200 text-emerald-700">
-              Return [{result[0]}, {result[1]}]
-            </div>
-          )}
         </div>
       </div>
 

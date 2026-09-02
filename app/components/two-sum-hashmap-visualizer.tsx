@@ -375,7 +375,7 @@ function LookupEquation({
   foundInMap: boolean | null;
 }) {
   return (
-    <div className="rounded-lg border border-gray-100 bg-gray-50/70 px-3 py-2.5 font-mono text-sm">
+    <div className="rounded-lg border border-gray-100 bg-gray-50/70 px-3 py-2.5 font-mono text-sm h-[58px]">
       <div className="flex items-center justify-center gap-2 flex-wrap">
         <span className="text-gray-400 text-[11px]">need</span>
         <span className="text-sky-700 font-semibold">{target}</span>
@@ -392,17 +392,21 @@ function LookupEquation({
           {complement !== null ? complement : "?"}
         </span>
       </div>
-      {foundInMap !== null && complement !== null && (
-        <div
-          className={`mt-1 text-center text-[11px] font-semibold ${
-            foundInMap ? "text-emerald-700" : "text-rose-600"
-          }`}
-        >
-          {foundInMap
+      <div
+        className={`mt-1 text-center text-[11px] font-semibold h-[16px] ${
+          foundInMap !== null && complement !== null
+            ? foundInMap
+              ? "text-emerald-700"
+              : "text-rose-600"
+            : "text-transparent"
+        }`}
+      >
+        {foundInMap !== null && complement !== null
+          ? foundInMap
             ? `map has ${complement} → return the pair`
-            : `map has no ${complement} → insert current`}
-        </div>
-      )}
+            : `map has no ${complement} → insert current`
+          : "placeholder"}
+      </div>
     </div>
   );
 }
@@ -424,49 +428,51 @@ function MapTable({
       : null;
 
   return (
-    <div className="flex flex-col gap-1">
-      <div className="text-[10px] uppercase tracking-wide text-gray-400 font-semibold">
+    <div className="flex flex-col gap-1 flex-1 min-h-0">
+      <div className="text-[10px] uppercase tracking-wide text-gray-400 font-semibold shrink-0">
         HashMap · value → index
       </div>
-      {map.length === 0 && miss === null ? (
-        <div className="rounded-md border border-dashed border-gray-200 px-2 py-2 text-[11px] text-gray-400 font-mono">
-          map is empty
-        </div>
-      ) : (
-        <div className="flex flex-col gap-1 max-h-[148px] overflow-y-auto pr-1">
-          {map.map((e) => {
-            const isLookup = lookingUp === e.value;
-            const isInsert = inserting === e.value;
-            return (
-              <div
-                key={`${e.value}-${e.index}`}
-                className={`flex items-center justify-between rounded-md px-2 py-1 font-mono text-[11px] border ${
-                  isLookup && foundInMap
-                    ? "bg-emerald-50 border-emerald-200 text-emerald-800"
-                    : isInsert
-                      ? "bg-indigo-50 border-indigo-200 text-indigo-800"
-                      : "bg-white border-gray-100 text-gray-600"
-                }`}
-              >
-                <span>
-                  {e.value} → {e.index}
-                </span>
+      <div className="flex flex-col gap-1 flex-1 min-h-0 overflow-y-auto pr-1">
+        {map.length === 0 && miss === null ? (
+          <div className="rounded-md border border-dashed border-gray-200 px-2 py-2 text-[11px] text-gray-400 font-mono">
+            map is empty
+          </div>
+        ) : (
+          <>
+            {map.map((e) => {
+              const isLookup = lookingUp === e.value;
+              const isInsert = inserting === e.value;
+              return (
+                <div
+                  key={`${e.value}-${e.index}`}
+                  className={`flex items-center justify-between rounded-md px-2 py-1 font-mono text-[11px] border ${
+                    isLookup && foundInMap
+                      ? "bg-emerald-50 border-emerald-200 text-emerald-800"
+                      : isInsert
+                        ? "bg-indigo-50 border-indigo-200 text-indigo-800"
+                        : "bg-white border-gray-100 text-gray-600"
+                  }`}
+                >
+                  <span>
+                    {e.value} → {e.index}
+                  </span>
+                  <span className="font-semibold text-[10px] uppercase tracking-wide">
+                    {isLookup && foundInMap ? "hit" : isInsert ? "put" : ""}
+                  </span>
+                </div>
+              );
+            })}
+            {miss !== null && (
+              <div className="flex items-center justify-between rounded-md px-2 py-1 font-mono text-[11px] border border-dashed border-rose-200 bg-rose-50 text-rose-700">
+                <span>{miss} → ?</span>
                 <span className="font-semibold text-[10px] uppercase tracking-wide">
-                  {isLookup && foundInMap ? "hit" : isInsert ? "put" : ""}
+                  miss
                 </span>
               </div>
-            );
-          })}
-          {miss !== null && (
-            <div className="flex items-center justify-between rounded-md px-2 py-1 font-mono text-[11px] border border-dashed border-rose-200 bg-rose-50 text-rose-700">
-              <span>{miss} → ?</span>
-              <span className="font-semibold text-[10px] uppercase tracking-wide">
-                miss
-              </span>
-            </div>
-          )}
-        </div>
-      )}
+            )}
+          </>
+        )}
+      </div>
     </div>
   );
 }
@@ -570,7 +576,7 @@ export default function TwoSumHashMapVisualizer() {
 
   return (
     <div className="border border-gray-200 rounded-2xl overflow-hidden bg-white mt-5 mb-10">
-      <div className="border-b border-gray-100 bg-gray-50/40 px-5 py-3 flex items-center gap-1.5 flex-wrap">
+      <div className="border-b border-gray-100 bg-gray-50/40 px-5 py-3 flex items-center gap-1.5 flex-wrap min-h-[52px]">
         <span className="text-[10px] uppercase tracking-wide text-gray-400 font-semibold mr-1">
           Sample inputs
         </span>
@@ -590,10 +596,10 @@ export default function TwoSumHashMapVisualizer() {
         ))}
       </div>
 
-      <div className="flex flex-col md:flex-row md:divide-x divide-gray-100">
-        <div className="flex-1 min-w-0 px-5 pt-5 pb-5 flex flex-col gap-3">
+      <div className="flex flex-col md:flex-row md:divide-x divide-gray-100 md:h-[28rem]">
+        <div className="flex-1 min-w-0 px-5 pt-5 pb-5 flex flex-col gap-3 overflow-hidden">
           <AlgorithmPanel activeLines={lines} />
-          <div className="flex flex-col gap-1 mt-auto pt-3 border-t border-gray-200/70">
+          <div className="flex flex-col gap-1 mt-auto pt-3 border-t border-gray-200/70 shrink-0">
             <span
               className={`text-[10px] font-semibold uppercase tracking-wide ${
                 kind ? KIND_COLOR[kind] : "text-gray-400"
@@ -601,11 +607,13 @@ export default function TwoSumHashMapVisualizer() {
             >
               {kind ? KIND_LABEL[kind] : "Ready"}
             </span>
-            <p className="text-xs text-gray-600 leading-relaxed">{description}</p>
+            <p className="text-xs text-gray-600 leading-relaxed h-[3.75rem] overflow-hidden">
+              {description}
+            </p>
           </div>
         </div>
 
-        <div className="w-full md:w-[380px] shrink-0 px-5 pt-5 pb-5 flex flex-col gap-4 border-t md:border-t-0 border-gray-100">
+        <div className="w-full md:w-[380px] shrink-0 px-5 pt-5 pb-5 flex flex-col gap-4 border-t md:border-t-0 border-gray-100 overflow-hidden">
           <div className="flex items-center justify-between rounded-lg border border-sky-100 bg-sky-50/60 px-3 py-2">
             <span className="text-[10px] uppercase tracking-wide text-sky-600 font-semibold">
               Target
@@ -655,12 +663,6 @@ export default function TwoSumHashMapVisualizer() {
             inserting={inserting}
             foundInMap={foundInMap}
           />
-
-          {isDone && result && (
-            <div className="rounded-xl px-4 py-2.5 text-sm font-semibold text-center bg-emerald-50 border border-emerald-200 text-emerald-700">
-              Return [{result[0]}, {result[1]}]
-            </div>
-          )}
         </div>
       </div>
 
