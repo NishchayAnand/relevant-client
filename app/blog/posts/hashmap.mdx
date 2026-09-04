@@ -3,6 +3,48 @@ title: 'Low Level Design: HashMap'
 publishedAt: '2026-05-02'
 ---
 
+What is a HashMap? What is its significance?
+
+---
+
+### Functional Requirements
+
+Implement the `MyHashMap` class:
+
+1. `MyHashMap()`: Initializes the object with an empty map.
+
+2. `void put(int key, int value)`: Inserts a `(key, value)` pair into the `HashMap`. If the key already 
+exists in the map, update the corresponding value.
+
+3. `int get(int key)`: Returns the value to which the specified key is mapped, or `-1` if this map 
+contains no mapping for the key.
+
+4. `void remove(key)`: Removes the key and its corresponding value if the map contains the mapping for 
+the key.
+
+---
+
+### Design Rationale
+
+##### **<span className="text-emerald-800">Q1. Why a Hash Function matters?</span>**
+
+##### **<span className="text-emerald-800">Q2. How to handle collisions?</span>**
+
+##### **<span className="text-emerald-800">Q3. Explain bucket/index calculation.</span>**
+
+##### **<span className="text-emerald-800">Q4. Explain chaining vs. open addressing.</span>**
+
+##### **<span className="text-emerald-800">Q5. Explain average vs. worst case lookup.</span>**
+
+##### **<span className="text-emerald-800">Q6. How resizing/load factor works.</span>**
+
+---
+
+### Object-Model Design
+
+### Follow-Up Questions
+
+Q1. How concurrentHashMap is implemented?
 
 How can we compare hashMaps? Why the frequency map of two anagrams are the same?
 
@@ -12,21 +54,3 @@ Map<Character, Integer> frequencyMap = str.chars()
             .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
         anagramMap.computeIfAbsent(frequencyMap, k -> new ArrayList<>()).add(str);
 ```
-
-
----
-
-### Functional Requirements
-
----
-
-### Design Rationale
-
-
----
-
-### Object-Model Design
-
-### Follow-Up Questions
-
-Q1. How concurrentHashMap is implemented?
