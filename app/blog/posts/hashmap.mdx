@@ -4,8 +4,28 @@ publishedAt: '2026-05-02'
 ---
 
 
+How can we compare hashMaps? Why the frequency map of two anagrams are the same?
+
+```
+Map<Character, Integer> frequencyMap = str.chars()
+            .mapToObj(c -> (char) c)
+            .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
+        anagramMap.computeIfAbsent(frequencyMap, k -> new ArrayList<>()).add(str);
+```
+
 
 ---
+
+### Functional Requirements
+
+---
+
+### Design Rationale
+
+
+---
+
+### Object-Model Design
 
 ### Follow-Up Questions
 

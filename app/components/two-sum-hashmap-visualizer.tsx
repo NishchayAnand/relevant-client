@@ -192,7 +192,7 @@ function simulate(nums: number[], target: number): Step[] {
 
 function AlgorithmPanel({ activeLines }: { activeLines: number[] }) {
   return (
-    <div className="font-mono text-[12px] leading-[1.7]">
+    <div className="font-mono text-[12px] leading-[1.7] overflow-x-auto">
       {ALGORITHM_LINES.map((line, idx) => {
         const lineNum = idx + 1;
         const isActive = activeLines.includes(lineNum);

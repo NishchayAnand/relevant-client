@@ -20,6 +20,7 @@ import RemoveDuplicatesSortedVisualizer from './remove-duplicates-sorted-visuali
 import BestTimeStockGreedyVisualizer from './best-time-stock-greedy-visualizer';
 import TwoSumHashMapVisualizer from './two-sum-hashmap-visualizer';
 import TwoSumBruteForceVisualizer from './two-sum-brute-force-visualizer';
+import GroupAnagramsFrequencyMapVisualizer from './group-anagrams-frequency-map-visualizer';
 import RotateArrayBruteForceVisualizer from './rotate-array-bruteforce-visualizer';
 import RotateArrayModuloVisualizer from './rotate-array-modulo-visualizer';
 import RotateArrayReverseVisualizer from './rotate-array-reverse-visualizer';
@@ -344,6 +345,7 @@ let components = {
   BestTimeStockGreedyVisualizer: BestTimeStockGreedyVisualizer,
   TwoSumHashMapVisualizer: TwoSumHashMapVisualizer,
   TwoSumBruteForceVisualizer: TwoSumBruteForceVisualizer,
+  GroupAnagramsFrequencyMapVisualizer: GroupAnagramsFrequencyMapVisualizer,
   RotateArrayBruteForceVisualizer: RotateArrayBruteForceVisualizer,
   RotateArrayModuloVisualizer: RotateArrayModuloVisualizer,
   RotateArrayReverseVisualizer: RotateArrayReverseVisualizer,

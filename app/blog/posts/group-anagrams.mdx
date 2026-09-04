@@ -1,0 +1,82 @@
+---
+title: 'Data Structures & Algorithms (HashMap): Group Anagrams'
+publishedAt: '2026-01-17'
+---
+
+Given an array of strings `strs`, group the anagrams together. You can return the answer in any order.
+
+#### Example
+
+```
+Input: strs = ["eat","tea","tan","ate","nat","bat"]
+
+Output: [["bat"],["nat","tan"],["ate","eat","tea"]]
+
+Explanation:
+
+There is no string in strs that can be rearranged to form "bat".
+The strings "nat" and "tan" are anagrams as they can be rearranged to form each other.
+The strings "ate", "eat", and "tea" are anagrams as they can be rearranged to form each other.
+```
+
+> **Playground:** [Leetcode 49](https://leetcode.com/problems/group-anagrams/description/)
+
+---
+
+### General Observations
+
+Two strings are anagrams if they contain the same characters with exactly the same frequencies, just 
+in a different order. For example, `eat` and `tea` are anagrams because they both contain one `e`, one 
+`a`, and one `t`. 
+
+Let's consider a few things about the input array.
+
+##### **<span className="text-emerald-800">Q1. Can the input array be empty?</span>**
+
+A. No, the input array is guaranteed to have at least one string.
+
+##### **<span className="text-emerald-800">Q3. What will be output for `[""]`?</span>**
+
+A. `[[""]]`
+
+##### **<span className="text-emerald-800">Q2. What will be output for input = `["a"]`?</span>**
+
+A. `[["a"]]`.
+
+---
+
+### Frequency Map Approach: HashMap
+
+If the frequency map of two strings are the same, then the strings can be grouped together.
+
+#### Algorithm
+
+```
+1. Create a map to store list of strings with the same frequency map.
+2. Iterate through the input array. For each string:
+   3. Compute the frequency map.
+   4. If the frequency map already exists as a key in the map, add the string to its list of strings.
+   5. Otherwise, create a new list with the frequency map as the key and add the string to the list.
+6. Return all values of the map wrapped in a list.
+```
+
+#### Implementation
+
+<GroupAnagramsFrequencyMapVisualizer />
+
+#### Time Complexity
+
+We will iterate through the input array once. Considering the input array has `n` strings, the loop 
+will run `n` times.
+
+For each string, we will compute its frequency map by iterating through its characters. Considering the 
+average length of a string is `m`, each frequency map computation will run `m` times.
+
+Therefore, the time complexity will be `O(n * m)`.
+
+#### Space Complexity
+
+Considering the output is just the `n` strings grouped into lists based on their frequency map, the 
+overall space complexity will be `O(n)`.
+
+---
