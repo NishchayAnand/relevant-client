@@ -5,6 +5,8 @@ publishedAt: '2026-05-02'
 
 What is a HashMap? What is its significance?
 
+<HashMapConceptVisualizer />
+
 ---
 
 ### Functional Requirements
@@ -25,6 +27,12 @@ the key.
 ---
 
 ### Design Rationale
+
+A `HashMap` stores `(key, value)` pairs in a fixed-size array of "buckets". To place or find a key, it
+first runs the key through a **hash function** to get an integer, then reduces that integer to a bucket
+index with `hash mod capacity`. Each bucket holds a small list of entries so that multiple keys landing
+on the same index — a **collision** — can still coexist and be told apart by comparing keys.
+
 
 ##### **<span className="text-emerald-800">Q1. Why a Hash Function matters?</span>**
 
