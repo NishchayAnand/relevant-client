@@ -36,9 +36,14 @@ the key.
 
 ### Non-Functional Requirements
 
-1. All the operations should be `O(1)` on average.
+1. **Efficient Lookup**: The implementation should minimise the amount of data that needs to be searched during 
+`get()`, targeting `O(1)` expected lookup time.
 
-2. Should handle concurrent operations gracefully.
+2. **Generic Support**: The implementation should support different key and value types through generics, 
+e.g. `HashMap<K, V>`.
+
+3. **Thread Safety**: The implementation should safely handle concurrent operations without data corruption or 
+inconsistent state.
 
 ---
 
@@ -48,7 +53,7 @@ Suppose we store `(key, value)` pairs in a simple array. To find the value assoc
 we need to examine entries one by one. In the worst case, this will take `O(n)` time.
 
 The fundamental idea behind `HashMap` is to provide **fast lookup of a value using a key**. Instead of 
-searching through every stored entry. we want a way to determine where an entry should be located 
+searching through every stored entry. We want a way to determine where an entry should be located 
 directly from its key.
 
 #### **<span className="text-emerald-800">Q1. Why hashing matters?</span>**
@@ -99,7 +104,7 @@ break the probing chain used by future lookups. This is one reason chaining is o
 and implement in HashMap design.
 </Note>
 
-#### **<span className="text-emerald-800">Q6. How does load factor help in  resizing (rehashing)?</span>**
+#### **<span className="text-emerald-800">Q3. How does load factor help in  resizing (rehashing)?</span>**
 
 **As the number of entries increases relative to the number of buckets, collisions become more likely.**
 With more entries in each bucket, lookup may require examining more entries, increasing the lookup time.
@@ -112,6 +117,8 @@ the entries across the increased number of buckets.
 <Note>
 Rehashing is a costly operation, which can make insertion a O(n) operation. Hence, it is best to resize 
 the bucket array when the load factor is just above the threshold of `0.75` or `0.8`.
+
+Because of rehashing, we cannot guarantee insertion order is maintained.
 </Note>
 
 ---
@@ -132,68 +139,79 @@ class MyHashMap {
         }
     }
 
+    private static final int INITIAL_CAPACITY = 16;
+    private static final double LOAD_FACTOR = 0.75;
+
     private int size;
     private int capacity;
     private Node[] bucketList;
-    private double threshold;
+    private int threshold;
 
     public MyHashMap() {
-        this.capacity = 16;
-        this.bucketList = new Node[capacity];  
+        this.capacity = INITIAL_CAPACITY;
+        this.bucketList = new Node[capacity]; 
+        this.threshold = (int) (capacity * LOAD_FACTOR);
     }
     
     public void put(int key, int value) {
         int index = getBucketIndex(key);
+        Node currentNode = bucketList[index];
 
-        if(bucketList[index] == null) {
-            bucketList[index] = new Node(key, value);
-        } else {
-            Node currentNode = bucketList[index];
-            while(currentNode.next != null) {
-                currentNode = currentNode.next;
+        // Key already exists, update the value
+        while (currentNode != null) {
+            if (currentNode.key == key) {
+                currentNode.value = value;
+                return;
             }
-            currentNode.next = new Node(key, value);
+            currentNode = currentNode.next;
         }
 
+        // Key doesn't exist, add new node
+        Node newNode = new Node(key, value);
+        // Insert new node at the beginning of the bucket
+        newNode.next = bucketList[index];
+        bucketList[index] = newNode;
+
         size++;
-        double loadFactor = size / capacity;
-        if(loadFactor > threshold) {
-            newBucketList = new Node[capacity * 2];
-            rehash(bucketList, newBucketList);
-            bucketList = newBucketList;
+        if (size > threshold) {
+            resize();
         }
     }
     
     public int get(int key) {
         int index = getBucketIndex(key);
-        Node headNode = bucketList[index];
-        if (headNode == null) return -1;
+        Node currentNode = bucketList[index];
 
-        int currentNode = headNode;
         while(currentNode != null) {
             if (currentNode.key == key) {
                 return currentNode.value;
             }
             currentNode = currentNode.next;
         }
+
+        return -1;
     }
     
     public void remove(int key) {
         int index = getBucketIndex(key);
-        Node headNode = bucketList[index];
 
-        Node currentNode = headNode;
+        Node currentNode = bucketList[index];
         Node previousNode = null;
+
         while(currentNode != null) {
             if (currentNode.key == key) {
-                if (previousNode == null) { // removing the first node 
+                if (previousNode == null) { 
+                    // removing the first node 
                     bucketList[index] = currentNode.next;
-                } else { // removing the middle / end node
+                } else { 
+                    // removing the middle / end node
                     previousNode.next = currentNode.next;
                 }
+
                 size--;
                 return;
             }
+
             previousNode = currentNode;
             currentNode = currentNode.next;
         }
@@ -201,25 +219,40 @@ class MyHashMap {
 
     private int getBucketIndex(int key) {
         int hash = Integer.hashCode(key);
-        return hash % capacity;
+        return Math.floorMod(hash, capacity);
     }
 
-    private void rehash(Node[] bucketList, Node[] newBucketList) {
-        for(Node headNode: bucketList) {
+    private void resize() {
+        Node[] oldBucketList = bucketList;
+        capacity = capacity * 2;
+        Node[] newBucketList = new Node[capacity];
+        rehash(oldBucketList, newBucketList);
+        bucketList = newBucketList;
+        threshold = (int) (capacity * LOAD_FACTOR);
+    }
+
+    private void rehash(Node[] oldBucketList, Node[] newBucketList) {
+        for (Node headNode : oldBucketList) {
             Node currentNode = headNode;
-            while(currentNode != null) {
-                put(currentNode.key, currentNode.value);
-                currentNode = currentNode.next;
+            while (currentNode != null) {
+                Node nextNode = currenNode.next;
+                int index = getBucketIndex(currentNode.key, newBucketList.length);
+                currentNode.next = newBuckets[index];
+                newBuckets[index] = currentNode;
+                currentNode = nextNode;
             }
         }
     }
-
 }
 ```
+
+<br/>
 
 ---
 
 ### Time Complexity Analysis
+
+
 
 ---
 

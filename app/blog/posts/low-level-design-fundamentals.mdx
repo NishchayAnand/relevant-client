@@ -130,7 +130,7 @@ all its members.
 class Outer {
     int x = 10;
 
-    class Inner {
+    private class Inner {
         void display() {
             System.out.println(x); // can access directly
         }
@@ -147,14 +147,29 @@ A static nested class does not require an outer instance and can only access sta
 
 ```java
 class Outer {
-    static class Inner {
+    private static class Inner {
         void display() {
             System.out.println("Inner class");
         }
     }
 }
 ```
-<br/>
+
+If your inner class does not need to read or modify the instance variables of the outer class, this hidden 
+reference is a waste of memory. More importantly, it can cause memory leaks. If a long-lived object holds a 
+reference to the inner class instance, the outer class instance can never be garbage collected, even if it is 
+no longer being used. 
+
+```
+MyHashMap map = new MyHashMap();
+
+Node node = map.createNode();
+
+longLivedObject.store(node);
+
+map = null;
+```
+
 ---
 
 ### Strategy Pattern
