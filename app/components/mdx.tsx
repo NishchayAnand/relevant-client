@@ -22,6 +22,8 @@ import TwoSumHashMapVisualizer from './two-sum-hashmap-visualizer';
 import TwoSumBruteForceVisualizer from './two-sum-brute-force-visualizer';
 import GroupAnagramsFrequencyMapVisualizer from './group-anagrams-frequency-map-visualizer';
 import HashMapConceptVisualizer from './hashmap-concept-visualizer';
+import HashMapChainingVisualizer from './hashmap-chaining-visualizer';
+import HashMapOpenAddressingVisualizer from './hashmap-open-addressing-visualizer';
 import RotateArrayBruteForceVisualizer from './rotate-array-bruteforce-visualizer';
 import RotateArrayModuloVisualizer from './rotate-array-modulo-visualizer';
 import RotateArrayReverseVisualizer from './rotate-array-reverse-visualizer';
@@ -348,6 +350,8 @@ let components = {
   TwoSumBruteForceVisualizer: TwoSumBruteForceVisualizer,
   GroupAnagramsFrequencyMapVisualizer: GroupAnagramsFrequencyMapVisualizer,
   HashMapConceptVisualizer: HashMapConceptVisualizer,
+  HashMapChainingVisualizer: HashMapChainingVisualizer,
+  HashMapOpenAddressingVisualizer: HashMapOpenAddressingVisualizer,
   RotateArrayBruteForceVisualizer: RotateArrayBruteForceVisualizer,
   RotateArrayModuloVisualizer: RotateArrayModuloVisualizer,
   RotateArrayReverseVisualizer: RotateArrayReverseVisualizer,

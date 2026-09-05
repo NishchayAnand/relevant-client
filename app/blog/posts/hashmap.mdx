@@ -3,22 +3,6 @@ title: 'Data Structures & Algorithms: Design HashMap'
 publishedAt: '2026-01-14'
 ---
 
-`HashMap` is a data structure that stores `(key, value)` pairs. The big deal and why it comes up so 
-often is that **insert**, **lookup**, and **delete** operations are all `O(1)` on average.
-
-Many programming problems involve repeatedly searching for information we have already encountered, and 
-a HashMap allows us to remember that information and retrieve it quickly instead of performing the same s
-earch again. This idea of trading additional memory for faster lookup forms one of the most useful 
-problem-solving patterns in DSA.
-
-<HashMapConceptVisualizer />
-
-> **Playground**: [Leetcode 706](https://leetcode.com/problems/design-hashmap/description/)
-
----
-
-### Functional Requirements
-
 Implement the `MyHashMap` class:
 
 1. `MyHashMap()`: Initializes the object with an empty map.
@@ -32,46 +16,87 @@ contains no mapping for the key.
 4. `void remove(key)`: Removes the key and its corresponding value if the map contains the mapping for 
 the key.
 
----
+<HashMapConceptVisualizer />
 
-### Non-Functional Requirements
-
-1. Keys should be unique.
-
-2. Should support concurrent operations.
+> **Playground**: [Leetcode 706](https://leetcode.com/problems/design-hashmap/description/)
 
 ---
 
 ### Design Rationale
 
-Understanding how a `HashMap `works internally helps us not only use it effectively but also understand 
-why it provides fast lookups and how such data structures are designed.
+Suppose we store `(key, value)` pairs in a simple array. To find the value associated with a `key`, 
+we need to examine entries one by one. In the worst case, this will take `O(n)` time.
 
-##### **<span className="text-emerald-800">Q1. Why a Hash Function matters?</span>**
+The fundamental idea behind `HashMap` is to provide **fast lookup of a value using a key**. Instead of 
+searching through every stored entry. we want a way to determine where an entry should be located 
+directly from its key.
 
-##### **<span className="text-emerald-800">Q2. How to handle collisions?</span>**
+#### **<span className="text-emerald-800">Q1. Why hashing matters?</span>**
 
-##### **<span className="text-emerald-800">Q3. Explain bucket/index calculation.</span>**
+Hashing provides a way to transform a key into a number that can be used to determine an array 
+location. For example, given a key `"apple"`, `hash("apple")` might produce a number like `123`. If we 
+have an array of size `10`, we can use the modulo operator to convert this hash value into a valid 
+array index `123 % 10 = 3`.
 
-##### **<span className="text-emerald-800">Q4. Explain chaining vs. open addressing.</span>**
+Therefore, we can use `index = 3` as the bucket where the value corresponding to key `"apple"` should be 
+stored.
 
-##### **<span className="text-emerald-800">Q5. Explain average vs. worst case lookup.</span>**
+<Note>
+There is a possibility that two or more different keys map to the same array index. This is called a 
+**collision**.
+</Note>
 
-##### **<span className="text-emerald-800">Q6. How resizing/load factor works.</span>**
+#### **<span className="text-emerald-800">Q2. How to handle collisions?</span>**
+
+Since multiple keys can be mapped to the same index, we need a strategy to store all entries without
+losing them. There are two common approaches:
+
+##### **<span className="text-purple-800">Approach 1: Chaining</span>**
+
+With chaining, each bucket can hold multiple entries. It is typically implemented using a linked list.
+
+<HashMapChainingVisualizer />
+
+<Note>
+In some implementations such as modern **Java HashMap**, the bucket implementation is converted to a 
+tree structure when collisions become sufficiently large.
+</Note>
+
+##### **<span className="text-purple-800">Approach 2: Open Addressing</span>**
+
+With open addressing, we don't store multiple entries in the same bucket. Instead, when a collision
+occurs, we look for the next available bucket using a probing strategy (e.g. linear probing, 
+quadratic probing, double hashing).
+
+<HashMapOpenAddressingVisualizer />
+
+<Note>
+The key idea remains the same: **"The hash tells us where to start; the probing strategy tells us where 
+to go when that location is occupied."**
+
+However, deletion becomes more complicated with open addressing, because simply clearing a bucket can 
+break the probing chain used by future lookups. This is one reason chaining is often easier to explain 
+and implement in HashMap design.
+</Note>
+
+#### **<span className="text-emerald-800">Q6. How does load factor help in  resizing (rehashing)?</span>**
+
+**As the number of entries increases relative to the number of buckets, collisions become more likely.**
+With more entries in each bucket, lookup may require examining more entries, increasing the lookup time.
+
+The **Load Factor** is the ratio of the number of entries to the number of buckets. It allows the 
+`HashMap` to detect when the data structure is becoming too crowded. When the load factor exceeds a 
+certain threshold, the `HashMap` should resize the underlying bucket array and redistribute (rehash) 
+the entries across the increased number of buckets.
+
+<Note>
+Rehashing is a costly operation, which can make insertion a O(n) operation. Hence, it is best to resize 
+the bucket array when the load factor is just above the threshold of `0.75` or `0.8`.
+</Note>
 
 ---
 
-### Object-Model Design
+### Implementation
 
-### Follow-Up Questions
 
-Q1. How concurrentHashMap is implemented?
-
-How can we compare hashMaps? Why the frequency map of two anagrams are the same?
-
-```
-Map<Character, Integer> frequencyMap = str.chars()
-            .mapToObj(c -> (char) c)
-            .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
-        anagramMap.computeIfAbsent(frequencyMap, k -> new ArrayList<>()).add(str);
-```
+---
