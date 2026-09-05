@@ -1,6 +1,6 @@
 ---
-title: 'Data Structures & Algorithms: Design HashMap'
-publishedAt: '2026-01-14'
+title: 'Low Level Design: HashMap'
+publishedAt: '2026-05-02'
 ---
 
 Implement the `MyHashMap` class:
@@ -98,5 +98,111 @@ the bucket array when the load factor is just above the threshold of `0.75` or `
 
 ### Implementation
 
+```java
+class MyHashMap {
+
+    private static class Node {
+        private int key;
+        private int value;
+        private Node next;
+
+        public Node(int key, int value) {
+            this.key = key;
+            this.value = value;
+        }
+    }
+
+    private int size;
+    private int capacity;
+    private Node[] bucketList;
+    private double threshold;
+
+    public MyHashMap() {
+        this.capacity = 16;
+        this.bucketList = new Node[capacity];  
+    }
+    
+    public void put(int key, int value) {
+        int index = getBucketIndex(key);
+
+        if(bucketList[index] == null) {
+            bucketList[index] = new Node(key, value);
+        } else {
+            Node currentNode = bucketList[index];
+            while(currentNode.next != null) {
+                currentNode = currentNode.next;
+            }
+            currentNode.next = new Node(key, value);
+        }
+
+        size++;
+        double loadFactor = size / capacity;
+        if(loadFactor > threshold) {
+            newBucketList = new Node[capacity * 2];
+            rehash(bucketList, newBucketList);
+            bucketList = newBucketList;
+        }
+    }
+    
+    public int get(int key) {
+        int index = getBucketIndex(key);
+        Node headNode = bucketList[index];
+        if (headNode == null) return -1;
+
+        int currentNode = headNode;
+        while(currentNode != null) {
+            if (currentNode.key == key) {
+                return currentNode.value;
+            }
+            currentNode = currentNode.next;
+        }
+    }
+    
+    public void remove(int key) {
+        int index = getBucketIndex(key);
+        Node headNode = bucketList[index];
+
+        Node currentNode = headNode;
+        Node previousNode = null;
+        while(currentNode != null) {
+            if (currentNode.key == key) {
+                if (previousNode == null) { // removing the first node 
+                    bucketList[index] = currentNode.next;
+                } else { // removing the middle / end node
+                    previousNode.next = currentNode.next;
+                }
+                size--;
+                return;
+            }
+            previousNode = currentNode;
+            currentNode = currentNode.next;
+        }
+    }
+
+    private int getBucketIndex(int key) {
+        int hash = Integer.hashCode(key);
+        return hash % capacity;
+    }
+
+    private void rehash(Node[] bucketList, Node[] newBucketList) {
+        for(Node headNode: bucketList) {
+            Node currentNode = headNode;
+            while(currentNode != null) {
+                put(currentNode.key, currentNode.value);
+                currentNode = currentNode.next;
+            }
+        }
+    }
+
+}
+```
+
+---
+
+### Time Complexity Analysis
+
+---
+
+### Space Complexity Analysis
 
 ---
