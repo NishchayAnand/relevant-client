@@ -1,11 +1,19 @@
 ---
-title: 'Low Level Design: HashMap'
-publishedAt: '2026-05-02'
+title: 'Data Structures & Algorithms: Design HashMap'
+publishedAt: '2026-01-14'
 ---
 
-What is a HashMap? What is its significance?
+`HashMap` is a data structure that stores `(key, value)` pairs. The big deal and why it comes up so 
+often is that **insert**, **lookup**, and **delete** operations are all `O(1)` on average.
+
+Many programming problems involve repeatedly searching for information we have already encountered, and 
+a HashMap allows us to remember that information and retrieve it quickly instead of performing the same s
+earch again. This idea of trading additional memory for faster lookup forms one of the most useful 
+problem-solving patterns in DSA.
 
 <HashMapConceptVisualizer />
+
+> **Playground**: [Leetcode 706](https://leetcode.com/problems/design-hashmap/description/)
 
 ---
 
@@ -26,13 +34,18 @@ the key.
 
 ---
 
+### Non-Functional Requirements
+
+1. Keys should be unique.
+
+2. Should support concurrent operations.
+
+---
+
 ### Design Rationale
 
-A `HashMap` stores `(key, value)` pairs in a fixed-size array of "buckets". To place or find a key, it
-first runs the key through a **hash function** to get an integer, then reduces that integer to a bucket
-index with `hash mod capacity`. Each bucket holds a small list of entries so that multiple keys landing
-on the same index — a **collision** — can still coexist and be told apart by comparing keys.
-
+Understanding how a `HashMap `works internally helps us not only use it effectively but also understand 
+why it provides fast lookups and how such data structures are designed.
 
 ##### **<span className="text-emerald-800">Q1. Why a Hash Function matters?</span>**
 
