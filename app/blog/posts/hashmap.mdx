@@ -3,6 +3,20 @@ title: 'Low Level Design: HashMap'
 publishedAt: '2026-05-02'
 ---
 
+`HashMap` is a data structure that stores `(key, value)` pairs. The big deal and why it comes up so 
+often is that **insert**, **lookup**, and **delete** operations are all `O(1)` on average.
+
+Many programming problems involve repeatedly searching for information we have already encountered, and 
+a `HashMap` allows us to remember that information and retrieve it quickly instead of performing the same 
+search again. This idea of trading additional memory for faster lookup forms one of the most useful 
+problem-solving patterns in software development.
+
+![hashmap](/hashmap/hashMap.png)
+
+---
+
+### Functional Requirements
+
 Implement the `MyHashMap` class:
 
 1. `MyHashMap()`: Initializes the object with an empty map.
@@ -18,7 +32,13 @@ the key.
 
 <HashMapConceptVisualizer />
 
-> **Playground**: [Leetcode 706](https://leetcode.com/problems/design-hashmap/description/)
+---
+
+### Non-Functional Requirements
+
+1. All the operations should be `O(1)` on average.
+
+2. Should handle concurrent operations gracefully.
 
 ---
 
