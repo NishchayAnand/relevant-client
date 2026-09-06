@@ -1,0 +1,52 @@
+---
+title: 'System Design (Bitly): URL Shortener'
+publishedAt: '2026-06-12'
+---
+
+A URL shortening service allows us to create a short, easy-to-remember URL for a long URL.
+
+![url-shortener](/url-shortener/url-shortener.png)
+
+---
+
+### Functional Requirements
+
+1. Users should able to submit a long URL along with additional details like custom alias, expiration date, etc., 
+and get a shortened version.
+
+2. When a user visits the shortened URL, they are redirected to the original URL.
+
+---
+
+### Non-Functional Requirements
+
+1. The system should scale to support `1 Billion` shortened URLs and `100 Million` visits per day.
+2. Each shortened URL should be unique.
+3. The redirection should occur with minimal latency (`< 100ms`).
+
+---
+
+### Design Rationale
+
+
+
+---
+
+### Sequence Flow
+
+---
+
+### API Design
+
+---
+
+### Follow-up Questions
+
+1. How can the user specify a custom alias for their shortened URL?
+
+2. How can the user specify an expiration date for their shortened URL?
+
+---
+
+
+
