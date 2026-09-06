@@ -36,6 +36,8 @@ We need some entropy (randomness) to try to ensure that our codes are unique. Co
 with ?? write request per day, a random number generator does not provide enough entropy to ensure that our 
 codes are unique.
 
+##### **<span className="text-purple-800">Hash Function</span>**
+
 We could use a hash function like `SHA-256` to generate a fixed-size hash code. Hash functions take an input 
 and return a deterministic, fixed-size string of characters. Hash functions also provide a high degree of 
 entropy, meaning that the output appears random and is unlikely to collide for different inputs.
@@ -62,14 +64,28 @@ To reduce collision probability, we need higher entropy, which means generating 
 longer codes negate the benefit of having a short URL. Detecting and resolving collisions also adds database 
 lookups on insertion, introducing latency and complexity.
 
-The shortened URL exists at a domain that we own.
+##### **<span className="text-purple-800">Unique Counter with Base 62 Encoding</span>**
 
-We can use ...
+One way to guarantee we don't have collisions is to simply increment a counter for each new url. We can then 
+take the output of the counter and encode it using base62 encoding to ensure it's a compacted representation.
 
-The basic structure of a shortened URL is: `?`.
+<Note>
+Redis is particularly well-suited for managing this counter because it's single-threaded and supports atomic 
+operations. Being single-threaded means Redis processes one command at a time, eliminating race conditions. 
 
-If the user provides custom alias, the system should check if it already taken or not. `How domain works 
-for custom alias?`.
+Its `INCR` command atomically increments the counter and returns the new value in a single operation. Because 
+Redis is single-threaded, two simultaneous calls will always receive different values. If one gets `1000`, the 
+other gets `1001`. This guarantee is what makes Redis ideal for distributed counter management.
+</Note>
+
+Sequential counters produce predictable short codes, making URL enumeration possible. An attacker could 
+iterate through codes to discover all URLs. If this is a concern, apply a reversible transformation (like `XOR` 
+with a secret key) before base62 encoding, or accept the tradeoff since short URLs are often meant to be 
+shared publicly anyway.
+
+We also have to consider that the size of the short code continues to increase over time with this method. To 
+determine whether we should be concerned about length, we can do a little math. If we have `1B` urls, when 
+base62 encoded, this would result in a 6-character string.
 
 #### **<span className="text-emerald-800">Q2. What is the expected behavior when multiple users request the same long URL?</span>**
 
@@ -79,6 +95,100 @@ separate expiration dates or custom aliases.
 #### **<span className="text-emerald-800">Q3. How to deal with expired short URLs?</span>**
 
 Do storage capacity estimation and suggest the answer to this.
+
+#### **<span className="text-emerald-800">Q4. How to support a sub-100ms latency?</span>**
+
+When dealing with a large database of shortened URLs, finding the right match quickly becomes crucial for a 
+smooth user experience. Without any optimization, our system would need to check every single pair of short 
+and original URLs in the database to find the one we're looking for. 
+
+This process, known as a "full table scan," can be incredibly slow, especially as the number of URLs grows 
+into the millions or billions.
+
+##### **<span className="text-purple-800">Indexing</span>**
+
+To avoid a full table scan, we can use a technique called indexing. An index creates a separate, sorted list 
+of our short URLs, each with a pointer to where the full information is stored in the main table. This allows 
+the database to use efficient search methods, dramatically reducing the time it takes to find a matching URL.
+
+Relying solely on a disk-based database for redirects presents some challenges, although modern SSDs have 
+significantly reduced the performance gap. While disk I/O is slower than memory access, it's not prohibitively 
+slow. A typical SSD can handle around `100,000` IOPS (Input/Output Operations Per Second), which is quite fast 
+for many applications.
+
+However, the main challenge lies in the sheer volume of read operations required. With 100M DAU (Daily Active 
+Users), assuming each user performs an average of 5 redirects per day, we're looking at:
+
+```
+100,000,000 users * 5 redirects = 500,000,000 redirects per day
+500,000,000 / 86,400 seconds ≈ 5,787 redirects per second
+```
+
+This assumes redirects are evenly distributed throughout the day, which is unlikely. Most redirects will occur 
+during peak hours, which means we need to design for high-traffic spikes. Multiplying by `100x` to handle the 
+spikes means we need to handle `~600k` read operations per second.
+
+Even with optimized queries and indexing, a single database instance may struggle to keep up with this volume 
+of traffic. This high read load could lead to increased response times, potential timeouts, and might affect 
+other database operations like URL shortening.
+
+##### **<span className="text-purple-800">Caching</span>**
+
+To improve redirect speed, we can introduce an in-memory cache like Redis or Memcached between the application 
+server and the database. 
+
+The cache stores the frequently accessed mappings of short codes to long URLs. When a redirect request comes 
+in, the server first checks the cache. If the short code is found in the cache (a cache hit), the server 
+retrieves the long URL from the cache, significantly reducing latency. If not found (a cache miss), the 
+server queries the database, retrieves the long URL, and then stores it in the cache for future requests.
+
+<Note>
+The key here is that instead of going to disk we access the mapping directly from memory. This difference in 
+access speed is significant:
+
+- Memory access time: `~100` nanoseconds (`0.0001` ms)
+- SSD access time: `~0.1` milliseconds
+- HDD access time: `~10` milliseconds
+
+This means memory access is about 1,000 times faster than SSD and 100,000 times faster than HDD. In terms of 
+operations per second:
+
+- Memory: Can support millions of reads per second
+- SSD: `~100,000` IOPS (Input/Output Operations Per Second)
+- HDD: `~100-200` IOPS
+</Note>
+
+While implementing an in-memory cache offers significant performance improvements, it does come with its own 
+set of challenges. Cache invalidation can be complex, especially when updates or deletions occur, though this 
+issue is minimized since URLs are mostly read-heavy and rarely change. 
+
+The cache needs time to "warm up," meaning initial requests may still hit the database until the cache is 
+populated. Memory limitations require careful decisions about cache size, eviction policies (e.g., LRU - 
+Least Recently Used), and which entries to store.
+
+##### **<span className="text-purple-800">Content Delivery Network (CDN)</span>**
+
+The short URL domain can be served through a CDN with Points of Presence (PoPs) geographically distributed 
+around the world. The CDN nodes cache the mappings of short codes to long URLs, allowing redirect requests to 
+be handled close to the user's location. 
+
+Furthermore, by deploying the redirect logic to the edge using platforms like Cloudflare Workers or 
+AWS Lambda@Edge, the redirection can happen directly at the CDN level without reaching the origin server.
+
+The benefit here is that, at least for popular short codes, the redirection can happen at the CDN (close to 
+the user) and it never even reaches our Primary Server, meaningfully reducing the latency.
+
+However, this too presents some challenges. Ensuring cache invalidation and consistency across all CDN nodes 
+can be complex. Setting up edge computing requires additional configuration and understanding of serverless 
+functions at the edge. Cost considerations come into play, as CDNs and edge computing services may incur higher 
+costs, especially with high traffic volumes. Edge functions may have limitations in execution time, memory, and 
+available libraries, requiring careful optimization of the redirect logic. Lastly, debugging and monitoring in 
+a distributed edge environment can be more challenging compared to centralized servers.
+
+<Note>
+You're trading cost and complexity for performance here. Whether or not this is worth it depends on factors 
+like company price sensitivity, user experience requirements, and traffic patterns.
+</Note>
 
 ---
 
@@ -156,18 +266,46 @@ Location: https://bit.ly/google
 
 ```
 
+<Note>
+Reads are much more frequent than writes, we can scale our Primary Server by separating the read and write 
+operations. This introduces a microservice architecture where the Read Service handles redirects while the 
+Write service handles the creation of new short urls. 
+
+This separation allows us to scale each service independently based on their specific demands.
+</Note>
+
 ---
 
 ### Data-Model Design
 
+Each row in our database consists of a short code (`~8` bytes), long URL (`~100` bytes), creationTime (`~8` 
+bytes), optional custom alias (`~100` bytes), and expiration date (`~8` bytes). This totals to `~200` bytes 
+per row. We can round up to 500 bytes to account for any additional metadata like the creator id, analytics 
+id, etc.
+
+If we store `1B` mappings, we're looking at `500 bytes * 1B rows = 500GB` of data. The reality is, this is 
+well within the capabilities of modern SSDs. Given the number of urls on the internet is our maximum bound, 
+we can expect it to grow but only modestly. 
+
+If we were to hit a hardware limit, we could always shard our data across multiple servers but a single 
+Postgres instance, for example, should do for now.
+
 ---
 
-### High-Level Architecture
+### Final Design
 
 ---
 
 ### Follow-up Questions
 
+The shortened URL exists at a domain that we own.
+
+We can use ...
+
+The basic structure of a shortened URL is: `?`.
+
+If the user provides custom alias, the system should check if it already taken or not. `How domain works 
+for custom alias?`.
 
 ---
 
