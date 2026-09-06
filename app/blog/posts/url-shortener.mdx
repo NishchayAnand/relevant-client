@@ -58,6 +58,10 @@ the more common base64 is because we exclude `+` and `/`. The slash is a path se
 sign can be interpreted as a space in query strings.
 </Note>
 
+To reduce collision probability, we need higher entropy, which means generating longer short codes. However, 
+longer codes negate the benefit of having a short URL. Detecting and resolving collisions also adds database 
+lookups on insertion, introducing latency and complexity.
+
 The shortened URL exists at a domain that we own.
 
 We can use ...
