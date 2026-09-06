@@ -30,9 +30,23 @@ and get a shortened version.
 
 ### Design Rationale
 
+
+
+
 #### **<span className="text-emerald-800">Q1. How to generate a unique shortened URL?</span>**
 
+The shortened URL exists at a domain that we own.
 
+We can use ...
+
+The basic structure of a shortened URL is: `?`.
+
+If the user provides custom alias, the system should check if it already taken or not.
+
+#### **<span className="text-emerald-800">Q2. What is the expected behavior when multiple users request the same long URL?</span>**
+
+The system should allow multiple short URLs to be generated for the same long URL since most users may want 
+separate expiration dates or custom aliases.
 
 
 
@@ -40,13 +54,20 @@ and get a shortened version.
 
 ### Sequence Flow
 
-#### Create Short URL
+#### Use Case 1: Create Short URL
 
-1. User submits a long URL along with additional details like custom alias, expiration date, etc.
+1. `User` submits a **long URL** along with additional details like **custom alias**, **expiration date**, etc. 
+
+2. The `Client (browser or mobile app)` sends a `POST /shorten` request (along with the long URL and additional 
+details) to the `Shortening Service`.
+
+3. The `Shortening Service` validates the request
+
+
 2. System creates a unique shortened URL.
 3. System returns the shortened URL to the user.
 
-#### Redirect to Original URL
+#### Use Case 2: Redirect to Original URL
 
 1. User visits the shortened URL.
 2. System redirects the user to the original URL.
@@ -59,9 +80,6 @@ and get a shortened version.
 
 ### Follow-up Questions
 
-1. How can the user specify a custom alias for their shortened URL?
-
-2. How can the user specify an expiration date for their shortened URL?
 
 ---
 
