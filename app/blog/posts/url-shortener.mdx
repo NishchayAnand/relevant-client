@@ -30,10 +30,33 @@ and get a shortened version.
 
 ### Design Rationale
 
-
-
-
 #### **<span className="text-emerald-800">Q1. How to generate a unique shortened URL?</span>**
+
+We need some entropy (randomness) to try to ensure that our codes are unique. Considering we are dealing 
+with ?? write request per day, a random number generator does not provide enough entropy to ensure that our 
+codes are unique.
+
+We could use a hash function like `SHA-256` to generate a fixed-size hash code. Hash functions take an input 
+and return a deterministic, fixed-size string of characters. Hash functions also provide a high degree of 
+entropy, meaning that the output appears random and is unlikely to collide for different inputs.
+
+<Note>
+Pure hash functions are deterministic: the same long URL always maps to the same short code without needing 
+to query the database. This may be desirable (deduplication) or not (if you need multiple codes per URL or 
+want to prevent guessability/adversarial preimages). For the latter cases, add a secret salt or nonce (HMAC). 
+</Note>
+
+We can then take the output and encode it using a base62 encoding scheme and take just the first N characters 
+as our short code. N is determined based on the number of characters needed to minimize collisions 
+(e.g., 8 characters gives 62^8 ≈ 218 trillion possible codes).
+
+<Note>
+Why base62? 
+
+It's a compact representation of numbers that uses 62 characters (a-z, A-Z, 0-9). The reason it's 62 and not 
+the more common base64 is because we exclude `+` and `/`. The slash is a path separator in URLs and the plus 
+sign can be interpreted as a space in query strings.
+</Note>
 
 The shortened URL exists at a domain that we own.
 
@@ -41,14 +64,17 @@ We can use ...
 
 The basic structure of a shortened URL is: `?`.
 
-If the user provides custom alias, the system should check if it already taken or not.
+If the user provides custom alias, the system should check if it already taken or not. `How domain works 
+for custom alias?`.
 
 #### **<span className="text-emerald-800">Q2. What is the expected behavior when multiple users request the same long URL?</span>**
 
 The system should allow multiple short URLs to be generated for the same long URL since most users may want 
 separate expiration dates or custom aliases.
 
+#### **<span className="text-emerald-800">Q3. How to deal with expired short URLs?</span>**
 
+Do storage capacity estimation and suggest the answer to this.
 
 ---
 
@@ -61,20 +87,78 @@ separate expiration dates or custom aliases.
 2. The `Client (browser or mobile app)` sends a `POST /shorten` request (along with the long URL and additional 
 details) to the `Shortening Service`.
 
-3. The `Shortening Service` validates the request
+3. The `Shortening Service` validates the request (`what validations?`) and creates a unique shortened URL.
 
+4. Once the shortened URL is created, the `Shortening Service` inserts a record into the database (`what 
+should be the name of the table?`) to store the mapping between the long URL and the shortened URL.
 
-2. System creates a unique shortened URL.
-3. System returns the shortened URL to the user.
+5. Finally, the `Shortening Service` returns the shortened URL to the `Client` with HTTP status code 
+`201 Created`.
 
 #### Use Case 2: Redirect to Original URL
 
-1. User visits the shortened URL.
-2. System redirects the user to the original URL.
+1. The `Client (browser or mobile app)` sends a `GET /<shortened-url>` request to the `Redirection Service`.
+
+2. The `Redirection Service` looks up the shortened URL in the database.
+
+3. If the shortened URL is found and is not expired, the `Redirection Service` sends an HTTP redirect response 
+to the `Client` with the original URL in the `Location` header (`Why in the Location header?`, `What HTTP 
+status code to return?`).
 
 ---
 
 ### API Design
+
+#### Shortening Service
+
+##### **<span className="text-emerald-800">API 1: POST /shorten</span>**
+
+###### **<span className="text-purple-800">Sample Request</span>**
+
+```
+POST /shorten
+Content-Type: application/json
+
+{
+  "longUrl": "https://www.google.com",
+  "customAlias": "google",
+  "expirationDate": "2026-06-12"
+}
+```
+
+**Algorithm:**
+
+```
+input_url = "https://www.example.com/some/very/long/url"
+# Canonicalize URL first (lowercase host, strip default ports, normalize trailing slash, etc.)
+canonical_url = canonicalize(input_url)
+hash_code = hash_function(canonical_url)
+short_code_encoded = base62_encode(hash_code)
+short_code = short_code_encoded[:8] # 8 characters
+```
+
+**Response:**
+
+```
+HTTP/1.1 201 Created
+Location: https://bit.ly/google
+```
+
+#### Redirection Service
+
+
+
+```
+
+```
+
+---
+
+### Data-Model Design
+
+---
+
+### High-Level Architecture
 
 ---
 
