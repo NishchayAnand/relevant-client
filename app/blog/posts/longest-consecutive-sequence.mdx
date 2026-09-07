@@ -45,43 +45,6 @@ incrementing the sequence length if the `current element = previous element + 1`
 
 #### Implementation
 
-```java
-public int longestConsecutive(int[] nums) {
-
-    // 1. Sort the array in ascending order.
-    Arrays.sort(nums);
-
-    // 2. Initialize maxLength to 1 and currLength to 1.
-    int maxLength = 1;
-    int currLength = 1;
-    
-    // 3. Start iterating from the second element to the end of the array.
-    for(int i = 2; i < nums.length; i++) {
-
-        // 3.a. if the current element is equal to the previous element, skip it.
-        if (nums[i] == nums[i-1]) {
-            continue;
-        }
-
-        // 3.b. if the current element is equal to the previous element + 1, increment currLength and update maxLength if 
-        // currLength is greater than maxLength.
-        if (nums[i] == nums[i-1] + 1) {
-            currLength++;
-            maxLength = Math.max(maxLength, currLength);
-        } 
-        // 3.c. if the current element is not equal to the previous element + 1, reset currLength to 1.
-        else {
-            currLength = 1;
-        }
-    }
-
-    return maxLength;
-
-}
-```
-
-#### Visualization
-
 <LongestConsecutiveSortingVisualizer />
 
 #### Time Complexity
