@@ -25,7 +25,7 @@ A. The duplicate doesn't increase the sequence length. Hence, we can skip duplic
 
 ---
 
-### Sorting Approach
+### Approach 1: Using Sorting
 
 Sorting the input array will bring all the consecutive elements together. We can then iterate over each element,
 incrementing the sequence length if the `current element = previous element + 1` or reset the sequence length to 
@@ -49,160 +49,62 @@ incrementing the sequence length if the `current element = previous element + 1`
 
 #### Time Complexity
 
-Sorting takes `O(n * log n)` and the scan pass takes `O(n)`, so overall complexity is dominated by sorting: `O(n * log n)`.
+Sorting takes `O(n * log n)` and the scan pass takes `O(n)`. Hence, the overall complexity is 
+`O(n * log n) + O(n) = O(n * log n)`.
 
 #### Space Complexity
 
-If sorting in place, extra space is `O(1)` (ignoring sort implementation details). If the language runtime uses 
-extra stack/temporary memory for sorting, practical space can be higher.
+Considering we are not using any extra space, the space complexity is `O(1)`.
 
----
-
-### Set-Based Approach 
-
-We can store all the unique elements in the set and, for each element, try to build a consecutive sequence 
-starting from it by checking the next elements.
-
-![set-approach](/longest-consecutive-subsequence/set-approach.png)
-
-#### Algorithm
-
-```java
-public int longestConsecutive(int[] nums) { 
-
-    // Edge Case: If nums is empty
-    if (nums.length == 0) {
-        return 0;
-    }
-
-    // Step 1: Populate set with all unique elements
-    Set<Integer> set = new HashSet<>();
-    for(int num: nums) {
-        set.add(num);
-    }
-
-    // Step 2: Explore consecutive subsequences starting from each element
-    int maxLength = 1;
-
-    for(int num: set) {
-        int currLength = 1;
-        int current = num;
-
-        while (set.contains(current + 1)) {
-            currLength++;
-            current++;
-        }
-
-        maxLength = Math.max(maxLength, currLength);
-    }
-
-    return maxLength;
-
-}
-```
-
-#### Visualization
-
-<LongestConsecutiveSetVisualizer />
-
-#### Time Complexity
-
-In the worst-case scenario, i.e., when `nums` of size `n` contains `n` consecutive unique elements,
-for every element `num`, the inner subsequence exploration loop runs proportional to how many 
-larger consecutive elements exist after it.
-
-| Element | Loop Runs |
-| ------- | --------- |
-| 1       | n - 1     |
-| 2       | n - 2     |
-| 3       | n - 3     |
-| ...     | ...       |
-| n       | 0         |
-
-
-Total operations performed = `(n-1) + (n-2) + (n-3) + ... + 0 = n(n-1)/2 = (n² - n)/2`. 
-Ignoring the constants and lower-order terms, the overall time complexity simplifies to `O(n²)`.
-
-#### Space Complexity
-
-In the worst case, we store all `n` elements in the set, since all elements in `nums` would be 
-unique. Hence, overall space complexity = `O(n)`.
+<Note>
+If the language runtime uses extra stack/temporary memory for sorting, practical space can be higher.
+</Note>
 
 ---
 
 ### Key Observation
 
-Every element in `nums` can either be start of a new consecutive subsequence or part of an 
-existing one.
+If `nums[L] ... nums[R]` forms a consecutive sequence, then starting the search from any index `i` where 
+`L < i ≤ R` can only produce a sequence that is shorter than or equal to the sequence starting at `L`.
 
-Exploring a subsequence starting from an element that is already part of an existing 
+In other words, we can say that: `"Every element can either be start of a new consecutive sequence or 
+part of an existing one."` Exploring a subsequence starting from an element that is already part of an existing 
 subsequence is redundant, since it will always produce a shorter sequence.
 
 ![start-of-subsequence](/longest-consecutive-subsequence/start-of-subsequence.png)
 
 ---
 
-### Optimized Set-Based Approach
+### Approach 2: Using Set Data Structure
 
-Instead of exploring subsequences starting from every number in `nums`, we only start 
-building a sequence if the current element marks the beginning of a sequence, i.e., 
-if `(nums-1)` does not exist.
-
-> **NOTE:** Iterate over the set instead of nums to avoid processing duplicate elements 
-multiple times.
+An element `nums[i]` marks the start of a new consecutive sequence if `(nums[i]-1)` does not exist in the input 
+array `nums`. In order to efficiently check if `(nums[i]-1)` exists in `nums`, we can make use of a set 
+data structure.
 
 #### Algorithm
 
-```java
-public int longestConsecutive(int[] nums) {
-
-    // Edge Case: If nums is empty
-    if (nums.length == 0) {
-        return 0;
-    }
-
-    // Step 1: Populate set with all unique elements
-    Set<Integer> set = new HashSet<>();
-    for(int num: nums) {
-        set.add(num);
-    }
-
-    // Step 2: Explore non-overlapping consecutive subsequences
-    int maxLength = 0;
-    for(int num: set) {
-        // Start only if it's the beginning of a sequence
-        if (!set.contains(num-1)) {
-
-            int currLength = 1;
-            int current = num;
-
-            while (set.contains(current+1)) {
-                currLength++;
-                current++;
-            }
-            maxLength = Math.max(maxLength, currLength);
-        }     
-    }
-
-    return maxLength;
-
-}
+```
+1. Populate the set with all unique elements in the input array.
+2. Iterate over the set (to aviod duplicate elements) and for each element, check if it marks the 
+start of a new consecutive sequence.
+    3. If it does, start building the sequence from the current element.
+    4. If it doesn't, skip the current element.
+5. Return the maximum length of the consecutive sequence.
 ```
 
-#### Visualization
+#### Implementation
 
 <LongestConsecutiveOptimizedVisualizer />
 
 #### Time Complexity
 
-Each element would be visited twice.
-
-Each element is processed at most twice: once when inserting it into the set, and once during sequence expansion.
-Hence, the overall time complexity = `O(n)`.
+Building the HashSet processes each input element once, and during expansion, each unique element is visited at 
+most once. Hence, the overall time complexity is `O(n)`.
 
 #### Space Complexity
 
-In the worst case, we store all `n` elements in the set. Hence, overall space complexity = `O(n)`.
+In the worst case (no duplicates), we store all `n` elements in the set. Hence, the overall space complexity is 
+`O(n)`.
 
 ---
 
