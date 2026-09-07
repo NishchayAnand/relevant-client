@@ -106,19 +106,15 @@ and implement in HashMap design.
 
 #### **<span className="text-emerald-800">Q3. How does load factor help in  resizing (rehashing)?</span>**
 
-**As the number of entries increases relative to the number of buckets, collisions become more likely.**
-With more entries in each bucket, lookup may require examining more entries, increasing the lookup time.
-
 The **Load Factor** is the ratio of the number of entries to the number of buckets. It allows the 
-`HashMap` to detect when the data structure is becoming too crowded. When the load factor exceeds a 
-certain threshold, the `HashMap` should resize the underlying bucket array and redistribute (rehash) 
-the entries across the increased number of buckets.
+`HashMap` to detect when the data structure is becoming too crowded. 
+
+When the load factor exceeds a certain threshold (e.g. `0.75`), the `HashMap` should resize the underlying 
+bucket array and redistribute (rehash) the entries across the increased number of buckets.
 
 <Note>
-Rehashing is a costly operation, which can make insertion a O(n) operation. Hence, it is best to resize 
-the bucket array when the load factor is just above the threshold of `0.75` or `0.8`.
-
-Because of rehashing, we cannot guarantee insertion order is maintained.
+**As the number of entries increases relative to the number of buckets, collisions become more likely.**
+With more entries in each bucket, lookup may require examining more entries, increasing the lookup time.
 </Note>
 
 ---
@@ -128,7 +124,12 @@ Because of rehashing, we cannot guarantee insertion order is maintained.
 ```java
 class MyHashMap {
 
+    /* 
+        1. We use a nested private static class to define Node because it's only needed inside MyHashMap.
+        2. Making it private and static keeps it encapsulated and avoids holding a reference to the outer class.
+    */
     private static class Node {
+
         private int key;
         private int value;
         private Node next;
@@ -137,9 +138,11 @@ class MyHashMap {
             this.key = key;
             this.value = value;
         }
+
     }
 
     private static final int INITIAL_CAPACITY = 16;
+    /*  A load factor of 0.75 means the hash map will be resized when 75% of the buckets are filled. */
     private static final double LOAD_FACTOR = 0.75;
 
     private int size;
@@ -154,10 +157,11 @@ class MyHashMap {
     }
     
     public void put(int key, int value) {
+
         int index = getBucketIndex(key);
         Node currentNode = bucketList[index];
 
-        // Key already exists, update the value
+        /* Key already exists, update the value */
         while (currentNode != null) {
             if (currentNode.key == key) {
                 currentNode.value = value;
@@ -166,19 +170,20 @@ class MyHashMap {
             currentNode = currentNode.next;
         }
 
-        // Key doesn't exist, add new node
-        Node newNode = new Node(key, value);
-        // Insert new node at the beginning of the bucket
+        /* Key doesn't exist, add new node at the beginning of the bucket */
+        Node newNode = new Node(key, value); 
         newNode.next = bucketList[index];
         bucketList[index] = newNode;
 
         size++;
         if (size > threshold) {
+            /* Resize the bucket array when the load factor is exceeded */
             resize();
         }
     }
     
     public int get(int key) {
+
         int index = getBucketIndex(key);
         Node currentNode = bucketList[index];
 
@@ -193,18 +198,21 @@ class MyHashMap {
     }
     
     public void remove(int key) {
+
         int index = getBucketIndex(key);
 
         Node currentNode = bucketList[index];
         Node previousNode = null;
 
         while(currentNode != null) {
+            /* If the key is found, remove the node */
             if (currentNode.key == key) {
-                if (previousNode == null) { 
-                    // removing the first node 
+                /* Removing the first node */
+                if (previousNode == null) {
                     bucketList[index] = currentNode.next;
-                } else { 
-                    // removing the middle / end node
+                } 
+                /* Removing a node in the middle or at the end */
+                else {
                     previousNode.next = currentNode.next;
                 }
 
@@ -217,31 +225,56 @@ class MyHashMap {
         }
     }
 
+    /* 
+        The getBucketIndex method is used to determine the index of the bucket where the key-value pair should be stored.
+    */
     private int getBucketIndex(int key) {
         int hash = Integer.hashCode(key);
         return Math.floorMod(hash, capacity);
     }
 
+    /* Resize the bucket array when the load factor is exceeded */
     private void resize() {
+        /* Store the old bucket array */
         Node[] oldBucketList = bucketList;
         capacity = capacity * 2;
         Node[] newBucketList = new Node[capacity];
+        /* Rehash the entries into the new bucket array */
         rehash(oldBucketList, newBucketList);
+        /* Update the bucket list to the new bucket array */
         bucketList = newBucketList;
         threshold = (int) (capacity * LOAD_FACTOR);
     }
 
+    /* Rehash the entries into the new bucket array */
     private void rehash(Node[] oldBucketList, Node[] newBucketList) {
+
+        /* Iterate through the old bucket array */
         for (Node headNode : oldBucketList) {
+
             Node currentNode = headNode;
+
+            /* Iterate through the linked list in the bucket */
             while (currentNode != null) {
+
                 Node nextNode = currenNode.next;
-                int index = getBucketIndex(currentNode.key, newBucketList.length);
-                currentNode.next = newBuckets[index];
-                newBuckets[index] = currentNode;
+
+                int index = Math.floorMod(
+                    Integer.hashCode(currentNode.key),
+                    newBucketList.length
+                );
+
+                /* Insert the node at the start of the new bucket */
+                currentNode.next = newBucketList[index];
+                newBucketList[index] = currentNode;
+
+                /* Move to the next node in the linked list */
                 currentNode = nextNode;
+
             }
+
         }
+
     }
 }
 ```
@@ -252,10 +285,31 @@ class MyHashMap {
 
 ### Time Complexity Analysis
 
+Understanding the time complexity involves analyzing how different operations behave under different scenarios.
 
+#### **<span className="text-purple-800">`put()` Operation</span>**
+
+The `put()` operation primarily involves finding the correct bucket for the key and inserting the node at the 
+beginning of the bucket. Since hashing is a constant time operation, the time complexity for most `put()` 
+operations is `O(1)`. Only when the size of the entire data structure exceeds certain threshold, the `HashMap` 
+resizes and redistributes the entries across the increased capacity (usually doubled). This operation can 
+take `O(n)` time, but since it is a rare event, it does not significantly impact the overall time complexity.
+
+#### **<span className="text-purple-800">`get()` | `remove()` Operation</span>**
+
+The `get()` and `remove()` operations primarily involve finding the correct bucket for the key and traversing 
+the linked list in the bucket. With a good hash function and a controlled load factor, the entries are 
+distributed across many buckets, so each bucket contains a small number of entries. Hence, the time complexity 
+in most cases is `O(1)`.
 
 ---
 
 ### Space Complexity Analysis
+
+The space complexity of the `HashMap` is determined primarily by the **number of `(key, value)` entries** 
+stored in the map and the **number of buckets allocated**. 
+
+Let's assume the map contains `n` entries. Considering, the number of buckets allocated is proportional to the 
+number of entries `(entries = LOAD_FACTOR * buckets)`, the overallspace complexity is `O(n + 0.75 * n) = O(n)`.
 
 ---
