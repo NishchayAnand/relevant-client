@@ -20,71 +20,55 @@ Explanation: The answer is "b", with the length of 1.
 
 Example 3:
 
-Input: s = "pwwkew"
-Output: 3
-Explanation: The answer is "wke", with the length of 3.
-Notice that the answer must be a substring, "pwke" is a subsequence and not a substring.
+Input: s = "abba"
+Output: 2
+Explanation: The answer is "ab", with the length of 2.
 ```
 
 > **Solve Here:** [Leetcode 3](https://leetcode.com/problems/longest-substring-without-repeating-characters/description/)
 
 ---
 
-### Approach 1: Explore the Longest Substring Starting from Each Index
+### Approach 1: Nested Loops
 
 Use nested loops to explore longest possible substring starting from each character. 
 
-For each starting index, expand the substring one character at a time while maintaining a 
-`HashSet` to track visited characters. If a duplicate character is encountered, stop 
-expanding further for that starting index and move to the next index.
-
 #### Algorithm
 
-```java
-public int lengthOfLongestSubstring(String s) {
+```
+1. Initialize maxLength to 0 to keep track of the longest substring found so far.
+2. Iterate over each character in the string using an outer loop. The current index represents the starting position 
+of the substring. For each starting position:
 
-    int maxLength = Integer.MIN_VALUE;
+    4. Initialize an empty HashSet to store the characters in the current substring.
+    5. Initialize currLength to 0.
 
-    for(int i = 0; i < s.length(); i++) {
-        Set<Character> unique = new HashSet<>();
-        int currLength = 0;
-        for(int j = i; j < s.length(); j++) {
-            char ch = s.charAt(j);
-            if(!unique.contains(ch)) {
-                unique.add(ch);
-                currLength++;
-                maxLength = Math.max(maxLength, currLength);
-            } else {
-                break;
-            }
-        }
-    }
+    6. Iterate from the current starting position toward the end of the string using an inner loop. For each character:
+        7. If the character is not present in the HashSet, add it to the set and increment currLength.
+        8. If the character is already present in the HashSet, stop the inner loop because extending the substring 
+        would introduce a duplicate.
+    
+    9. Update maxLength with the maximum of maxLength and currLength.
 
-    return maxLength == Integer.MIN_VALUE ? 0 : maxLength;
-
-}
+8. Return maxLength.
 ```
 
-#### Visualization
+#### Implementation
 
 <LongestSubstringApproach1Visualizer />
 
 #### Time Complexity
 
 In the worst-case scenario (all characters in the input string are unique), for 
-every starting index `i`, we explore all `(n-i)` ending indices to its right. 
+every starting index `i`, we explore all `(n-i)` characters to its right. 
 
 This results in a total of: `n + (n-1) + ... + 2 + 1 = n(n+1)/2` iterations of the inner loop
-across all starting indices. 
-
-Therefore, the overall time complexity = `O(n²)`.
+across all starting indices. Therefore, the overall time complexity is `O(n²)`.
 
 #### Space Complexity
 
-We use a `HashSet` to store the characters in the current substring. In the worst case (when all 
-characters are unique), the set can grow to hold at most `n` characters at a time.
-
-Therefore, the overall space complexity = `O(n)`.
+In the worst case (when all characters are unique), the `HashSet` can grow to hold at most 
+`n` characters at a time. Therefore, the overall space complexity = `O(n)`.
 
 ---
 
@@ -94,63 +78,44 @@ While expanding a substring, if we encounter a character that has already been s
 directly move the starting index `i` to the position right after the previous occurrence of 
 that character.
 
-Any starting index before that would only produce smaller substrings.
+All starting indices before that would only produce smaller substrings.
 
 ![key-observations](/longest-substring-without-repeating-characters/key-observation.png)
 
-> **NOTE:** A character is only considered duplicate only if its previous occurrence lies 
+<Note>
+A character is only considered duplicate only if its previous occurrence lies 
 within the current window. If it appears before the current starting index, it can be safely 
 ignored.
+</Note>
 
 ![key-observations](/longest-substring-without-repeating-characters/current-window.png)
 
 ---
 
-### Approach 2: Expand & Shrink
+### Approach 2: Two Pointers
 
-Use two pointers `(i, j)` to traverse the string while maintaining a sliding window.
-
-- Expland the window (`j++`) when the current character is **not duplicate withing the current 
-window**.
-
-- If a duplicate character is encountered, shrink the window by moving `i` forward until the
-duplicate is removed.
-
-> **NOTE:** Maintain a `HashMap` to store the **last seen index** of each character. This 
-allows you to efficiently jump `i` forward to `lastSeenIndex + 1`, instead of moving it step 
-by step.
+Use two pointers `(left, right)` to traverse the string while maintaining a sliding window. Maintain a `HashMap` to 
+store the **last seen index** of each character. This allows you to efficiently jump `left` forward to 
+`(lastSeenIndex + 1)`.
 
 #### Algorithm
 
-```java
-public int lengthOfLongestSubstring(String s) {
+```
+1. Initialize left to 0 to represent the start of the current window.
+2. Initialize maxLength to 0 to keep track of the longest valid substring found so far.
+3. Initialize a HashMap called lastSeen to store the most recent index of each character.
 
-    int maxLength = Integer.MIN_VALUE;
-    Map<Character, Integer> lastSeen = new HashMap<>();
-    
-    int i = 0;
-    for(int j = 0; j < s.length(); j++) {
+4. Iterate through the string using right as the end of the current window. For each character:
+    5. If the character exists in lastSeen and its previous occurrence is inside the current window, 
+    move left to one position after that previous occurrence.
+    6. Update lastSeen with the current index of the character.
+    7. Calculate the current window length as right - left + 1.
+    8. Update maxLength.
 
-        char ch = s.charAt(j);
-
-        // If duplicate, shrink the window
-        if(lastSeen.containsKey(ch) && lastSeen.get(ch) >= i) {
-            i = lastSeen.get(ch) + 1;
-        }
-
-        // Persist current character index 
-        lastSeen.put(ch, j);
-
-        maxLength = Math.max(maxLength, j - i + 1);
-
-    }
-
-    return maxLength == Integer.MIN_VALUE ? 0 : maxLength;
-
-}
+9. Return maxLength.
 ```
 
-#### Visualization
+#### Implementation
 
 <LongestSubstringApproach2Visualizer />
 
