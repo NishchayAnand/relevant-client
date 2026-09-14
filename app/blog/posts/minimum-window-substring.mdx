@@ -1,0 +1,81 @@
+---
+title: 'Data Structures & Algorithms (Sliding Window): Minimum Window Substring'
+publishedAt: '2026-02-09'
+---
+
+Given two strings `s` and `t`, return the smallest substring of `s` that contains all 
+the characters in `t` (including duplicates). If no such string exists, return an 
+empty string `""`.
+
+```
+Example 1:
+
+Input: s = "ADOBECODEBANC", t = "ABC"
+Output: "BANC"
+Explanation: Out of all possible substrings: "ADOBEC" (length = 6), "CODEBA" (length = 6), 
+"BANC" (length = 4) containing all characters in t ("ABC"), "BANC" is the smallest. 
+```
+
+> **Playground**: [Leetcode 76](https://leetcode.com/problems/minimum-window-substring/description/)
+
+---
+
+### General Observations
+
+Below are a few important design decisions that will allow us to figure out a suitable 
+algorithm to handle this problem:
+
+##### **<span className="text-emerald-800">Q1. How to check if a substring of `s` is a valid candidate?</span>**
+
+We can maintain a frequency map of `t` and use it track the frequency of the required 
+characters within the current substring. If the substring contains every character from `t` 
+with at least the required frequency, it becomes a valid candidate.
+
+##### **<span className="text-emerald-800">Q2. Can there be multiple correct answers?</span>**
+
+No, we can assume all test cases will have a unique answer.
+
+---
+
+### Brute Force Approach: Nested Loops
+
+Loop over each substring of `s` and keep track of the smallest substring that contains
+all the required characters from `t` with matching frequencies. 
+
+#### Algorithm
+
+```java
+- Initialize "minLength" = Infinity, "smallestSubstring" = "";
+- Create a frequency map: "reqFreqMap" of t;
+
+- Loop over each "startIndex" in s:
+    - Initialize "currLength" = 0 and an empty frequency map: "currFreqMap" = {} to 
+    store the length and frequencies of the required characters observed in the current 
+    substring;
+
+    - Loop over each "endIndex" starting from current "startIndex":
+        - If "ch" exists in "reqFreqMap": 
+            - Update the frequency of "ch" in "currFreqMap";
+            - Increment "currLength" by 1;
+
+            - If "currFreqMap" & "reqFreqMap" become equal and "currLength" < "minLength":
+                - "minLength" = "currLength";
+                - smallestSubstring = s["startIndex", "endIndex"];
+                - break;
+
+- return "smallestSubstring";
+```
+
+#### Implementation
+
+```java
+public String minWindow(String s, String t) {
+
+}
+```
+
+
+
+
+
+

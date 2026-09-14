@@ -6,6 +6,73 @@ publishedAt: '2026-01-16'
 Quality assurance (QA) of systems distributed across multiple servers or regions can not 
 be achieved using localized and single-node testing processes.
 
+### Unit Testing
+
+### Black Box Testing
+
+A black-box test is a test where you verify the behavior of a system without knowing or depending on its 
+internal implementation.
+
+### Component Testing
+
+Component testing is testing one complete application component as a single unit, while isolating it from the 
+rest of the system.
+
+For example, the `Order` Component contains multiple classes:
+
+- OrderController
+- OrderService
+- OrderRepository
+- Validators
+- Mappers
+
+These classes work together to implement the order feature.
+
+<Note>
+But it doesn't involve the real payment service, email service, or another microservice. Those are 
+replaced with mocks or stubs.
+</Note>
+
+### Integration Testing 
+
+Integration testing verifies that two or more independently developed pieces work correctly when they 
+are connected together.
+
+### System Testing
+
+- A system test might verify that a request has a trace/correlation ID.
+
+### Performance Testing
+
+A performance test asks:
+
+```
+Can we process 10,000 orders/sec while keeping p99 latency below 500 ms?
+```
+
+For example, you might define an SLA/SLO:
+
+```
+Throughput:       10,000 requests/sec
+p50 latency:      < 100 ms
+p95 latency:      < 300 ms
+p99 latency:      < 500 ms
+Error rate:       < 0.1%
+CPU utilization:  < 80%
+```
+
+These become the performance requirements you're testing against.
+
+### Acceptance Testing
+
+Acceptance testing verifies that the software satisfies the business requirements and expectations of the 
+customer/user and is ready to be accepted or released.
+
+### Regression Testing
+
+Regression testing means testing existing functionality again after a code change to make sure the change 
+hasn't broken something that previously worked.
+
 
 
 
