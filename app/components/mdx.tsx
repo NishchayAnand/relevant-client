@@ -82,6 +82,7 @@ import VideoPlaybackPipelineVisualizer from './video-playback-pipeline-visualize
 import HttpRangeRequestVisualizer from './http-range-request-visualizer';
 import ContainerMostWaterBruteVisualizer from './container-most-water-brute-visualizer';
 import LoggingSequenceVisualizer from './logging-sequence-visualizer';
+import MinimumWindowSubstringBruteVisualizer from './minimum-window-substring-brute-visualizer';
 import { Mermaid } from './mermaid';
 
 hljs.registerLanguage('javascript', javascript);
@@ -408,6 +409,7 @@ let components = {
   HttpRangeRequestVisualizer: HttpRangeRequestVisualizer,
   ContainerMostWaterBruteVisualizer: ContainerMostWaterBruteVisualizer,
   LoggingSequenceVisualizer: LoggingSequenceVisualizer,
+  MinimumWindowSubstringBruteVisualizer: MinimumWindowSubstringBruteVisualizer,
   Image: RoundedImage,
   Note,
   Algorithm,

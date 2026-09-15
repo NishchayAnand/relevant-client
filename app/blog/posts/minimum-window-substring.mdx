@@ -59,66 +59,7 @@ all the required characters from `t` with at least the required frequencies.
 
 #### Implementation
 
-```java
-public String minWindow(String s, String t) {
-
-    // 1. Build the frequency map of required characters from t
-    Map<Character, Integer> reqFreqMap = new HashMap<>();
-
-    for (char ch : t.toCharArray()) {
-        reqFreqMap.put(ch, reqFreqMap.getOrDefault(ch, 0) + 1);
-    }
-
-    // 2. Intialize the smallest valid substring
-    int minLength = Integer.MAX_VALUE;
-    String smallestSubstring = "";
-
-    // 3. Consider every possible starting index
-    for (int start = 0; start < s.length(); start++) {
-
-        Map<Character, Integer> currFreqMap = new HashMap<>();
-
-        // 4. Expand the substring from start
-        for (int end = start; end < s.length(); end++) {
-
-            char ch = s.charAt(end);
-
-            // Track only characters present in t
-            if(reqFreqMap.containsKey(ch)) {
-                currFreqMap.put(
-                    ch,
-                    currFreqMap.getOrDefault(ch, 0) + 1
-                );
-            }
-
-            // 5. Check if the current substring is valid
-            boolean valid = true;
-
-            for (char reqChar : reqFreqMap.keySet()) {
-                int reqFreq = reqFreqMap.get(reqChar);
-                int currFreq = currFreqMap.getOrDefault(reqChar, 0);
-
-                if (currFreq < reqFreq) {
-                    valid = false;
-                    break;
-                }
-            }
-
-            // 6. Update the smallest valid substring
-            int currLength = end - start + 1;
-
-            if (valid && currLength < minLength) {
-                minLength = currLength;
-                smallestSubstring = s.substring(start, end + 1);
-            }
-        }
-    }
-
-    // 7. Return the smallest valid substring
-    return smallestSubstring;
-
-}
-```
+<MinimumWindowSubstringBruteVisualizer />
 
 
 
