@@ -39,7 +39,7 @@ No, we can assume all test cases will have a unique answer.
 
 ---
 
-### Brute Force Approach: Nested Loops
+### Brute Force Approach - Nested Loops
 
 Loop over each substring of `s` and keep track of the smallest substring that contains
 all the required characters from `t` with at least the required frequencies. 
@@ -60,6 +60,32 @@ all the required characters from `t` with at least the required frequencies.
 #### Implementation
 
 <MinimumWindowSubstringBruteVisualizer />
+
+#### Time Complexity
+
+There are `n(n+1)/2` possible substrings of `s`, so traversing all substrings contributes `O(n²)`.
+
+For each substring, we iterate over `reqFreqMap` to check whether every required character is present 
+with the required frequency. This takes `O(k)`, where `k` is the number of distinct characters in `t`.
+
+Hence, the overall time complexity will be **`O(n² · k)`**.
+
+#### Space Complexity
+
+Both `reqFreqMap` and `currFreqMap` will store the frequency of all the distinct characters in `t`.
+Assuming `k` is the number of distinct characters in `t`, the overall space complexity will be `O(k)`. 
+
+---
+
+### Key Optimization
+
+Once the current window is valid, we know it contains everything `t` holds.
+
+---
+
+### Expand & Shrink Approach: Two Pointers
+
+
 
 
 
