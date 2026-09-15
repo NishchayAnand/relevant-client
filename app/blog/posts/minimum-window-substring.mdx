@@ -12,8 +12,11 @@ Example 1:
 
 Input: s = "ADOBECODEBANC", t = "ABC"
 Output: "BANC"
-Explanation: Out of all possible substrings: "ADOBEC" (length = 6), "CODEBA" (length = 6), 
-"BANC" (length = 4) containing all characters in t ("ABC"), "BANC" is the smallest. 
+
+Example 2:
+
+Input: s = "aaaabbbbbcdd", t = "abcdd"
+Output: "abbbbbcdd"
 ```
 
 > **Playground**: [Leetcode 76](https://leetcode.com/problems/minimum-window-substring/description/)
@@ -22,14 +25,13 @@ Explanation: Out of all possible substrings: "ADOBEC" (length = 6), "CODEBA" (le
 
 ### General Observations
 
-Below are a few important design decisions that will allow us to figure out a suitable 
-algorithm to handle this problem:
+Below are a few key insights that will help us figure out a suitable algorithm to solve 
+this problem:
 
 ##### **<span className="text-emerald-800">Q1. How to check if a substring of `s` is a valid candidate?</span>**
 
-We can maintain a frequency map of `t` and use it track the frequency of the required 
-characters within the current substring. If the substring contains every character from `t` 
-with at least the required frequency, it becomes a valid candidate.
+We can maintain a frequency map of `t`. If a substring of `s` contains every character from 
+`t` with **at least** its required frequency, then the substring is a valid candidate.
 
 ##### **<span className="text-emerald-800">Q2. Can there be multiple correct answers?</span>**
 
@@ -40,36 +42,80 @@ No, we can assume all test cases will have a unique answer.
 ### Brute Force Approach: Nested Loops
 
 Loop over each substring of `s` and keep track of the smallest substring that contains
-all the required characters from `t` with matching frequencies. 
+all the required characters from `t` with at least the required frequencies. 
 
 #### Algorithm
 
 ```java
-- Initialize "minLength" = Infinity, "smallestSubstring" = "";
-- Create a frequency map: "reqFreqMap" of t;
-
-- Loop over each "startIndex" in s:
-    - Initialize "currLength" = 0 and an empty frequency map: "currFreqMap" = {} to 
-    store the length and frequencies of the required characters observed in the current 
-    substring;
-
-    - Loop over each "endIndex" starting from current "startIndex":
-        - If "ch" exists in "reqFreqMap": 
-            - Update the frequency of "ch" in "currFreqMap";
-            - Increment "currLength" by 1;
-
-            - If "currFreqMap" & "reqFreqMap" become equal and "currLength" < "minLength":
-                - "minLength" = "currLength";
-                - smallestSubstring = s["startIndex", "endIndex"];
-                - break;
-
-- return "smallestSubstring";
+1. Create a frequency map of all characters in "t".
+2. Initialize variables to store the length and value of the smallest valid substring found so far.
+3. Start from every character in "s" and expand the substring one character at a time.
+4. Maintain a frequency map for the required characters present in the current substring.
+5. After each expansion, check whether the current substring contains every character from "t" 
+   with at least the required frequency.
+6. If it is valid and shorter than the current minimum, update the answer.
+7. After checking all possible substrings, return the smallest valid substring. 
 ```
 
 #### Implementation
 
 ```java
 public String minWindow(String s, String t) {
+
+    // 1. Build the frequency map of required characters from t
+    Map<Character, Integer> reqFreqMap = new HashMap<>();
+
+    for (char ch : t.toCharArray()) {
+        reqFreqMap.put(ch, reqFreqMap.getOrDefault(ch, 0) + 1);
+    }
+
+    // 2. Intialize the smallest valid substring
+    int minLength = Integer.MAX_VALUE;
+    String smallestSubstring = "";
+
+    // 3. Consider every possible starting index
+    for (int start = 0; start < s.length(); start++) {
+
+        Map<Character, Integer> currFreqMap = new HashMap<>();
+
+        // 4. Expand the substring from start
+        for (int end = start; end < s.length(); end++) {
+
+            char ch = s.charAt(end);
+
+            // Track only characters present in t
+            if(reqFreqMap.containsKey(ch)) {
+                currFreqMap.put(
+                    ch,
+                    currFreqMap.getOrDefault(ch, 0) + 1
+                );
+            }
+
+            // 5. Check if the current substring is valid
+            boolean valid = true;
+
+            for (char reqChar : reqFreqMap.keySet()) {
+                int reqFreq = reqFreqMap.get(reqChar);
+                int currFreq = currFreqMap.getOrDefault(reqChar, 0);
+
+                if (currFreq < reqFreq) {
+                    valid = false;
+                    break;
+                }
+            }
+
+            // 6. Update the smallest valid substring
+            int currLength = end - start + 1;
+
+            if (valid && currLength < minLength) {
+                minLength = currLength;
+                smallestSubstring = s.substring(start, end + 1);
+            }
+        }
+    }
+
+    // 7. Return the smallest valid substring
+    return smallestSubstring;
 
 }
 ```
