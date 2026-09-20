@@ -79,7 +79,23 @@ Assuming `k` is the number of distinct characters in `t`, the overall space comp
 
 ### Key Optimization
 
-Once the current window is valid, we know it contains everything `t` holds.
+Once the current window `[start, end]` is valid, we know it contains every character present in `t`. 
+Since the previous window `[start, end-1]` was invalid, any smaller window ending before `end` will also be invalid 
+(because it contains even fewer characters). Therefore, there is no need to explore those windows again.
+
+![invalid-substrings](/minimum-window-substring/key-observation-1.png)
+
+we can focus on moving start forward to find the smallest valid window ending at end.
+
+Once the current window `[start, end]` is valid, we know it contains every character required by `t`. Since 
+the substring `[start, end)` was invalid, all its substrings will also be invalid. Hence, there is no need to 
+explore other substrings ending before `end`.
+
+Once the current window `[start, end]` is valid, we know it contains every character `t` holds. However, since the 
+current window become valid at `end`, there can be smaller substrings between `[start, end]` which are also valid but 
+we don't need to explore substring not ending at `end`.
+
+Since end is fixed, we can move start forward to remove unnecessary characters and find the smallest valid window ending at end. 
 
 ---
 
