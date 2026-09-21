@@ -124,108 +124,27 @@ small as possible.
 7. Return the shortest valid substring.
 ```
 
-#### Implementation 
+#### Implementation
 
-```java
-class Solution {
+<MinimumWindowSubstringSlidingWindowVisualizer />
 
-    /**
-     * Checks whether the current window contains every character
-     * from t with at least the required frequency.
-     */
-    private boolean isValid(
-            Map<Character, Integer> reqFreqMap,
-            Map<Character, Integer> currFreqMap) {
+#### Time Complexity
 
-        for (char reqChar : reqFreqMap.keySet()) {
-            int reqFreq = reqFreqMap.get(reqChar);
-            int currFreq = currFreqMap.getOrDefault(reqChar, 0);
+Each character in `s` is processed at most twice: once when the `end` pointer expands the 
+window and once when the `start` pointer shrinks the window.
 
-            // Current window does not contain enough of this character.
-            if (currFreq < reqFreq) {
-                return false;
-            }
-        }
+For each validity check, we iterate over all distinct characters in `t`, which takes `O(k)`, 
+where `k` is the number of distinct characters in `t`.
 
-        return true;
-    }
+Therefore, the overall time complexity is `O(n · k)`.
 
-    public String minWindow(String s, String t) {
+#### Space Complexity
 
-        // 1. Create a frequency map of all characters in t.
-        Map<Character, Integer> reqFreqMap = new HashMap<>();
+The overall auxiliary space complexity is the same as the brute-force approach, i.e., `O(k)`, 
+where `k` is the number of distinct characters in `t`.
 
-        for (char ch : t.toCharArray()) {
-            reqFreqMap.put(
-                ch,
-                reqFreqMap.getOrDefault(ch, 0) + 1
-            );
-        }
+---
 
-        // 2. Initialize variables to store the smallest valid substring.
-        int minLength = Integer.MAX_VALUE;
-        String smallestSubstring = "";
-
-        // 3. Initialize two pointers to represent the sliding window.
-        int start = 0;
-        int end = 0;
-
-        // Store the frequency of required characters in the current window.
-        Map<Character, Integer> currFreqMap = new HashMap<>();
-
-        // 4. Expand the window using the end pointer.
-        while (end < s.length()) {
-
-            char endChar = s.charAt(end);
-
-            // Update the frequency only if the character is required by t.
-            if (reqFreqMap.containsKey(endChar)) {
-                currFreqMap.put(
-                    endChar,
-                    currFreqMap.getOrDefault(endChar, 0) + 1
-                );
-            }
-
-            // 5. Check whether the current window is valid.
-            // 6. While valid, shrink the window from the left.
-            while (start <= end && isValid(reqFreqMap, currFreqMap)) {
-
-                int currLength = end - start + 1;
-
-                // Update the smallest valid substring.
-                if (currLength < minLength) {
-                    minLength = currLength;
-                    smallestSubstring = s.substring(start, end + 1);
-                }
-
-                // Character being removed from the window.
-                char startChar = s.charAt(start);
-
-                // If it is a required character, update its frequency.
-                if (reqFreqMap.containsKey(startChar)) {
-
-                    int currFreq = currFreqMap.get(startChar);
-
-                    if (currFreq == 1) {
-                        currFreqMap.remove(startChar);
-                    } else {
-                        currFreqMap.put(startChar, currFreq - 1);
-                    }
-                }
-
-                // Shrink the window.
-                start++;
-            }
-
-            // Expand the window.
-            end++;
-        }
-
-        // 7. Return the smallest valid substring.
-        return smallestSubstring;
-    }
-}
-```
 
 
 
