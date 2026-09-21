@@ -49,11 +49,13 @@ all the required characters from `t` with at least the required frequencies.
 ```java
 1. Create a frequency map of all characters in "t".
 2. Initialize variables to store the length and value of the smallest valid substring found so far.
+
 3. Start from every character in "s" and expand the substring one character at a time.
 4. Maintain a frequency map for the required characters present in the current substring.
 5. After each expansion, check whether the current substring contains every character from "t" 
    with at least the required frequency.
 6. If it is valid and shorter than the current minimum, update the answer.
+
 7. After checking all possible substrings, return the smallest valid substring. 
 ```
 
@@ -79,27 +81,153 @@ Assuming `k` is the number of distinct characters in `t`, the overall space comp
 
 ### Key Optimization
 
-Once the current window `[start, end]` is valid, we know it contains every character present in `t`. 
-Since the previous window `[start, end-1]` was invalid, any smaller window ending before `end` will also be invalid 
-(because it contains even fewer characters). Therefore, there is no need to explore those windows again.
+Once the current window `[start, end]` becomes valid, it contains all the characters present in `t`. We 
+can make a few observations to avoid performing unncessary work from the brute-force (nested-loop) 
+approach:
+
+1. **No need to explore earlier ending positions**: Since the previous window `[start, end-1]` was 
+invalid, any smaller window ending at or before `end-1` will also be invalid because it contains even 
+fewer characters. Therefore, there is no need to explore those windows again.
 
 ![invalid-substrings](/minimum-window-substring/key-observation-1.png)
 
-we can focus on moving start forward to find the smallest valid window ending at end.
+2. **Shrink the current valid window**: The current window may contain unnecessary characters at the 
+beginning. Therefore, we can increment `start` to remove characters from the left and try to find a 
+smaller valid window ending at `end`.
 
-Once the current window `[start, end]` is valid, we know it contains every character required by `t`. Since 
-the substring `[start, end)` was invalid, all its substrings will also be invalid. Hence, there is no need to 
-explore other substrings ending before `end`.
-
-Once the current window `[start, end]` is valid, we know it contains every character `t` holds. However, since the 
-current window become valid at `end`, there can be smaller substrings between `[start, end]` which are also valid but 
-we don't need to explore substring not ending at `end`.
-
-Since end is fixed, we can move start forward to remove unnecessary characters and find the smallest valid window ending at end. 
+![valid-substrings](/minimum-window-substring/key-observation-2.png)
 
 ---
 
-### Expand & Shrink Approach: Two Pointers
+### Sliding Window Approach
+
+Use two pointers: `[start, end]` to maintain a sliding window containing the current substring. Move 
+`end` forward until the window becomes valid, then move `start` forward to make the valid window as 
+small as possible.
+
+#### Algorithm 
+
+```java
+1. Create a frequency map of all characters in "t".
+2. Initialize variables to store the length and value of the smallest valid substring found so far.
+
+3. Initialize two pointers, "start" and "end", to represent the boundaries of the current sliding window.
+4. Increment "end" to expand the window one character at a time and update the frequency of the 
+   required characters in the current window.
+5. For each expansion, check if the current window contains every character from "t" with at least
+   the required frequency.
+6. While the current window is valid:
+      - Update the smallest valid substring is the current window is smaller.
+      - Increment "start" to shrink the window.
+      - If character removed from the window is required by "t", update its frequency in the current window.
+
+7. Return the shortest valid substring.
+```
+
+#### Implementation 
+
+```java
+class Solution {
+
+    /**
+     * Checks whether the current window contains every character
+     * from t with at least the required frequency.
+     */
+    private boolean isValid(
+            Map<Character, Integer> reqFreqMap,
+            Map<Character, Integer> currFreqMap) {
+
+        for (char reqChar : reqFreqMap.keySet()) {
+            int reqFreq = reqFreqMap.get(reqChar);
+            int currFreq = currFreqMap.getOrDefault(reqChar, 0);
+
+            // Current window does not contain enough of this character.
+            if (currFreq < reqFreq) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    public String minWindow(String s, String t) {
+
+        // 1. Create a frequency map of all characters in t.
+        Map<Character, Integer> reqFreqMap = new HashMap<>();
+
+        for (char ch : t.toCharArray()) {
+            reqFreqMap.put(
+                ch,
+                reqFreqMap.getOrDefault(ch, 0) + 1
+            );
+        }
+
+        // 2. Initialize variables to store the smallest valid substring.
+        int minLength = Integer.MAX_VALUE;
+        String smallestSubstring = "";
+
+        // 3. Initialize two pointers to represent the sliding window.
+        int start = 0;
+        int end = 0;
+
+        // Store the frequency of required characters in the current window.
+        Map<Character, Integer> currFreqMap = new HashMap<>();
+
+        // 4. Expand the window using the end pointer.
+        while (end < s.length()) {
+
+            char endChar = s.charAt(end);
+
+            // Update the frequency only if the character is required by t.
+            if (reqFreqMap.containsKey(endChar)) {
+                currFreqMap.put(
+                    endChar,
+                    currFreqMap.getOrDefault(endChar, 0) + 1
+                );
+            }
+
+            // 5. Check whether the current window is valid.
+            // 6. While valid, shrink the window from the left.
+            while (start <= end && isValid(reqFreqMap, currFreqMap)) {
+
+                int currLength = end - start + 1;
+
+                // Update the smallest valid substring.
+                if (currLength < minLength) {
+                    minLength = currLength;
+                    smallestSubstring = s.substring(start, end + 1);
+                }
+
+                // Character being removed from the window.
+                char startChar = s.charAt(start);
+
+                // If it is a required character, update its frequency.
+                if (reqFreqMap.containsKey(startChar)) {
+
+                    int currFreq = currFreqMap.get(startChar);
+
+                    if (currFreq == 1) {
+                        currFreqMap.remove(startChar);
+                    } else {
+                        currFreqMap.put(startChar, currFreq - 1);
+                    }
+                }
+
+                // Shrink the window.
+                start++;
+            }
+
+            // Expand the window.
+            end++;
+        }
+
+        // 7. Return the smallest valid substring.
+        return smallestSubstring;
+    }
+}
+```
+
+
 
 
 
