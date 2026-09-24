@@ -6,7 +6,8 @@ publishedAt: '2026-02-03'
 You are given a string `s` and an integer `k`. You can choose any character of the string and change 
 it to any other uppercase English character. You can perform this operation at most `k` times.
 
-Return the length of the longest substring containing the same letter you can get after performing the above operations.
+Return the length of the longest substring containing the same letter you can get after performing the 
+above operations.
 
 ```
 Example 1:
@@ -30,15 +31,44 @@ There may exists other ways to achieve this answer too.
 
 ### Basic Intuition
 
-For any substring, keeping the most frequent character as-is minimizes the number of replacements. All the 
-remaining characters can be replaced to make the entire substring consist of the same character.
+The basic intuition is to iterate over every substring, check if it is eligible to be converted into a substring 
+containing the same letter, and keep track of the longest eligible substring observed. 
+
+A few key questions that need to be addressed are:
+
+##### **<span className="text-emerald-800">Q. What is the minimum number of replacements required to make all characters in a substring the same?</span>**
+
+The **minimum number of replacements required** to make all characters in a substring the same 
+is `(length of substring - frequency of the most frequent character)`. For example, if we want to convert the entire string `"AABBAC"` into a substring 
+containing the same letter, the **minimum number of replacements required** is `3`, achieved by 
+keeping `A`, i.e., the most frequent character.
+
+| Target character | Characters to replace | Replacements |
+| ---------------- | --------------------- | -----------: |
+| `A`              | `B B C`               |            3 |
+| `B`              | `A A A C`             |            4 |
+| `C`              | `A A B B A`           |            5 |
+
+##### **<span className="text-emerald-800">Q. What makes a substring eligible for conversion?</span>**
+
+A substring is eligible to be converted into a substring containing the same letter if `the minimum number of 
+replacements required is <= k`.
 
 ![basic-intuition](/longest-repeating-character-replacement/basic-intuition.png)
 
-**<span className="text-yellow-500">Therefore, a substring is eligible if:</span>** `the number of replacements 
-required, i.e., (length of substring - frequency of the most frequent character) <= k`.
+---
+
+### Brute Force Approach - Nested Loops
 
 ---
+
+### Key Optimization
+
+---
+
+### Optimized Approach - Sliding Window Technique
+
+
 
 
 
