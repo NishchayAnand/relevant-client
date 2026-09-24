@@ -36,10 +36,12 @@ containing the same letter, and keep track of the longest eligible substring obs
 
 A few key questions that need to be addressed are:
 
-##### **<span className="text-emerald-800">Q. What is the minimum number of replacements required to make all characters in a substring the same?</span>**
+##### **<span className="text-emerald-800">Q1. What is the minimum number of replacements required to make all characters in a substring the same?</span>**
 
 The **minimum number of replacements required** to make all characters in a substring the same 
-is `(length of substring - frequency of the most frequent character)`. For example, if we want to convert the entire string `"AABBAC"` into a substring 
+is `(length of substring - frequency of the most frequent character)`. 
+
+**For example**: If we want to convert the entire string `"AABBAC"` into a substring 
 containing the same letter, the **minimum number of replacements required** is `3`, achieved by 
 keeping `A`, i.e., the most frequent character.
 
@@ -49,10 +51,12 @@ keeping `A`, i.e., the most frequent character.
 | `B`              | `A A A C`             |            4 |
 | `C`              | `A A B B A`           |            5 |
 
-##### **<span className="text-emerald-800">Q. What makes a substring eligible for conversion?</span>**
+##### **<span className="text-emerald-800">Q2. What makes a substring eligible for conversion?</span>**
 
 A substring is eligible to be converted into a substring containing the same letter if `the minimum number of 
-replacements required is <= k`.
+replacements required is <= k`. 
+
+**For example:**
 
 ![basic-intuition](/longest-repeating-character-replacement/basic-intuition.png)
 
