@@ -38,7 +38,7 @@ A few key questions that need to be addressed are:
 The **minimum number of replacements required** to make all characters in a substring the same 
 is `(length of substring - frequency of the most frequent character)`. 
 
-**For example**: If we want to convert the entire string `"AABBAC"` into a substring 
+**<span className="text-yellow-500">For example</span>**: If we want to convert the entire string `"AABBAC"` into a substring 
 containing the same letter, the **minimum number of replacements required** is `3`, achieved by 
 keeping `A`, i.e., the most frequent character.
 
@@ -53,7 +53,7 @@ keeping `A`, i.e., the most frequent character.
 A substring is eligible to be converted into a substring containing the same letter if `the minimum number of 
 replacements required is <= k`. 
 
-**For example:**
+**<span className="text-yellow-500">For example:</span>**
 
 ![key-observations](/longest-repeating-character-replacement/basic-intuition.png)
 
@@ -83,19 +83,56 @@ containing the same letter, and keep track of the longest eligible substring obs
 
 #### Time Complexity
 
+The outer loop runs `n` times, where `n = s.length()`. For the `ith` iteration of the outer 
+loop, the inner loop runs `(n - i)` iterations.
 
+Since each operation performed inside the inner loop takes constant time, i.e., `O(1)`. Therefore, the total number 
+of operations performed is proportional to:
+
+```
+(n - 0) + (n - 1) + (n - 2) + ... + (n - (n - 1)) = n + (n - 1) + (n - 2) + ... + 1
+                                                  = n(n + 1) / 2
+```
+
+Since the total number of operations is of the order of `n²`, the overall time complexity is `O(n²)`.
 
 #### Space Complexity
 
+We use a `HashMap` to store the frequency of each character in current substring. 
 
+In the worst case, when all characters in `s` are unique, the `HashMap` can contain upto `n` distinct 
+characters simnultaneously, where `n = s.length()`.
+
+Therefore, the overall time complexity is `O(n)`.
 
 ---
 
-### Key Optimization
+### Key Optimizations
+
+For any starting character `ch`, we expand the substring towards the right. If, at some point, the current 
+substring becomes **ineligible**, adding more characters to the right cannot make it eligible again.
+
+For the next starting character, we also don't need to restart the exploration from the beginning. All smaller 
+substrings contained between the new starting position and the previous stopping position cannot give us a 
+longer answer. We can continue expanding from the position where the previous exploration ended.
+
+![key-optimizations](/longest-repeating-character-replacement/key-optimizations.png)
 
 ---
 
 ### Suitable Approach - Sliding Window Technique
+
+Maintain a single window using two pointers: `left` (marks the start of the current window)
+and `right` (marks the end of the current window). 
+
+Instead of restarting the inner loop for every starting position, expand `right` and move 
+`left` forward whenever the current window becomes ineligible.
+
+#### Algorithm
+
+```java
+
+```
 
 
 
