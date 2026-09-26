@@ -293,7 +293,7 @@ function Pre({ children, ...props }: React.HTMLAttributes<HTMLPreElement>) {
   }
   const source = codeText(children).replace(/\n$/, '');
   return (
-    <div className="code-block relative">
+    <div className="relative">
       <CopyCodeButton text={source} />
       <pre {...props}>{children}</pre>
     </div>

@@ -80,43 +80,56 @@ containing the same letter, and keep track of the longest eligible substring obs
 #### Implementation
 
 ```
-public int characterReplacement(String s, int k) {
+public static int characterReplacement(String s, int k) {
 
-   int maxLength = 0;
+   // 1. Initialize a variable to store the length of the longest substring found so far.
+   int longestSubstringLength = 0;
 
-   // 1. Iterate over each character in "s"
+   // 2. Iterate over each character in "s"
    for (int i = 0; i < s.length(); i++) {
 
-      // 2. Initialize a frequency map to track the character in the current substring.
-      Map<Character, Integer> freqMap = new HashMap<>();
+      // 3. Initialize a frequency map to track the character in the current substring.
+      Map<Character, Integer> frequencyMap = new HashMap<>();
 
-      int highestFrequency = 0;
+      // 4. Initialize a variable to store the frequency of most frequent character in the current substring.
+      int mostFrequentCharacterFrequency = 0;
 
-      // 3. Expand the current substring one character at a time.
+      // 5. Expand the current substring one character at a time.
       for (int j = i; j < s.length(); j++) {
 
-         char ch = s.charAt(j);
+            // 6. Update the frequency of the current character.
+            char ch = s.charAt(j);
+            int currentCharacterFrequency = frequencyMap.getOrDefault(ch, 0) + 1;
+            frequencyMap.put(ch, currentCharacterFrequency);
 
-         // 4. Update the frequency of the current character.
-         int updatedFrequency = freqMap.getOrDefault(ch, 0) + 1;
-         freqMap.put(ch, updatedFrequency);
+            // 7. Update the frequency of the most frequent character, if necessary.
+            mostFrequentCharacterFrequency = Math.max(mostFrequentCharacterFrequency, currentCharacterFrequency);
 
-         highestFrequency = Math.max(highestFrequency, updatedFrequency);
+            // 8. Check if the current substring is eligible.
+            int currentSubstringLength = j - i + 1;
+            if (currentSubstringLength - mostFrequentCharacterFrequency <= k) {
 
-         // 5. Check if the current substring is eligible.
-         int currLength = j - i + 1;
-         if (currLength - highestFrequency <= k) {
-            maxLength = Math.max(maxLength, currLength);
-         }
+               // 9. Update the length of the longest eligible substring, if necessary.
+               longestSubstringLength = Math.max(longestSubstringLength, currentSubstringLength);
+            }
 
       }
 
-      return maxLength;
-
    }
-        
+
+   // 10. Return the length of the longest eligible substring.
+   return longestSubstringLength;
+
 }
 ```
+
+#### Time Complexity
+
+
+
+#### Space Complexity
+
+
 
 ---
 
