@@ -79,49 +79,7 @@ containing the same letter, and keep track of the longest eligible substring obs
 
 #### Implementation
 
-```
-public static int characterReplacement(String s, int k) {
-
-   // 1. Initialize a variable to store the length of the longest substring found so far.
-   int longestSubstringLength = 0;
-
-   // 2. Iterate over each character in "s"
-   for (int i = 0; i < s.length(); i++) {
-
-      // 3. Initialize a frequency map to track the character in the current substring.
-      Map<Character, Integer> frequencyMap = new HashMap<>();
-
-      // 4. Initialize a variable to store the frequency of most frequent character in the current substring.
-      int mostFrequentCharacterFrequency = 0;
-
-      // 5. Expand the current substring one character at a time.
-      for (int j = i; j < s.length(); j++) {
-
-            // 6. Update the frequency of the current character.
-            char ch = s.charAt(j);
-            int currentCharacterFrequency = frequencyMap.getOrDefault(ch, 0) + 1;
-            frequencyMap.put(ch, currentCharacterFrequency);
-
-            // 7. Update the frequency of the most frequent character, if necessary.
-            mostFrequentCharacterFrequency = Math.max(mostFrequentCharacterFrequency, currentCharacterFrequency);
-
-            // 8. Check if the current substring is eligible.
-            int currentSubstringLength = j - i + 1;
-            if (currentSubstringLength - mostFrequentCharacterFrequency <= k) {
-
-               // 9. Update the length of the longest eligible substring, if necessary.
-               longestSubstringLength = Math.max(longestSubstringLength, currentSubstringLength);
-            }
-
-      }
-
-   }
-
-   // 10. Return the length of the longest eligible substring.
-   return longestSubstringLength;
-
-}
-```
+<LongestRepeatingCharacterReplacementBruteVisualizer />
 
 #### Time Complexity
 
