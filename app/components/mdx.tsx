@@ -85,6 +85,7 @@ import LoggingSequenceVisualizer from './logging-sequence-visualizer';
 import MinimumWindowSubstringBruteVisualizer from './minimum-window-substring-brute-visualizer';
 import MinimumWindowSubstringSlidingWindowVisualizer from './minimum-window-substring-sliding-window-visualizer';
 import { Mermaid } from './mermaid';
+import { CopyCodeButton } from './copy-code-button';
 
 hljs.registerLanguage('javascript', javascript);
 
@@ -290,7 +291,13 @@ function Pre({ children, ...props }: React.HTMLAttributes<HTMLPreElement>) {
   if (isMermaidCode(child)) {
     return <Mermaid chart={codeText(child.props.children)} />;
   }
-  return <pre {...props}>{children}</pre>;
+  const source = codeText(children).replace(/\n$/, '');
+  return (
+    <div className="code-block relative">
+      <CopyCodeButton text={source} />
+      <pre {...props}>{children}</pre>
+    </div>
+  );
 }
 
 export function Code({ children, ...props }: { children?: React.ReactNode } & React.HTMLAttributes<HTMLElement>) {
