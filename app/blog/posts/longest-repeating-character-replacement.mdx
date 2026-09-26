@@ -29,10 +29,7 @@ There may exists other ways to achieve this answer too.
 
 ---
 
-### Basic Intuition
-
-The basic intuition is to iterate over every substring, check if it is eligible to be converted into a substring 
-containing the same letter, and keep track of the longest eligible substring observed. 
+### Key Observations
 
 A few key questions that need to be addressed are:
 
@@ -58,11 +55,68 @@ replacements required is <= k`.
 
 **For example:**
 
-![basic-intuition](/longest-repeating-character-replacement/basic-intuition.png)
+![key-observations](/longest-repeating-character-replacement/basic-intuition.png)
 
 ---
 
-### Brute Force Approach - Nested Loops
+### Naive Approach - Nested Loops
+
+Iterate over every substring in `s`, check if it is eligible to be converted into a substring 
+containing the same letter, and keep track of the longest eligible substring observed. 
+
+#### Algorithm
+
+```java
+1. Iterate over each character in "s", treating it as the starting position of a substring.
+2. For each starting position, initialize a frequency map to track the character in the current 
+   substring.
+3. Expand the substring one character at a time towards the right. Update the frequency of each 
+   newly added character.
+4. For the current substring, check if the number of replacements required is <= k.
+5. Update the longest eligible substring if necessary.
+6. Return the length of the longest eligible substring.
+```
+
+#### Implementation
+
+```
+public int characterReplacement(String s, int k) {
+
+   int maxLength = 0;
+
+   // 1. Iterate over each character in "s"
+   for (int i = 0; i < s.length(); i++) {
+
+      // 2. Initialize a frequency map to track the character in the current substring.
+      Map<Character, Integer> freqMap = new HashMap<>();
+
+      int highestFrequency = 0;
+
+      // 3. Expand the current substring one character at a time.
+      for (int j = i; j < s.length(); j++) {
+
+         char ch = s.charAt(j);
+
+         // 4. Update the frequency of the current character.
+         int updatedFrequency = freqMap.getOrDefault(ch, 0) + 1;
+         freqMap.put(ch, updatedFrequency);
+
+         highestFrequency = Math.max(highestFrequency, updatedFrequency);
+
+         // 5. Check if the current substring is eligible.
+         int currLength = j - i + 1;
+         if (currLength - highestFrequency <= k) {
+            maxLength = Math.max(maxLength, currLength);
+         }
+
+      }
+
+      return maxLength;
+
+   }
+        
+}
+```
 
 ---
 
@@ -70,7 +124,7 @@ replacements required is <= k`.
 
 ---
 
-### Optimized Approach - Sliding Window Technique
+### Suitable Approach - Sliding Window Technique
 
 
 
