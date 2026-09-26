@@ -131,8 +131,27 @@ Instead of restarting the inner loop for every starting position, expand `right`
 #### Algorithm
 
 ```java
-1. 
+- Initialize:
+   1. A variable: "longestSubstringLength" to track the length of the longest eligible substring.
+   2. A variable: "mostFrequentCharacterFrequency" to track the frequency of the most frequent 
+      character in the current substring.
+   3. Two pointers: "left" and "right" to represent the boundaries of the current substring.
+   4. A frequency map: "frequencyMap" to track the frequency of each characters present in the 
+      current substring.
+
+5. Start expanding "right" one character at a time: 
+   6. Update the frequency of the newly added character in the "frequencyMap".
+   7. Update "mostFrequentCharacterFrequency" in the current substring.
+   8. While the current substring is ineligible, shrink the window by incrementing "left"
+      and updating the "frequencyMap" until the window becomes eligible again.
+   9. Once the window is eligible, update "longestSubstringLength" if necessary.
+
+10. Return "longestSubstringLength".
 ```
+
+#### Implementation
+
+
 
 
 
