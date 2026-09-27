@@ -85,6 +85,7 @@ import LoggingSequenceVisualizer from './logging-sequence-visualizer';
 import MinimumWindowSubstringBruteVisualizer from './minimum-window-substring-brute-visualizer';
 import MinimumWindowSubstringSlidingWindowVisualizer from './minimum-window-substring-sliding-window-visualizer';
 import LongestRepeatingCharacterReplacementBruteVisualizer from './longest-repeating-character-replacement-brute-visualizer';
+import LongestRepeatingCharacterReplacementSlidingWindowVisualizer from './longest-repeating-character-replacement-sliding-window-visualizer';
 import { Mermaid } from './mermaid';
 import { CopyCodeButton } from './copy-code-button';
 
@@ -421,6 +422,7 @@ let components = {
   MinimumWindowSubstringBruteVisualizer: MinimumWindowSubstringBruteVisualizer,
   MinimumWindowSubstringSlidingWindowVisualizer: MinimumWindowSubstringSlidingWindowVisualizer,
   LongestRepeatingCharacterReplacementBruteVisualizer: LongestRepeatingCharacterReplacementBruteVisualizer,
+  LongestRepeatingCharacterReplacementSlidingWindowVisualizer: LongestRepeatingCharacterReplacementSlidingWindowVisualizer,
   Image: RoundedImage,
   Note,
   Algorithm,
