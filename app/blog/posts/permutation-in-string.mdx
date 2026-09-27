@@ -33,3 +33,69 @@ then that substring is a valid permutation of `s1`, and `s2` contains a permutat
 
 ### Naive Approach - Nested Loops
 
+Iterate over every substring of `s2` having length `s1.length()`. For each substring, compare its frequency map with the 
+frequency map of `s1`.
+
+#### Algorithm
+
+```java
+1. Create a frequency map: "targetFrequencyMap" for "s1".
+
+2. Iterate over each valid starting index in "s2", treating each index as the starting 
+   position of the current substring.
+    3. Create a frequency map: "currentSubstringFrequencyMap" for the current substring.
+    4. Iterate over the next "s1.length()" characters in "s2" and update 
+       "currentSubstringFrequencyMap".
+    5. If "currentSubstringFrequencyMap" == "targetFrequencyMap", return true.
+
+6. If no eligible substring was found, return false.
+```
+
+#### Implementation
+
+```java
+public boolean checkInclusion(String s1, String s2) {
+
+    // 1. Create a target frequency map for s1.
+    Map<Character, Integer> targetFrequencyMap = new HashMap<>();
+    for (char ch : s1.toCharArray()) {
+        int frequency = targetFrequencyMap.getOrDefault(ch, 0) + 1;
+        targetFrequencyMap.put(ch, frequency);
+    }
+
+    // 2. Iterate over each valid starting position in s2.
+    for (int i = 0; i <= s2.length() - s1.length(); i++) {
+        
+        // 3. Create a frequency map for the current substring.
+        Map<Character, Integer> currentSubstringFrequencyMap = new HashMap<>();
+
+        // 4. Iterate over next s1.length characters in s2.
+        for (int j = 0; j < s1.length(); j++) {
+            char ch = s2.charAt(i + j);
+            int frequency = currentSubstringFrequencyMap.getOrDefault(ch, 0) + 1;
+            // 5. Update current substring frequency map.
+            currentSubstringFrequencyMap.put(ch, frequency);
+        }
+
+        // 6. Check if current substring frequency map is equal to the target frequency map.
+        if (currentSubstringFrequencyMap.equals(targetFrequencyMap)) {
+            return true;
+        }
+
+    }
+
+    // 7. If no eligible substring found in s2, return false.
+    return false;
+        
+}
+```
+
+#### Time Complexity
+
+
+
+#### Space Complexity
+
+---
+
+### Key Optimizations
