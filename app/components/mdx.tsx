@@ -86,6 +86,7 @@ import MinimumWindowSubstringBruteVisualizer from './minimum-window-substring-br
 import MinimumWindowSubstringSlidingWindowVisualizer from './minimum-window-substring-sliding-window-visualizer';
 import LongestRepeatingCharacterReplacementBruteVisualizer from './longest-repeating-character-replacement-brute-visualizer';
 import LongestRepeatingCharacterReplacementSlidingWindowVisualizer from './longest-repeating-character-replacement-sliding-window-visualizer';
+import PermutationInStringBruteVisualizer from './permutation-in-string-brute-visualizer';
 import { Mermaid } from './mermaid';
 import { CopyCodeButton } from './copy-code-button';
 
@@ -423,6 +424,7 @@ let components = {
   MinimumWindowSubstringSlidingWindowVisualizer: MinimumWindowSubstringSlidingWindowVisualizer,
   LongestRepeatingCharacterReplacementBruteVisualizer: LongestRepeatingCharacterReplacementBruteVisualizer,
   LongestRepeatingCharacterReplacementSlidingWindowVisualizer: LongestRepeatingCharacterReplacementSlidingWindowVisualizer,
+  PermutationInStringBruteVisualizer: PermutationInStringBruteVisualizer,
   Image: RoundedImage,
   Note,
   Algorithm,
