@@ -3,51 +3,71 @@ title: 'Data Structures & Algorithms (Prefix Sum): Subarray Sum Equals K'
 publishedAt: '2026-01-20'
 ---
 
-Given an array of integers `nums` and an integer `k`, return the total number of subarrays whose sum equals to `k`.
+Given an array of integers `nums` and an integer `k`, return the total number of subarrays whose sum 
+equals to `k`.
 
 ```
 Example 1:
 
 Input: nums = [1, -1, 1, -1, 2, 3, 3, 4, 1, 5, 2], k = 8
 Output: 5
-Explanation: [1, -1, 1, -1, 2, 3, 3], [1,-1, 2, 3, 3], [2, 3, 3], [3, 4, 1] and [1, 5, 2] are all possible subarrays whose sum = 8.
+Explanation: [1, -1, 1, -1, 2, 3, 3], [1,-1, 2, 3, 3], [2, 3, 3], [3, 4, 1] and [1, 5, 2] 
+             are all possible subarrays whose sum = 8.
 ```
 
 > **Playground:** [Leetcode 560](https://leetcode.com/problems/subarray-sum-equals-k/description/)
 
 ---
 
-### General Observations
+### Naive Approach: Nested Loops
 
-Q. Can `nums` contain negative integers?\
-A. Yes, `nums` can contain negative integers. For example, `nums = [-1, 0, 1, 2]` is a valid input.
-
----
-
-### Approach 1: Nested Loops (Brute Force)
-
-Use nested loops to iterate over all possible subarrays, maintain a running sum for each, and increment 
-the count whenever the sum = `k`.
+Iterate over all possible subarrays while maintaining a running sum for each subarray. Whenever the 
+sum becomes equal to `k`, increment the count of eligible subarrays.
 
 #### Algorithm
 
 ```java
+1. Initialize a variable: "count" to track the number of eligible subarrays.
+
+2. Iterate over each index in "nums", treating it as the starting index of the current subarray.
+    3. Initialize a variable: "currentSubarraySum = 0" to store the cumulative sum of the current subarray.
+
+    4. Starting from the current index, expand the subarray one element at a time.
+        5. Add the current element to "currentSubarraySum".
+        6. If "currentSubarraySum" equals "k", increment "count" by 1.
+
+7. Return "count".
+```
+
+#### Implementation
+
+```java
 public int subarraySum(int[] nums, int k) {
-    
+
+    //1. Initialize a variable to track the number of eligible subarrays.
     int count = 0;
 
-    for(int i = 0; i < nums.length; i++) {
-        int currentSum = 0;
-        for(int j = i; j < nums.length; j++) {
-            currentSum += nums[j];
-            if(currentSum == k) {
+    // 2. Iterate over each index in "nums", treating it as the starting index of the current subarray.
+    for (int i = 0; i < nums.length; i++) {
+        // 3. Initialize a variable to store the cumulative sum of the current subarray.
+        int currentSubarraySum = 0;
+
+        // 4. Starting from the current index, expand the subarray one element at a time.
+        for (int j = i; j < nums.length; j++) {
+            // 5. Add the current element to the current subarray sum.
+            currentSubarraySum += nums[j];
+            // 6. Check if the current current subarray sum is equal to "k"
+            if (currentSubarraySum == k) {
+                // 7. Increment count of eligible subarrays.
                 count++;
             }
         }
+            
     }
 
+    // 7. Return the count of eligible subarrays.
     return count;
-
+    
 }
 ```
 
