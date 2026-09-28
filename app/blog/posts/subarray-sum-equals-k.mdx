@@ -41,38 +41,6 @@ sum becomes equal to `k`, increment the count of eligible subarrays.
 
 #### Implementation
 
-```java
-public int subarraySum(int[] nums, int k) {
-
-    //1. Initialize a variable to track the number of eligible subarrays.
-    int count = 0;
-
-    // 2. Iterate over each index in "nums", treating it as the starting index of the current subarray.
-    for (int i = 0; i < nums.length; i++) {
-        // 3. Initialize a variable to store the cumulative sum of the current subarray.
-        int currentSubarraySum = 0;
-
-        // 4. Starting from the current index, expand the subarray one element at a time.
-        for (int j = i; j < nums.length; j++) {
-            // 5. Add the current element to the current subarray sum.
-            currentSubarraySum += nums[j];
-            // 6. Check if the current current subarray sum is equal to "k"
-            if (currentSubarraySum == k) {
-                // 7. Increment count of eligible subarrays.
-                count++;
-            }
-        }
-            
-    }
-
-    // 7. Return the count of eligible subarrays.
-    return count;
-    
-}
-```
-
-#### Visualization
-
 <SubarraySumNestedVisualizer />
 
 #### Time Complexity
