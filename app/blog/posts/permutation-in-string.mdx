@@ -43,7 +43,7 @@ frequency map of `s1`.
 
 2. Iterate over each valid starting index in "s2", treating each index as the starting 
    position of the current substring.
-    3. Create a frequency map: "currentSubstringFrequencyMap" for the current substring.
+    3. Initialize a frequency map: "currentSubstringFrequencyMap" for the current substring.
     4. Iterate over the next "s1.length()" characters in "s2" and update 
        "currentSubstringFrequencyMap".
     5. If "currentSubstringFrequencyMap" == "targetFrequencyMap", return true.
@@ -57,10 +57,90 @@ frequency map of `s1`.
 
 #### Time Complexity
 
+The primary operations in the inner loop involve adding entries to `currentSubstringFrequencyMap`
+and checking if it makes `targetFrequencyMap`. Considering both operations take constant 
+amount of time, `O(1)`, the time complexity is dependent on the number of iterations of the 
+inner and outer loops.
 
+The outer loop runs `(n - m + 1)` times, where `n = s2.length()` and `m = s1.length()`. For 
+each outer loop iteration, the inner loop runs is executed `m` times. 
+
+Therfore, the overall time complexity is `O((n - m + 1) x m) ~ O(n x m)`.
 
 #### Space Complexity
+
+Both `currentSubstringFrequencyMap` and `targetFrequencyMap` can store the frequencies of 
+upto `m` distinct characters simultaneously, where `m = s1.length()`. 
+
+Therefore, the overall space complexity is `O(m)`.
 
 ---
 
 ### Key Optimizations
+
+For each outer loop iteration, only one new character enters the current 
+substring, while the remaining characters have already processed in the previous 
+iteration.
+
+![key-optimizations](/permutation-in-string/key-optimizations.png)
+
+---
+
+### Suitable Approach - Sliding Window
+
+Instead of rebuilding `currentSubstringFrequencyMap` for every substring, maintain 
+a fixed-size sliding window of length `m = s1.length()`. 
+
+As the window slides, add the frequency of the new character entering the window and 
+decrement the frequency of character leaving the window. This allows us to update the 
+`currentSubstringFrequencyMap` in `O(1)` time for each window, rather than rebuilding 
+it in `O(m)` time.
+
+#### Algorithm
+
+```java
+1. Create a frequency map: "targetFrequencyMap" for "s1".
+
+2. Initialize:
+    a. Two pointers: "left = 0" and "right = 0" to represent the boundaries of the current window.
+    b. A frequency map: "currentSubstringFrequencyMap" for the current window.
+
+3. Increment the "right" pointer to expand the current window one character at a time:
+    4. Add the frequency of the new character: "s2[right]" to "currentSubstringFrequencyMap".
+
+    5. If the current window size is greater than "s1.length()":
+        6. Remove the frequency of character: "s[left]" from "currentSubstringFrequencyMap".
+        7. Increment "left" to remove the character: "s[left]" from the current window.
+
+    8. If "currentSubstringFrequencyMap" == "targetFrequencyMap", return true.
+    
+9. If no eligible substring was found, return false.
+```
+
+#### Implementation
+
+<PermutationInStringSlidingWindowVisualizer />
+
+#### Time Complexity
+
+The add, update and removal operations performed in each iteration take constant 
+time, `O(1)`, on average. The time complexity is only dependent on the movement of 
+`left` and `right` pointers.
+
+The `right` pointer traverses all `n` character in `s2` once. The `left` pointer
+traverses at most `n - m` characters. 
+
+Therefore, the total number of pointer movements is at most `n + (n - m)`, which
+is bounded by `2n`. Since constant factors are ignored in Big-O notation, the overall 
+time complexity is `O(n)`.
+
+#### Space Complexity
+
+Both the `currentSubstringFrequencyMap` and `targetFrequencyMap` can hold at most 
+`m` distinct characters simultaneously. 
+
+Therefore, the overall space complexity is still `O(m)`.
+
+---
+
+
