@@ -38,6 +38,7 @@ import LongestConsecutiveSetVisualizer from './longest-consecutive-set-visualize
 import LongestConsecutiveOptimizedVisualizer from './longest-consecutive-optimized-visualizer';
 import SubarraySumNestedVisualizer from './subarray-sum-nested-visualizer';
 import SubarraySumPrefixSumVisualizer from './subarray-sum-prefix-sum-visualizer';
+import ContinuousSubarraySumBruteVisualizer from './continuous-subarray-sum-brute-visualizer';
 import NearestDispatchVisualizer from './nearest-dispatch-visualizer';
 import IdleDispatchVisualizer from './idle-dispatch-visualizer';
 import DirectionAwareVisualizer from './direction-aware-visualizer';
@@ -379,6 +380,7 @@ let components = {
   LongestConsecutiveOptimizedVisualizer: LongestConsecutiveOptimizedVisualizer,
   SubarraySumNestedVisualizer: SubarraySumNestedVisualizer,
   SubarraySumPrefixSumVisualizer: SubarraySumPrefixSumVisualizer,
+  ContinuousSubarraySumBruteVisualizer: ContinuousSubarraySumBruteVisualizer,
   NearestDispatchVisualizer: NearestDispatchVisualizer,
   IdleDispatchVisualizer: IdleDispatchVisualizer,
   DirectionAwareVisualizer: DirectionAwareVisualizer,
