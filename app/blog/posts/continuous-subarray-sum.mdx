@@ -122,58 +122,39 @@ index `-1`.
 3. Iterate over each "index" in "nums".
     4. Add the current element: "nums[index]" to "currentPrefixSum".
     5. Calculate "currentPrefixSumRemainder".
-    6. If "prefixSumRemainderMap" contains "currentPrefixSumRemainder" and the difference between 
-       the current index and first occurence of "currentPrefixSumRemainder" is greater than "1", 
-       return "true".
+    6. If "prefixSumRemainderMap" contains "currentPrefixSumRemainder" and the difference 
+       between the current index and first occurence of "currentPrefixSumRemainder" is 
+       greater than "1", return "true".
     7. If "prefixSumRemainderMap" does not contain "currentPrefixSumRemainder", add 
-       "currentPrefixSumRemainder" and the current index as key-value pair in "prefixSumRemainderMap".
+       "currentPrefixSumRemainder" and the current index as key-value pair in 
+       "prefixSumRemainderMap".
 
 8. If no good subarray found, return "false".
 ```
 
 #### Implementation
 
-```java
-public boolean checkSubarraySum(int[] nums, int k) {
+<ContinuousSubarraySumPrefixVisualizer />
 
-    /* 1. Initialize:
-     *      a. A map to track the first occurrence of every distinct prefix-sum-remainder.
-     *      b. A variable to track the prefix sum observed so far.
-     */
-    Map<Integer, Integer> prefixSumRemainderMap = new HashMap<>();
-    int currentPrefixSum = 0;
+#### Time Complexity
 
-    // 2. Add "{0, -1}" to the prefix sum remainder map to handle good subarrays that start at index 0.
-    prefixSumRemainderMap.put(0, -1);
+For each iteration, we perform only a few arithmetic operations and validation checks, all 
+of which take constant time, `O(1)`. Therefore, the time complexity primarily depends on the 
+number of iterations.
 
-    // 3. Iterate over each index in "nums".
-    for (int i = 0; i < nums.length; i++) {
-        // 4. Add the current element to the current prefix sum.
-        currentPrefixSum += nums[i];
-        // 5. Calculate the current subarray sum remainder.
-        int prefixSumRemainder = currentPrefixSum % k;
-        // 6. Check if prefix sum remainder map contains the current prefix sum 
-        if (prefixSumRemainderMap.containsKey(prefixSumRemainder)) {
-            /* Check if the difference between the current index and first occurence of the current prefix 
-             * sum in prefix sum remainder map is greater than 1.
-             */
-            if (i - prefixSumRemainderMap.get(prefixSumRemainder) > 1) {
-                return true;
-            }
-        // 7. Check if prefix sum remainder map does not contain the current prefix sum 
-        } else {
-            // Add the current prefix sum and the current index as key-value pair in the prefix sum remainder map.
-            prefixSumRemainderMap.put(prefixSumRemainder, i);
-        }
-    }
-    
-    // 8. If no good subarray found, return "false".
-    return false;
+In the worst-case scenario, i.e., when no good subarray exists, the loop executes `n` times.
+Hence, the overall time complexity is `O(n)`.
 
-}
-```
+---
 
+### Space Complexity
 
+We use a map to store the first occurrence of each distinct **prefix-sum remainder**. 
+
+In the worst case, all prefix-sum remainders are distinct, so the map will contain `n` key-value pairs. 
+Hence, the overall space complexity is `O(n)`.
+
+---
 
 
 
