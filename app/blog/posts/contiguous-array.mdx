@@ -1,5 +1,5 @@
 ---
-title: 'Data Structures & Algorithms (Prefix Sum): Contiguous Array'
+title: 'Data Structures & Algorithms (Prefix Sum): Contiguous Array*'
 publishedAt: '2026-01-22'
 ---
 
@@ -79,6 +79,80 @@ Since this is a quadratic expression, the overall time complexity is `O(n²)`.
 
 We only maintain a few variables to track the count of `0`s and `1`s in the current subarray. 
 Since no additional data structures are used, the overall space complexity is `O(1)`.
+
+---
+
+### Key Observations
+
+Instead of separately counting `0`s and `1`s for every possible subarray, we can convert all `0`s to `-1`.
+
+1. A subarray with equal number of `0`s and `1`s will have a sum of `0`. Therefore, the problem 
+becomes: **<span className="text-yellow-500">"Find the longest contiguous subarray whose sum is `0`"</span>**.
+
+![key-observation-1](/contiguous-array/key-observation-1.png)
+
+2. If a subarray `(i + 1 ... j)` has a sum of `0`, then `prefixSum[j] - prefixSum[i] = 0`, which means 
+`prefixSum[i] = prefixSum[j]`. Therefore, while iterating, whenever a prefix sum is encountered again, the 
+elements between its first occurrence and the current index have a sum of `0`.
+
+![key-observation-2](/contiguous-array/key-observation-2.png)
+
+Hence, the problem can be reduced to **checking whether a prefix sum has been observed before** and, if so,
+calculating the length of the subarray between the two occurrences.
+
+---
+
+### Suitable Approach - Prefix Sum
+
+Create a dummy array where every `0` is replaced with `-1`. Iterate over `nums` and maintain a map to store 
+each prefix sum and its first occurrence.
+
+While iterating, if we encounter a prefix sum that has been seen before, we have found an eligible subarray
+whose sum is `0`, meaning the subarray contains an equal number of `0`s and `1`s.
+
+<Note>
+1. Instead of creating a separate array, convert `0` to `-1` directly while calculating the prefix sum, 
+avoiding extra space.
+2. Add `{0: -1}` to the map to handle subarrays that start at index `0` and have a sum of `0`.
+</Note>
+
+#### Algorithm
+
+```java
+1. Initialize:
+    a. A variable: "maxLength" to track the length of the longest subarray with equal 
+       number of 0s and 1s.
+    b. A variable: "currentPrefixSum" to track the prefix sum observed so far.
+    c. A map: "currentPrefixSumMap" to track the first occurrence of each distinct prefix sum.
+
+2. Add "{0: -1}" to "currentPrefixSumMap" handle subarrays starting at index 0.
+
+3. Iterate over each "index" in "nums":
+    4. If the current element is 1, add 1 to "currentPrefixSum".
+    5. If the current element is equal 0, add -1 to "currentPrefixSum".
+    6. If "currentPrefixSum" exists in "currentPrefixSumMap", update "maxLength" if necessary.
+    7. If "currentPrefixSum" does not exist in "currentPrefixSumMap", add "currentPrefixSum" 
+       and "index" as key-value pair.
+
+8. Return "maxLength".
+```
+
+#### Implementation
+
+<ContiguousArrayPrefixVisualizer />
+
+#### Time Complexity
+
+Each iteration involves basic validation and arithmetic operations, each taking constant time, `O(1)`.
+Therefore, the time complexity still primarily depends on the total number of iterations.
+
+The loop runs `n` times. Hence, the overall time complexity is `O(n)`.
+
+#### Space Complexity
+
+We maintain a map to store the first occurrence of each distinct prefix sum. In the worst case, 
+when all elements in `nums` are `1`, the map will store `n` distinct prefix sums. Hence, the overall 
+space complexity is `O(n)`.
 
 ---
 
