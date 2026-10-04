@@ -2,3 +2,87 @@
 title: 'Data Structures & Algorithms (Prefix Sum): Contiguous Array'
 publishedAt: '2026-01-22'
 ---
+
+Given a binary array `nums`, return the maximum length of a contiguous subarray with an equal number 
+of `0` and `1`.
+
+```
+Example 1:
+
+Input: nums = [0,1]
+Output: 2
+Explanation: [0, 1] is the longest contiguous subarray with an equal number of 0 and 1.
+
+Example 2:
+
+Input: nums = [0,1,0]
+Output: 2
+Explanation: [0, 1] (or [1, 0]) is a longest contiguous subarray with equal number of 0 and 1.
+
+Example 3:
+
+Input: nums = [0,1,1,1,1,1,0,0,0]
+Output: 6
+Explanation: [1,1,1,0,0,0] is the longest contiguous subarray with equal number of 0 and 1.
+```
+
+> **Playground**: [Leetcode 526](https://leetcode.com/problems/contiguous-array/)
+
+---
+
+### Naive Approach - Nested Loops
+
+Iterate over each possible subarray, maintain the running counts of `0`s and `1`s, and update the maximum 
+length whenever the subarray contains equal number of `0`s and `1`s.
+
+#### Algorithm
+
+```java
+1. Initialize a variable: "maxLength" to track the length of the longest subarray with 
+   equal number of 0 and 1.
+
+2. Iterate over each index in "nums", treating it as the starting index of the current subarray.
+    3. Initialize:
+        a. A variable: "currentSubarrayZeroCount" to track the number of 0s in the current subarray.
+        b. A variable: "currentSubarrayOneCount" to track the number of 1s in the current subarray.
+
+    4. For each starting index, expand the current subarray one element at a time.
+        5. If current element is 0, increment "currentSubarrayZeroCount".
+        6. If current element is 1, increment "currentSubarrayOneCount".
+        7. If "currentSubarrayZeroCount" is equal to "currentSubarrayOneCount", update "maxLength"
+           if necessary.
+    
+8. Return "maxLength".
+```
+
+#### Implementation
+
+<ContiguousArrayBruteVisualizer />
+
+#### Time Complexity
+
+Each iteration involves basic validation and arithmetic operations, each taking constant time, `O(1)`.
+Therefore, the time complexity primarily depends on the total number of iterations.
+
+The outer loop runs `n` times. For each `i`th iteration, the inner loop runs `(n - i)` times.
+The total number of iterations is:
+
+```
+(n - 0) + (n - 1) + (n - 2) + ... + (n - (n - 1))
+= n + (n - 1) + (n - 2) + ... + 2 + 1
+= n * (n + 1) / 2
+```
+
+Since this is a quadratic expression, the overall time complexity is `O(n²)`.
+
+#### Space Complexity
+
+We only maintain a few variables to track the count of `0`s and `1`s in the current subarray. 
+Since no additional data structures are used, the overall space complexity is `O(1)`.
+
+---
+
+
+
+
+

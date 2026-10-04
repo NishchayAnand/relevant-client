@@ -40,6 +40,7 @@ import SubarraySumNestedVisualizer from './subarray-sum-nested-visualizer';
 import SubarraySumPrefixSumVisualizer from './subarray-sum-prefix-sum-visualizer';
 import ContinuousSubarraySumBruteVisualizer from './continuous-subarray-sum-brute-visualizer';
 import ContinuousSubarraySumPrefixVisualizer from './continuous-subarray-sum-prefix-visualizer';
+import ContiguousArrayBruteVisualizer from './contiguous-array-brute-visualizer';
 import NearestDispatchVisualizer from './nearest-dispatch-visualizer';
 import IdleDispatchVisualizer from './idle-dispatch-visualizer';
 import DirectionAwareVisualizer from './direction-aware-visualizer';
@@ -383,6 +384,7 @@ let components = {
   SubarraySumPrefixSumVisualizer: SubarraySumPrefixSumVisualizer,
   ContinuousSubarraySumBruteVisualizer: ContinuousSubarraySumBruteVisualizer,
   ContinuousSubarraySumPrefixVisualizer: ContinuousSubarraySumPrefixVisualizer,
+  ContiguousArrayBruteVisualizer: ContiguousArrayBruteVisualizer,
   NearestDispatchVisualizer: NearestDispatchVisualizer,
   IdleDispatchVisualizer: IdleDispatchVisualizer,
   DirectionAwareVisualizer: DirectionAwareVisualizer,
