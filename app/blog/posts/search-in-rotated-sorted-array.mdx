@@ -38,8 +38,8 @@ Output: -1
 
 ### Key Observations
 
-1. For an array left rotated at an unknown index `k` (`1 <= k < nums.length`), one half of the resulting 
-array will always be in sorted order.
+For an array rotated at an unknown index k (`1 <= k < nums.length`), at least one half of the array will 
+always be sorted in ascending order.
 
 ![key-observation-1](/search-in-rotated-sorted-array/key-observation-1.png)
 
@@ -47,7 +47,48 @@ array will always be in sorted order.
 
 ### Suitable Approach - Binary Search
 
-Iterate over `nums` and check if the 
+Use binary search to repeatedly eliminate the half that cannot contain the `target` until the target is 
+found or no elements remain to be explored.
+
+#### Algorithm
+
+```java
+1. Initialize two pointers, "start" and "end", to mark the subarray under consideration.
+
+2. Keep performing the below operations while "start" <= "end", i.e., atleast one element exist 
+   in the current subarray.
+    3. Find the "middle" index of the current subarray.
+
+    4. If "nums[middle]" (middle element of the current subarray) == "target", return the 
+       "middle" index.
+
+    5. If "nums[start]" (first element of the current subarray) <= "nums[middle]", the 
+       left half of the subarray is sorted.
+        6. If "target" < "nums[start]" or "target" > "nums[middle]", the "target" element must 
+           lie exist in the right half. Move "start" to "middle + 1".
+        7. Otherwise, the "target" lies in the left half. Move "end" to "middle - 1". 
+
+    8. Otherwise if "nums[start]" > "nums[middle]", the right half is sorted.
+        9. If "target" < "nums[middle]" element or "target" < "nums[end]" (last element of the 
+           current subarray), the "target" must lie in the left half. Move "end" to "middle - 1".
+        10. Otherwise, the target lies in the right half. Move "start" to "middle + 1".
+
+11. If the "target" is not found, return -1.
+```
+
+#### Implementation
+
+```java
+public int search(int[] nums, int target) {
+        
+}
+```
+
+#### Time Complexity
+
+#### Space Complexity
+
+
 
 ---
 
