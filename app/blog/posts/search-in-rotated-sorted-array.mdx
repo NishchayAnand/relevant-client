@@ -7,7 +7,7 @@ Given an array `nums`, sorted in ascending order and left rotated at an unknown 
 (`1 <= k < nums.length`), and an integer `target`, return the index of `target` if 
 it is in `nums`, or `-1` otherwise.
 
-You must write an algorithm with `O(log n)` runtime complexity.
+You must write an algorithm with `O(log2n)` runtime complexity.
 
 ```
 Example 1:
@@ -72,59 +72,47 @@ found or no elements remain to be explored.
 
 #### Implementation
 
-```java
-public int search(int[] nums, int target) {
-
-    // 1. Initialize two pointers, start and end, to mark the subarray under consideration.
-    int start = 0, end = nums.length - 1;
-
-    // 2. Keep performing the below operations while atleast one element exist in the current subarray.
-    while (start <= end) {
-
-        // 3. Find the middle index of the current subarray.
-        int middle = (start + end) / 2;
-
-        // 4. If the middle element of the current subarray == target element, return the middle index.
-        if (nums[middle] == target) {
-            return middle;
-        }
-
-        // 5. If the first element of the current subarray <= middle element, the left half 
-        // of the subarray is sorted.
-        if (nums[start] <= nums[middle]) {
-
-            // 6. If target element doesn't lie in the left half, move start pointer to (middle + 1).
-            if (target < nums[start] || target > nums[middle]) {
-                start = middle + 1;
-            } else { // 7. Otherwise, the target element can lie in the left half. Move end pointer to (middle - 1). 
-                end = middle - 1;
-            }
-            
-
-        } else { // 8. Otherwise, the right half is sorted.
-
-            // 9. If the target element doesn't lie in the right half, move end pointer to (middle - 1).
-            if (target < nums[middle] || target > nums[end]) {
-                end = middle - 1;
-            } else { // 10. Otherwise, the target element can lie in the right half. Move start pointer to (middle + 1).
-                start = middle + 1;
-            }
-
-        }
-        
-    }   
-
-    // 11. If the target element is not found, return -1.
-    return -1;
-        
-}
-```
+<SearchInRotatedSortedArrayVisualizer />
 
 #### Time Complexity
 
+In each iteration, we calculate the `middle` index, determine which half of the subarray is sorted and, 
+based on the target's value, eliminare one half of the subarray. Since each of these operation takes 
+constant time, `O(1)`, the time complexity is primarily dependent on the number of iterations.
+
+The search space reduces by half in every iteration. The number of remaining element after each 
+iteration is:
+
+```
+-> Initially: n
+-> After 1 iteration: n/2
+-> After 2 iterations: n/(2^2)
+-> After 3 iterations: n/(2^3)
+   .
+   .
+   .
+-> After k iterations: n/(2^k)
+```
+
+In the worst case, i.e., when the `target` element is not found, the search continuous until one 
+element exists. Therefore:
+
+```
+-> n / (2^k) = 1
+-> n = 2^k
+
+Taking logarithm base 2 on both sides:
+-> log2(n) = k
+```
+
+The number of iterations is proportional to `log2(n)`. Therfore, the overall time complexity is 
+`O(log2(n))`.
+
 #### Space Complexity
 
+The algorithm only uses a constant amount of extra space to store variables as `start`, `end` and `middle`.
 
+We are not using any additional data structures. Therefore, the overall space complexity is `O(1)`.
 
 ---
 
