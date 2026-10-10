@@ -3,15 +3,9 @@ title: 'Data Structures & Algorithms (Binary Search): Search in Rotated Sorted A
 publishedAt: '2026-02-16'
 ---
 
-There is an integer array `nums` sorted in ascending order (with distinct values).
-
-Prior to being passed to your function, `nums` is possibly left rotated at an unknown index `k` 
-(`1 <= k < nums.length`) such that the resulting array is `[nums[k], nums[k+1], ..., nums[n-1], nums[0], 
-nums[1], ..., nums[k-1]]` (`0`-indexed). For example, `[0,1,2,3,4,5,6,7]` might be left rotated by `3` indices 
-and become `[3,4,5,6,7,0,1,2]`.
-
-Given the array `nums` after the possible rotation and an integer `target`, return the index of `target` if 
-it is in `nums`, or `-1` if it is not in `nums`.
+Given an array `nums`, sorted in ascending order and left rotated at an unknown index `k` 
+(`1 <= k < nums.length`), and an integer `target`, return the index of `target` if 
+it is in `nums`, or `-1` otherwise.
 
 You must write an algorithm with `O(log n)` runtime complexity.
 
@@ -69,7 +63,7 @@ found or no elements remain to be explored.
         7. Otherwise, the "target" lies in the left half. Move "end" to "middle - 1". 
 
     8. Otherwise if "nums[start]" > "nums[middle]", the right half is sorted.
-        9. If "target" < "nums[middle]" element or "target" < "nums[end]" (last element of the 
+        9. If "target" < "nums[middle]" element or "target" > "nums[end]" (last element of the 
            current subarray), the "target" must lie in the left half. Move "end" to "middle - 1".
         10. Otherwise, the target lies in the right half. Move "start" to "middle + 1".
 
@@ -80,6 +74,48 @@ found or no elements remain to be explored.
 
 ```java
 public int search(int[] nums, int target) {
+
+    // 1. Initialize two pointers, start and end, to mark the subarray under consideration.
+    int start = 0, end = nums.length - 1;
+
+    // 2. Keep performing the below operations while atleast one element exist in the current subarray.
+    while (start <= end) {
+
+        // 3. Find the middle index of the current subarray.
+        int middle = (start + end) / 2;
+
+        // 4. If the middle element of the current subarray == target element, return the middle index.
+        if (nums[middle] == target) {
+            return middle;
+        }
+
+        // 5. If the first element of the current subarray <= middle element, the left half 
+        // of the subarray is sorted.
+        if (nums[start] <= nums[middle]) {
+
+            // 6. If target element doesn't lie in the left half, move start pointer to (middle + 1).
+            if (target < nums[start] || target > nums[middle]) {
+                start = middle + 1;
+            } else { // 7. Otherwise, the target element can lie in the left half. Move end pointer to (middle - 1). 
+                end = middle - 1;
+            }
+            
+
+        } else { // 8. Otherwise, the right half is sorted.
+
+            // 9. If the target element doesn't lie in the right half, move end pointer to (middle - 1).
+            if (target < nums[middle] || target > nums[end]) {
+                end = middle - 1;
+            } else { // 10. Otherwise, the target element can lie in the right half. Move start pointer to (middle + 1).
+                start = middle + 1;
+            }
+
+        }
+        
+    }   
+
+    // 11. If the target element is not found, return -1.
+    return -1;
         
 }
 ```

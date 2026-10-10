@@ -8,9 +8,16 @@ be achieved using localized and single-node testing processes.
 
 ---
 
-### White-Box Testing
+### Unit Testing
 
-The tester has knowledge of the source code and verifies things like: "Are all `if/else` paths tested?"
+---
+
+### Component Testing
+
+A component test verifies that a single application component works correctly by testing its behavior 
+through its interfaces, often while replacing external dependencies with mocks or stubs.
+
+For example, `postPayment_validData_returnsSuccess()`
 
 ---
 
@@ -19,45 +26,89 @@ The tester has knowledge of the source code and verifies things like: "Are all `
 A black-box test is a test where you test the external behavior of a system without knowing or considering
 its internal implementation.
 
-<Note>
-Give the system an input and verify whether the output is correct. You don't care how the code 
-internally produces the result.
-</Note>
+#### Why do we need blackbox testing?
+
+1. **To validate business requirements**: For example, when a customer initiates a payment of AUD 1,000, the 
+API should accept the valid request and return the expected payment details.
+
+2. **To verify error handling**: If the customer has insufficient funds, the payment should be rejected 
+according to the API contract, and no unauthorized debit should occur.
+
+3. **To protect financial integrity**: We need to ensure that payments aren't duplicated, funds aren't 
+incorrectly debited, and failed payments are handled correctly.
+
+4. **To validate API contracts**: The API should return the correct HTTP status codes, response fields, error 
+messages, and data formats expected by its consumers.
+
+5. **To test integration behavior**: Outbound payments often depend on downstream banks, payment gateways, 
+and other services. Black-box tests help verify how the API behaves when those dependencies succeed, fail, or 
+time out.
+
+6. **To prevent regressions**: When developers change the payment service, existing black-box tests help 
+confirm that previously working functionality still behaves as expected.
+
+### How to write blackbox tests?
+
+Blackbox tests usually follow the **Given-When-Then** naming convention used in unit and integration testing. For example:
+`givenValidPayment_whenPostPayment_thenSuccess()`.
+
+- **Given ValidPayment**: A valid payment request exists, with valid account details, a positive amount, 
+and a supported currency.
+
+- **When PostPayment**: The client submits the payment using the `POST /api/v1/payments` endpoint.
+
+- **Then Success** — The API returns the expected success status, payment ID, and payment status.
+
+#### What is WireMock?
+
+WireMock is a tool used to mock HTTP APIs so that you can test your application without depending on real 
+external services.
+
+For example, in an outbound payment system, you can use `WireMock` to simulate the responses of a 
+downstream bank or payment gateway.
+
+Wiremock's Admin API allows you to configure and control a `Wiremock` server programmatically, including 
+creating, viewing, and deleting stubs.
+
+##### How to create a stub using WireMock?
+
+```json
+POST /_admin/mappings
+```
+
+This is the WireMock's admin endpoint for creating stubs. You send a configuration to `Wiremock` 
+describing which request to match and what response to return.
+
+```java
+ObjectNode mapping = JSON_MAPPER.createObjectNode();    // {}
+
+ObjectNode request = mapping.putObject("request");      // { "request": {} }
+request.put("method", "POST");                          // { "request": { "method": "POST" } }
+request.put("url", url);                                // { "request": { "method": "POST", "url": url } }
+
+ObjectNode response = mapping.putObject("response");
+response.put("status", status);
+response.putObject("headers").put("Content-Type", contentType);
+response.put("body", body);
+
+HttpRequest requestToWireMock = HttpRequest.newBuilder()
+    .uri(URI.create("http://localhost:" + port + "/__admin/mappings"))
+    .timeout(Duration.ofSeconds(5))
+    .header("Content-Type", "application/json")
+    .POST(HttpRequest.BodyPublishers.ofString(JSON_MAPPER.writeValueAsString(mapping)))
+    .build();
+
+HttpResponse<String> responseFromWireMock HttpClient.newHttpClient()
+    .send(requestToWireMock, HttpResponse.BodyHandlers.ofString());
+```
 
 ---
-
-### Unit Testing
-
----
-
-### Component Testing
-
-Component testing is testing one complete application component as a single unit, while isolating it from the 
-rest of the system.
-
-For example, the `Order` Component contains multiple classes:
-
-- OrderController
-- OrderService
-- OrderRepository
-- Validators
-- Mappers
-
-These classes work together to implement the order feature.
-
-<Note>
-But it doesn't involve the real payment service, email service, or another microservice. Those are 
-replaced with mocks or stubs.
-</Note>
-
-### Integration Testing 
-
-Integration testing verifies that two or more independently developed pieces work correctly when they 
-are connected together.
 
 ### System Testing
 
-- A system test might verify that a request has a trace/correlation ID.
+A system test might verify that a request has a trace/correlation ID.
+
+---
 
 ### Performance Testing
 
@@ -80,10 +131,14 @@ CPU utilization:  < 80%
 
 These become the performance requirements you're testing against.
 
+---
+
 ### Acceptance Testing
 
 Acceptance testing verifies that the software satisfies the business requirements and expectations of the 
 customer/user and is ready to be accepted or released.
+
+---
 
 ### Regression Testing
 
