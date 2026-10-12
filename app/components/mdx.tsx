@@ -43,6 +43,7 @@ import ContinuousSubarraySumPrefixVisualizer from './continuous-subarray-sum-pre
 import ContiguousArrayBruteVisualizer from './contiguous-array-brute-visualizer';
 import ContiguousArrayPrefixVisualizer from './contiguous-array-prefix-visualizer';
 import SearchInRotatedSortedArrayVisualizer from './search-in-rotated-sorted-array-visualizer';
+import KokoEatingBananasLinearVisualizer from './koko-eating-bananas-linear-visualizer';
 import NearestDispatchVisualizer from './nearest-dispatch-visualizer';
 import IdleDispatchVisualizer from './idle-dispatch-visualizer';
 import DirectionAwareVisualizer from './direction-aware-visualizer';
@@ -389,6 +390,7 @@ let components = {
   ContiguousArrayBruteVisualizer: ContiguousArrayBruteVisualizer,
   ContiguousArrayPrefixVisualizer: ContiguousArrayPrefixVisualizer,
   SearchInRotatedSortedArrayVisualizer: SearchInRotatedSortedArrayVisualizer,
+  KokoEatingBananasLinearVisualizer: KokoEatingBananasLinearVisualizer,
   NearestDispatchVisualizer: NearestDispatchVisualizer,
   IdleDispatchVisualizer: IdleDispatchVisualizer,
   DirectionAwareVisualizer: DirectionAwareVisualizer,

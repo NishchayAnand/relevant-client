@@ -47,18 +47,24 @@ If `k >= pile[i]`, she will finish the pile in `1` hour.
 ### Naive Approach - Linear Search
 
 Start exploring k from 1. For each k, iterate over every pile and calculate the cumulative hours
-required to eat all the bananas using `ceil(pile / k). 
-
-Return the first `k` for which the cumulative hours are less than or equal to `h1`, as it is 
-the minimum valid eating speed.
+required to eat all the bananas using `ceil(pile / k)`. Return the first `k` for which the cumulative 
+hours are less than or equal to `h`, as it is the minimum valid eating speed.
 
 #### Algorithm
 
 ```java
-1. 
+1. Initialize "k" to 1.
+2. Repeat the following steps until we have an eligible "k".
+    3. Initialize a variable, "cumHrs" to 0, to store the cumulative hours required to eat
+       all piles at the rate of "k" bananas per hour.
+    4. Iterate over each pile and add "ceil(pile / k)" to "cumHrs".
+    5. If the "cumHrs" is less than or equal to "h", return "k".
+    6. Otherwise, increment "k" by 1.
 ```
 
 #### Implementation
+
+<KokoEatingBananasLinearVisualizer />
 
 #### Time Complexity
 
