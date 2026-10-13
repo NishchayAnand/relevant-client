@@ -68,11 +68,38 @@ hours are less than or equal to `h`, as it is the minimum valid eating speed.
 
 #### Time Complexity
 
+For each iteration, we only perform basic arithmetic operations and validation checks, each taking 
+constant time, `O(1)`. Therefore, the time complexity primarily depends on the number of iterations.
+
+In the worst case, i.e., when `h = n`, where `n = piles.length`, the outer loop runs for `max(piles)` times. 
+For each iteration, the inner loop traverses all `n` times.
+
+Since the total iterations is `max(piles) x n`, the overall time complexity is `O(max(piles) x n)`.
+
 #### Space Complexity
+
+We use only a variable, `cumHrs`, to store the cumulative hours required to eat all piles at
+a rate of `k`. Since no additional data structures are used, the overall space complexity is 
+`O(1)`.
+
+---
+
+### Key Observations
+
+When `k >= max(piles)`, Koko can finish each pile in `1` hour. Therefore, she needs a minimum of 
+`piles.length` hours to eat all the piles. For example, if piles = `[3, 6, 7, 11]`, then for any 
+`k >= 11`, Koko can finish each pile in `1` hour, requiring a total of `4` hours to eat all the piles.
+
+**<span className="text-yellow-500">Hence, we only need to search within the range</span>** `[1, max(piles)]` 
+**<span className="text-yellow-500">to find the minimum rate</span>** `k` 
+**<span className="text-yellow-500">that allows Koko to eat all the bananas within</span>** `h` 
+**<span className="text-yellow-500">hours.</span>**
 
 ---
 
 ### Suitable Approach - Binary Search
+
+Use binary search to find the 
 
 ---
 
