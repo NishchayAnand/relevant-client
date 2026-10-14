@@ -38,7 +38,6 @@ Output: 23
 ### Basic Intuition
 
 To eat `pile[i]` bananas at a rate of `k` bananas per hour, koko will take `ceil(pile[i] / k)` hours.
-If `k >= pile[i]`, she will finish the pile in `1` hour.
 
 ![basic-intuition](/koko-eating-bananas/basic-intuition.png)
 
@@ -95,11 +94,71 @@ When `k >= max(piles)`, Koko can finish each pile in `1` hour. Therefore, she ne
 **<span className="text-yellow-500">that allows Koko to eat all the bananas within</span>** `h` 
 **<span className="text-yellow-500">hours.</span>**
 
+![key-observation-1](/koko-eating-bananas/key-observation-1.png)
+
 ---
 
 ### Suitable Approach - Binary Search
 
-Use binary search to find the 
+The search space `[1, max(piles)]` follows a **monotonic pattern**: as the eating speed (`k`) increases, 
+the total hours required (`cumHrs`) to finish all the piles will strictly decrease or stay the same (never 
+increase).
+
+Because of this:
+
+- If a speed is **too slow** (`cumHrs > h`), we can eliminate that speed and all smaller speeds.
+
+![binary-search-1](/koko-eating-bananas/binary-search-1.png)
+
+- If a speed is **sufficient** (`cumHrs <= h`), we can eliminate all larger speeds because we're 
+searching for the minimum valid speed.
+
+![binary-search-2](/koko-eating-bananas/binary-search-2.png)
+
+These observations allow us to use **binary search** to halve the search space in each iteration until we 
+find the minimum valid eating speed.
+
+#### Algorithm
+
+```java
+1. Initialize:
+    a. Two pointers, "left = 1" and "right = max(piles)", to define the boundaries of 
+       the search space.
+    b. A variable, "minimumSpeed = max(piles)" to track the minimum eating speed found 
+       so far.
+
+2. Repeat while the search space is not empty ("left" <= "right"):
+    3. Calulate the "middle" element in the current search space.
+    4. Initialize a variable, "totalHours = 0" to track the hours required to eat
+       all piles at speed "middle".
+    5. Iterate over each pile and add "ceil(pile / middle)" to "totalHours".
+    6. If "totalHours" > "h", "middle" is too slow. Move "left" to "middle + 1" to 
+       eliminate "middle" and all smaller speeds.
+    7. Otherwise, "middle" is a valid candidate. Update "minimumSpeed" to
+       "middle" and move "right" to "middle - 1" to search for a smaller valid speed.
+
+8. Return "minimumSpeed".
+```
+
+#### Implementation
+
+<KokoEatingBananasBinaryVisualizer />
+
+#### Time Complexity
+
+The binary search takes `O(logm) iterations, where `m = maximum number of bananas in any pile`.
+
+In each iteration, we traverse all `n` piles to calculate the total hours required. Each calculation 
+takes `O(1)` time, so each iteration takes `O(n)` time.
+
+Therefore, the overall time complexity is `O(n x logm)`.
+
+#### Space Complexity
+
+We use only a fixed number of variables, such as `left`, `right`, `middle`, `minimumSpeed`, and `totalHours`.
+
+Since we don't use any additional data structures that grow with input size, the overall space 
+complexity is `O(1)`.
 
 ---
 

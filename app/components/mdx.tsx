@@ -44,6 +44,7 @@ import ContiguousArrayBruteVisualizer from './contiguous-array-brute-visualizer'
 import ContiguousArrayPrefixVisualizer from './contiguous-array-prefix-visualizer';
 import SearchInRotatedSortedArrayVisualizer from './search-in-rotated-sorted-array-visualizer';
 import KokoEatingBananasLinearVisualizer from './koko-eating-bananas-linear-visualizer';
+import KokoEatingBananasBinaryVisualizer from './koko-eating-bananas-binary-visualizer';
 import NearestDispatchVisualizer from './nearest-dispatch-visualizer';
 import IdleDispatchVisualizer from './idle-dispatch-visualizer';
 import DirectionAwareVisualizer from './direction-aware-visualizer';
@@ -391,6 +392,7 @@ let components = {
   ContiguousArrayPrefixVisualizer: ContiguousArrayPrefixVisualizer,
   SearchInRotatedSortedArrayVisualizer: SearchInRotatedSortedArrayVisualizer,
   KokoEatingBananasLinearVisualizer: KokoEatingBananasLinearVisualizer,
+  KokoEatingBananasBinaryVisualizer: KokoEatingBananasBinaryVisualizer,
   NearestDispatchVisualizer: NearestDispatchVisualizer,
   IdleDispatchVisualizer: IdleDispatchVisualizer,
   DirectionAwareVisualizer: DirectionAwareVisualizer,
