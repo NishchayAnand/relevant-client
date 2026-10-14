@@ -147,7 +147,6 @@ find the minimum valid eating speed.
 #### Time Complexity
 
 The binary search takes `O(logm) iterations, where `m = maximum number of bananas in any pile`.
-
 In each iteration, we traverse all `n` piles to calculate the total hours required. Each calculation 
 takes `O(1)` time, so each iteration takes `O(n)` time.
 
@@ -156,7 +155,6 @@ Therefore, the overall time complexity is `O(n x logm)`.
 #### Space Complexity
 
 We use only a fixed number of variables, such as `left`, `right`, `middle`, `minimumSpeed`, and `totalHours`.
-
 Since we don't use any additional data structures that grow with input size, the overall space 
 complexity is `O(1)`.
 
