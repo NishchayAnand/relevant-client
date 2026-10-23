@@ -97,6 +97,7 @@ import PermutationInStringBruteVisualizer from './permutation-in-string-brute-vi
 import PermutationInStringSlidingWindowVisualizer from './permutation-in-string-sliding-window-visualizer';
 import { Mermaid } from './mermaid';
 import { CopyCodeButton } from './copy-code-button';
+import { CodeOutput } from './code-output';
 
 hljs.registerLanguage('javascript', javascript);
 
@@ -444,6 +445,7 @@ let components = {
   Image: RoundedImage,
   Note,
   Algorithm,
+  CodeOutput,
   Mermaid,
   a: CustomLink,
   pre: Pre,

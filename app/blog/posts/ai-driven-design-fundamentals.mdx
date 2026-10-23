@@ -16,11 +16,60 @@ and practices in building robust multi-agent systems.
 An LLM (Large Language Model) is the model that processes input and generates output. 
 An API allows your application to communicate with that model.
 
-
-
----
-
 #### How to connect to an LLM?
+
+<CodeOutput>
+
+```python
+from openai import OpenAI
+
+client = OpenAI()
+response = client.responses.create(
+    model="",
+    instructions=(
+        "You are a helpful software engineering tutor."
+        "Explain technical concepts with simple examples."
+    ),
+    input="What is an API? Explain using a real-world example."
+)
+
+print(response.output_text)
+print("Usage: ", response.usage)
+```
+
+```markdown
+An API (Application Programming Interface) is a set of rules that lets one piece of software talk to another. It defines what you can ask for, how to ask, and what you’ll get back—without needing to know how the other system is built inside.
+
+### Real‑world example: a restaurant
+
+- Menu = API documentation. It lists what you can order and what options you can use.
+- You (customer/app) place an order using the menu’s rules (e.g., “Burger with no onions”).
+- The waiter = API. They carry your request to the kitchen and return the result.
+- The kitchen = the service/server. It does the work but you don’t see its process.
+- If you ask for something not on the menu, the waiter says no (like an error).
+- You don’t need to know the recipe or the chef’s tools—just how to order.
+
+### In software terms
+
+- A weather app “orders” current weather from a weather service’s API.
+- It might send a request like: `GET /weather?city=Paris`
+- The service responds with data like: `{"city":"Paris","temperature":21,"unit":"C"}`
+- The app then shows that temperature to you.
+
+### Why APIs matter
+
+- Hide complexity: use a service without knowing its internals.
+- Consistent contract: clear inputs and outputs.
+- Security and control: only allowed actions are exposed.
+- Reuse and integration: different apps and services can work together easily.
+
+In short, an API is the menu and waiter that let apps request exactly what they need from other software, in a predictable way.
+
+Usage: `ResponseUsage(input_tokens=37, input_tokens_details=InputTokensDetails(cached_tokens=0, cache_write_tokens=0), output_tokens=752, output_tokens_details=OutputTokensDetails(reasoning_tokens=384), total_tokens=789)`
+```
+
+</CodeOutput>
+
 
 ---
 

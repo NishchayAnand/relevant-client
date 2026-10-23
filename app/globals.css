@@ -118,6 +118,46 @@ html {
   line-height: 1.5;
 }
 
+.prose .code-output pre {
+  @apply my-0 overflow-visible rounded-none border-0 bg-transparent px-3 py-3 text-sm;
+}
+
+.prose .code-output pre code {
+  @apply bg-transparent p-0;
+}
+
+.prose .code-output .markdown-output :where(p) {
+  @apply my-2 text-sm leading-relaxed text-neutral-800 dark:text-neutral-200;
+}
+
+.prose .code-output .markdown-output :where(p.md-heading) {
+  @apply mt-4 mb-1 text-sm font-semibold tracking-normal text-neutral-900 dark:text-neutral-100;
+}
+
+.prose .code-output .markdown-output > :first-child {
+  margin-top: 0;
+}
+
+.prose .code-output .markdown-output :where(ul) {
+  @apply my-2 list-disc pl-5;
+}
+
+.prose .code-output .markdown-output :where(ol) {
+  @apply my-2 list-decimal pl-5;
+}
+
+.prose .code-output .markdown-output :where(li) {
+  @apply my-1;
+}
+
+.prose .code-output .markdown-output :where(li > p) {
+  @apply my-0;
+}
+
+.prose .code-output .markdown-output :where(code) {
+  @apply rounded bg-white px-1 py-0.5 text-[0.92em] break-words dark:bg-neutral-800;
+}
+
 .prose code span {
   @apply font-medium;
 }

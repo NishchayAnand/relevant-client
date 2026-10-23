@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Check, Copy } from 'lucide-react';
 
-export function CopyCodeButton({ text }: { text: string }) {
+export function CopyCodeButton({ text, inline = false }: { text: string; inline?: boolean }) {
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
@@ -34,7 +34,7 @@ export function CopyCodeButton({ text }: { text: string }) {
       type="button"
       onClick={onCopy}
       aria-label={copied ? 'Copied' : 'Copy code'}
-      className={`absolute top-2 right-2 z-10 inline-flex items-center gap-1 rounded-md border px-2 py-1 text-[11px] font-medium transition-colors ${
+      className={`${inline ? '' : 'absolute top-2 right-2 z-10 '}inline-flex shrink-0 items-center gap-1 rounded-md border px-2 py-1 text-[11px] font-medium transition-colors ${
         copied
           ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
           : 'border-neutral-200 bg-white text-neutral-500 hover:border-neutral-300 hover:text-neutral-800'
