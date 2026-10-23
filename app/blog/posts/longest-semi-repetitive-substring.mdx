@@ -78,47 +78,7 @@ contains more than one adjacent equal pair).
 
 #### Implementation
 
-```java
-public int longestSemiRepetitiveSubstring(String s) {
-
-    //1. Initializa a variable to track the length of the longest valid substring found so far.
-    int maxLength = 1;
-
-    //2. Iterate over each starting index:
-    for (int i = 0; i < s.length() - 1; i++) {
-
-        // 3. Initialize a variable to track if the current substring already contains an adjacent equal pair.
-        boolean containsAdjacentPair = false;
-
-        // 4. Expand the current substring one digit at a time:
-        for (int j = i + 1; j < s.length(); j++) {
-
-            char digit = s.charAt(j);
-            char previousDigit = s.charAt(j-1);
-            // 5. If the current digit equals the digit immediately before it:
-            if (digit == previousDigit) {
-                /* 6. If an adjacent equal pair is observed before, stop expanding the 
-                 *    current substring and move to the next starting index.
-                 */
-                if (containsAdjacentPair) {
-                    break;
-                } else {
-                    // 7. Otherwise, mark adjacent equal pair observed before as true.
-                    containsAdjacentPair = true;
-                }
-            }
-            // 8. Update max length if necessary.
-            maxLength = Math.max(maxLength, j - i + 1);
-
-        }
-
-    }
-
-    // 9. Return max length.
-    return maxLength;
-
-}
-```
+<LongestSemiRepetitiveNestedVisualizer />
 
 #### Time Complexity
 

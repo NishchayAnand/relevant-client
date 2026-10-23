@@ -64,6 +64,7 @@ import {
 import TicTacToeVisualizer from './tic-tac-toe-visualizer';
 import MergeIntervalsVisualizer from './merge-intervals-visualizer';
 import { LongestSubstringApproach1Visualizer } from './longest-substring-approach1-visualizer';
+import { LongestSemiRepetitiveNestedVisualizer } from './longest-semi-repetitive-nested-visualizer';
 import { LongestSubstringApproach2Visualizer } from './longest-substring-approach2-visualizer';
 import { LatencyVisualizer } from './latency-visualizer';
 import HouseRobberVisualizer from './house-robber-visualizer';
@@ -410,6 +411,7 @@ let components = {
   TicTacToeVisualizer: TicTacToeVisualizer,
   MergeIntervalsVisualizer: MergeIntervalsVisualizer,
   LongestSubstringApproach1Visualizer: LongestSubstringApproach1Visualizer,
+  LongestSemiRepetitiveNestedVisualizer: LongestSemiRepetitiveNestedVisualizer,
   LongestSubstringApproach2Visualizer: LongestSubstringApproach2Visualizer,
   LatencyVisualizer: LatencyVisualizer,
   RemoveDuplicatesSortedListVisualizer: RemoveDuplicatesSortedListVisualizer,
