@@ -1,0 +1,157 @@
+---
+title: 'Data Structures & Algorithms (Sliding Window): Find the Longest Semi-Repetitive Substring'
+publishedAt: '2026-02-10'
+---
+
+You are given a digit string `s` that consists of digits from `0` to `9`.
+
+A string is called semi-repetitive if there is at most one adjacent pair of the same digit. 
+For example, `"0010"`, `"002020"`, `"0123"`, `"2002"`, and `"54944"` are semi-repetitive while 
+the following are not: `"00101022"` (adjacent same digit pairs are `00` and `22`), and 
+`"1101234883"` (adjacent same digit pairs are `11` and `88`).
+
+Return the length of the longest semi-repetitive substring of `s`.
+
+```
+Example 1:
+
+Input: s = "52233"
+Output: 4
+Explanation: The longest semi-repetitive substring is "5223". Picking the whole string 
+"52233" has two adjacent same digit pairs 22 and 33, but at most one is allowed.
+
+Example 2:
+
+Input: s = "5494"
+Output: 4
+Explanation: s is a semi-repetitive string.
+
+Example 3:
+
+Input: s = "1111111"
+Output: 2
+Explanation: The longest semi-repetitive substring is "11". Picking the substring "111" 
+has two adjacent same digit pairs, but at most one is allowed.
+```
+
+> Playground: [Leetcode 2730](https://leetcode.com/problems/find-the-longest-semi-repetitive-substring/description/)
+
+---
+
+### Basic Intution
+
+A substring becomes invalid when it already contains one adjacent equal pair and we 
+encounter a new digit that matches the digit immediately before it, forming a second pair.
+
+![basic-intution](/longest-semi-repetitive-substring/basic-intution.png)
+
+---
+
+### Naive Approach: Nested Loops
+
+Use an outer loop to iterate over each digit, treating it as the starting point of a 
+substring.
+
+Use an inner loop to explore all substrings starting at that position,
+expanding one character at a time and stopping when the substring becomes invalid (i.e.,
+contains more than one adjacent equal pair).
+
+#### Algorithm
+
+```java
+1. Initializa a variable: "maxLength" to track the length of the longest valid 
+   substring found so far.
+
+2. Iterate over each starting index:
+    3. Initialize a variable: "containsAdjacentPair" to track if the current substring 
+       already contains an adjacent equal pair.
+    4. Expand the current substring one "digit" at a time:
+        5. If the current "digit" equals the digit immediately before it:
+            6. If "containsAdjacentPair" is already true, stop expanding the current 
+                substring and move to the next starting index, since any larger 
+                substring starting at the same index will also be invalid.
+            7. Otherwise, set "containsAdjacentPair" to "true".
+        8. Update "maxLength" if necessary.
+
+9. Return "maxLength".
+```
+
+#### Implementation
+
+```java
+public int longestSemiRepetitiveSubstring(String s) {
+
+    //1. Initializa a variable to track the length of the longest valid substring found so far.
+    int maxLength = 1;
+
+    //2. Iterate over each starting index:
+    for (int i = 0; i < s.length() - 1; i++) {
+
+        // 3. Initialize a variable to track if the current substring already contains an adjacent equal pair.
+        boolean containsAdjacentPair = false;
+
+        // 4. Expand the current substring one digit at a time:
+        for (int j = i + 1; j < s.length(); j++) {
+
+            char digit = s.charAt(j);
+            char previousDigit = s.charAt(j-1);
+            // 5. If the current digit equals the digit immediately before it:
+            if (digit == previousDigit) {
+                /* 6. If an adjacent equal pair is observed before, stop expanding the 
+                 *    current substring and move to the next starting index.
+                 */
+                if (containsAdjacentPair) {
+                    break;
+                } else {
+                    // 7. Otherwise, mark adjacent equal pair observed before as true.
+                    containsAdjacentPair = true;
+                }
+            }
+            // 8. Update max length if necessary.
+            maxLength = Math.max(maxLength, j - i + 1);
+
+        }
+
+    }
+
+    // 9. Return max length.
+    return maxLength;
+
+}
+```
+
+#### Time Complexity
+
+#### Space Complexity
+
+---
+
+### Key Observations
+
+---
+
+### Suitable Approach: Sliding Window
+
+#### Algorithm
+
+```
+```
+
+#### Implementation
+
+```java
+
+```
+
+#### Time Complexity
+
+#### Space Complexity
+
+---
+
+### Follow Up Questions
+
+**<span className="text-emerald-800">Q1. How would you modify this solution if the substring were allowed to contain at most 
+`k` adjacent equal pairs instead of just one?</span>**
+
+

@@ -40,18 +40,18 @@ print("Usage: ", response.usage)
 ```markdown
 An API (Application Programming Interface) is a set of rules that lets one piece of software talk to another. It defines what you can ask for, how to ask, and what you’ll get back—without needing to know how the other system is built inside.
 
-### Real‑world example: a restaurant
+### Real-world example: a restaurant
 
 - Menu = API documentation. It lists what you can order and what options you can use.
-- You (customer/app) place an order using the menu’s rules (e.g., “Burger with no onions”).
+- You (customer/app) place an order using the menu's rules (e.g., “Burger with no onions”).
 - The waiter = API. They carry your request to the kitchen and return the result.
-- The kitchen = the service/server. It does the work but you don’t see its process.
+- The kitchen = the service/server. It does the work but you don't see its process.
 - If you ask for something not on the menu, the waiter says no (like an error).
-- You don’t need to know the recipe or the chef’s tools—just how to order.
+- You don't need to know the recipe or the chef's tools—just how to order.
 
 ### In software terms
 
-- A weather app “orders” current weather from a weather service’s API.
+- A weather app “orders” current weather from a weather service's API.
 - It might send a request like: `GET /weather?city=Paris`
 - The service responds with data like: `{"city":"Paris","temperature":21,"unit":"C"}`
 - The app then shows that temperature to you.
