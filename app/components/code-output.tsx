@@ -1,34 +1,11 @@
 import React from 'react';
-import { Marked } from 'marked';
-import { highlight } from 'sugar-high';
-import { CopyCodeButton } from './copy-code-button';
-
-const outputMarkdown = new Marked({ gfm: true });
-
-outputMarkdown.use({
-  renderer: {
-    heading({ tokens }) {
-      const text = this.parser.parseInline(tokens);
-      return `<p class="md-heading">${text}</p>\n`;
-    },
-    codespan({ text }) {
-      const html = escapeHtml(text).replace(/([,()/=?])/g, '$1<wbr>');
-      return `<code>${html}</code>`;
-    },
-  },
-});
-
-function escapeHtml(value: string) {
-  return value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
-}
+import { CodeOutputPanel, type CodeSample } from './code-output-panel';
 
 /**
  * Side-by-side code and its printed result, for embedding in a post.
  *
- * The first fenced block is the source. The second is the output.
+ * The first fenced block is the source. The last block is the output.
+ * Extra code blocks before a markdown output become a provider dropdown.
  * Leave a blank line after the opening tag so MDX parses the fences.
  *
  * ```mdx
@@ -55,88 +32,54 @@ export function CodeOutput({
   outputLabel?: string;
 }) {
   const panes = React.Children.toArray(children).filter(React.isValidElement);
-  const code = panes[0];
-  const output = panes[1];
+  const split = splitPanes(panes);
 
-  if (!code || !output) {
+  if (!split) {
     return null;
   }
 
-  const codeSource = nodeText(code).replace(/\n$/, '');
-  const outputSource = nodeText(output).replace(/\n$/, '');
-  const language = nodeLanguage(code);
-  const outputLanguage = nodeLanguage(output);
+  const outputLanguage = nodeLanguage(split.output);
+  const codes: CodeSample[] = split.codes.map((pane, index) => {
+    const source = nodeText(pane).replace(/\n$/, '');
+    return {
+      label: providerLabel(source, index),
+      source,
+      language: nodeLanguage(pane) ?? '',
+    };
+  });
 
   return (
-    <div className="@container my-6">
-      <div className="code-output grid h-fit max-h-dvh grid-cols-1 grid-rows-[minmax(0,1fr)_minmax(0,1fr)] overflow-hidden rounded-lg border border-neutral-200 @2xl:grid-cols-2 @2xl:grid-rows-[minmax(0,1fr)] dark:border-neutral-800">
-        <Pane
-          label={codeLabel}
-          source={codeSource}
-          language={language}
-          highlighted
-          className="border-b border-neutral-200 @2xl:border-r @2xl:border-b-0 dark:border-neutral-800"
-        />
-        <Pane
-          label={outputLabel}
-          source={outputSource}
-          markdown={outputLanguage === 'markdown' || outputLanguage === 'md'}
-        />
-      </div>
-    </div>
+    <CodeOutputPanel
+      codes={codes}
+      output={{
+        source: nodeText(split.output).replace(/\n$/, ''),
+        markdown: outputLanguage === 'markdown' || outputLanguage === 'md',
+      }}
+      codeLabel={codeLabel}
+      outputLabel={outputLabel}
+    />
   );
 }
 
-function Pane({
-  label,
-  source,
-  language,
-  highlighted = false,
-  markdown = false,
-  className = '',
-}: {
-  label: string;
-  source: string;
-  language?: string;
-  highlighted?: boolean;
-  markdown?: boolean;
-  className?: string;
-}) {
-  const showLanguage = language && language !== 'text' && language !== 'output';
+const PROVIDERS: { pattern: RegExp; label: string }[] = [
+  { pattern: /openai/i, label: 'OpenAI' },
+  { pattern: /anthropic/i, label: 'Anthropic' },
+  { pattern: /google|genai/i, label: 'Google' },
+];
 
-  return (
-    <div className={`flex min-h-0 min-w-0 flex-col overflow-hidden bg-neutral-50 dark:bg-neutral-900 ${className}`}>
-      <div className="flex shrink-0 items-center justify-between gap-2 border-b border-neutral-200 bg-neutral-100 px-3 py-1.5 dark:border-neutral-800 dark:bg-neutral-950">
-        <span className="text-[11px] font-semibold uppercase tracking-wide text-neutral-500">
-          {label}
-        </span>
-        <span className="flex items-center gap-2">
-          {showLanguage ? (
-            <span className="font-mono text-[11px] text-neutral-400">{language}</span>
-          ) : null}
-          <CopyCodeButton text={source} inline />
-        </span>
-      </div>
-      <div className="min-h-0 min-w-0 flex-1 overflow-auto">
-        {markdown ? (
-          <div
-            className="markdown-output px-4 py-3 text-sm leading-relaxed text-neutral-800 dark:text-neutral-200"
-            dangerouslySetInnerHTML={{
-              __html: outputMarkdown.parse(source, { async: false }),
-            }}
-          />
-        ) : (
-          <pre className="m-0 h-full overflow-x-auto px-3 py-3 text-sm whitespace-pre-wrap break-words text-neutral-800 dark:text-neutral-200">
-            {highlighted ? (
-              <code dangerouslySetInnerHTML={{ __html: highlight(source) }} />
-            ) : (
-              <code>{source}</code>
-            )}
-          </pre>
-        )}
-      </div>
-    </div>
-  );
+function providerLabel(source: string, index: number) {
+  return PROVIDERS.find((provider) => provider.pattern.test(source))?.label ?? `Option ${index + 1}`;
+}
+
+function splitPanes(panes: React.ReactElement[]) {
+  if (panes.length < 2) return null;
+  const output = panes[panes.length - 1];
+  const outputLanguage = nodeLanguage(output);
+  const outputIsMarkdown = outputLanguage === 'markdown' || outputLanguage === 'md';
+  if (outputIsMarkdown) {
+    return { codes: panes.slice(0, -1), output };
+  }
+  return { codes: [panes[0]], output: panes[1] };
 }
 
 function nodeText(node: React.ReactNode): string {

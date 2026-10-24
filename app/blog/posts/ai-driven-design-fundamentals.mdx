@@ -40,6 +40,31 @@ print(response.output_text)
 print("Usage: ", response.usage)
 ```
 
+```python
+from anthropic import Anthropic
+
+client = Anthropic()
+message = client.messages.create(
+    model="YOUR_MODEL",
+    max_tokens=200,
+    messages=[
+        {"role": "user", "content": "Explain APIs"}
+    ]
+)
+print(message.content)
+```
+
+```python
+from google import genai
+
+client = genai.Client()
+response = client.models.generate_content(
+    model="YOUR_MODEL",
+    contents="Explain APIs"
+)
+print(response.text)
+```
+
 ```markdown
 An API (Application Programming Interface) is a set of rules that lets one piece of software talk to another. It defines what you can ask for, how to ask, and what you’ll get back—without needing to know how the other system is built inside.
 
