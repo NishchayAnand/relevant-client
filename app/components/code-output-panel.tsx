@@ -53,7 +53,7 @@ export function CodeOutputPanel({
 
   return (
     <div className="@container my-6">
-      <div className="code-output grid h-fit max-h-dvh grid-cols-1 grid-rows-[minmax(0,1fr)_minmax(0,1fr)] overflow-hidden rounded-lg border border-neutral-200 @2xl:grid-cols-2 @2xl:grid-rows-[minmax(0,1fr)] dark:border-neutral-800">
+      <div className="code-output grid h-[50dvh] grid-cols-1 grid-rows-[minmax(0,1fr)_minmax(0,1fr)] overflow-hidden rounded-lg border border-neutral-200 @2xl:grid-cols-2 @2xl:grid-rows-[minmax(0,1fr)] dark:border-neutral-800">
         <Pane
           label={codeLabel}
           source={code.source}
@@ -259,7 +259,7 @@ function Pane({
             }}
           />
         ) : (
-          <pre className="m-0 h-full overflow-x-auto px-3 py-3 text-sm whitespace-pre-wrap break-words text-neutral-800 dark:text-neutral-200">
+          <pre className="m-0 w-max min-w-full px-3 py-3 text-[13px] whitespace-pre text-neutral-800 dark:text-neutral-200">
             {highlighted ? (
               <code dangerouslySetInnerHTML={{ __html: highlight(source) }} />
             ) : (
