@@ -11,15 +11,56 @@ and practices in building robust multi-agent systems.
 
 ---
 
-### What is Large Language Model (LLM)?
+### What is LLM?
 
-An LLM (Large Language Model) is the model that processes input and generates output. 
-An API allows your application to communicate with that model.
+An LLM is a **Large Language Generative AI model** that processes input and generates relevant output.
 
-#### How to interact with an LLM?
+Whenever a user sends a request, the LLM performs several steps behind the scenes. It converts the input into tokens, 
+processes them through a neural network to understand the context, and generates a response by predicting one token at a 
+time until the response is complete.
 
-Different providers host different models and offer SDKs or APIs that let your application 
-communicate with them. 
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User
+    participant App as Application
+    participant SDK as Provider SDK
+    participant API as LLM Provider API
+    participant Tok as Tokenizer
+    participant Model as LLM Inference Engine
+
+    User->>App: Submit prompt
+    App->>App: Build context and instructions
+    App->>SDK: Call model SDK method
+    SDK->>API: Send HTTP request
+    API->>API: Authenticate and validate request
+    API->>API: Queue and route request
+    API->>Tok: Tokenize input
+    Tok-->>API: Return token IDs
+    API->>Model: Start inference
+    Model->>Model: Generate embeddings
+    Model->>Model: Process context using Transformer layers
+
+    loop For each output token
+        Model->>Model: Compute next-token probabilities
+        Model->>Model: Select next token
+        Model->>Model: Update generation context
+    end
+
+    Model-->>API: Return generated output
+    API-->>SDK: Return API response
+    SDK-->>App: Return response object
+    App->>App: Extract and process response
+    App-->>User: Display final answer
+```
+
+---
+
+### How to interact with an LLM?
+
+Different providers host different LLM models and expose SDKs or APIs that allow applications to interact with them.
+We'll start by using each provider's native SDK to understand how requests are sent to a model and how responses are 
+handled.
 
 <CodeOutput>
 
@@ -66,7 +107,9 @@ print(response.text)
 ```
 
 ```markdown
-An API (Application Programming Interface) is a set of rules that lets one piece of software talk to another. It defines what you can ask for, how to ask, and what you’ll get back—without needing to know how the other system is built inside.
+An API (Application Programming Interface) is a set of rules that lets one piece of software talk to another. 
+It defines what you can ask for, how to ask, and what you'll get back without needing to know how the other 
+system is built inside.
 
 ### Real-world example: a restaurant
 
@@ -98,21 +141,26 @@ Usage: `ResponseUsage(input_tokens=37, input_tokens_details=InputTokensDetails(c
 
 </CodeOutput>
 
-The OpenAI Python SDK is a client library built on top of the API. The `client.responses.create()` 
-method is a convenient Python wrapper around an API request. It coordinates an HTTP request 
-to the model API and returns a Python object representing the response.
+A provider's SDK acts as a client library built on top of its API, simplifying communication between your application and the model.
+For example, the `client.responses.create()` method in the OpenAI Python SDK provides a convenient wrapper around an API request. 
 
 <Note>
-instructions influence the model, but they are not a substitute for application-level 
+Instructions influence the model, but they are not a substitute for application-level 
 security controls. If an agent must never refund more than `₹10,000`, enforce that limit 
 in backend code rather than relying solely on a prompt.
 </Note>
 
 ---
 
-### Key Metrics to Measure LLM Performance
+### What is Tokenization?
 
-#### Measure Response Generation time (Latency)
+Tokenization is the process of converting input text into smaller units called tokens, which an LLM can process numerically.
+
+An LLM does not directly process raw text. Before the model performs inference, a tokenizer converts the input into token IDs, 
+which are then mapped to numerical embeddings.
+
+Consider this input: **<span className="bg-emerald-200 p-0.5 rounded">"I am learning about LLMs"</span>**. The tokenizer splits the text 
+into tokens according to the vocabulary and rules of the specific model.
 
 
 
