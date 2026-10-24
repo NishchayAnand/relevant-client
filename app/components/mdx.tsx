@@ -67,6 +67,7 @@ import { LongestSubstringApproach1Visualizer } from './longest-substring-approac
 import { LongestSemiRepetitiveNestedVisualizer } from './longest-semi-repetitive-nested-visualizer';
 import { LongestSubstringApproach2Visualizer } from './longest-substring-approach2-visualizer';
 import { LatencyVisualizer } from './latency-visualizer';
+import { TokenizationVisualizer } from './tokenization-visualizer';
 import HouseRobberVisualizer from './house-robber-visualizer';
 import HouseRobberMemoVisualizer from './house-robber-memo-visualizer';
 import HouseRobberTabVisualizer from './house-robber-tab-visualizer';
@@ -414,6 +415,7 @@ let components = {
   LongestSemiRepetitiveNestedVisualizer: LongestSemiRepetitiveNestedVisualizer,
   LongestSubstringApproach2Visualizer: LongestSubstringApproach2Visualizer,
   LatencyVisualizer: LatencyVisualizer,
+  TokenizationVisualizer: TokenizationVisualizer,
   RemoveDuplicatesSortedListVisualizer: RemoveDuplicatesSortedListVisualizer,
   HouseRobberVisualizer: HouseRobberVisualizer,
   HouseRobberMemoVisualizer: HouseRobberMemoVisualizer,
