@@ -25,30 +25,156 @@ purchase to ensure accurate inventory tracking.
 
 ---
 
+### Design Rationale 
+
+Let's try to identify the key components of the vending machine system through the following design discussions.
+
+##### **<span className="text-emerald-500">Q1. How can a user interact with the vending machine to fulfill a purchase request?</span>**
+
+A user interacts with the vending machine through a set of public methods that allow them to select a product, insert coins or banknotes, 
+and complete a purchase.
+
+We introduce a `VendingMachine` class that acts as the central controller, coordinating product selection, payment validation, product 
+dispensing, change calculation, and inventory updates.
+
+To follow the **Single Responsibility Principle (SRP)**, we delegate inventory management, payment processing, and product dispensing to 
+specialized components such as `InventoryManager`, `PaymentProcessor`, and `Dispenser`.
+
+```mermaid
+classDiagram
+    class VendingMachine {
+        -InventoryManager inventoryManager
+        -PaymentProcessor paymentProcessor
+        -Dispenser dispenser
+        -ChangeDispenser changeDispenser
+        +selectProduct(productId)
+        +insertCoin(coin)
+        +insertNote(note)
+        +purchaseProduct()
+    }
+
+    VendingMachine --> InventoryManager : checks stock
+    VendingMachine --> PaymentProcessor : validates payment
+    VendingMachine --> Dispenser : dispenses product
+    VendingMachine --> ChangeDispenser : returns change
+```
+
+The `VendingMachine` also acts as a **Facade**, providing a unified and simplified interface to these subsystems while hiding their internal 
+implementation details.
+
+##### **<span className="text-emerald-500">Q2. How would you model the inventory to support efficient product lookups, availability checks, and stock updates?</span>**
+
+We can model the inventory using a `Map<Product, Integer>`. This provides average-case `O(1)` lookup and update operations, assuming good hash distribution.
+
+We'll keep the map **private** inside `InventoryManager` and expose inventory operations through methods such as `getProductQuantity()`, `isAvailable()`, 
+`decreaseStock()`, and `restockProduct()`.
+
+This encapsulates inventory management within `InventoryManager`, following the **Single Responsibility Principle (SRP)** and preventing other components from 
+directly modifying stock quantities.
+
+```mermaid
+classDiagram
+    class InventoryManager {
+        -Map~Product, Integer~ inventory
+        +getProductQuantity(Product product) int
+        +isAvailable(Product product) boolean
+        +decreaseStock(Product product) void
+        +restockProduct(Product product, int quantity) void
+    }
+
+    InventoryManager o-- "0..*" Product : tracks stock for
+```
+
+##### **<span className="text-emerald-500">Q3. How do we maintain a good hash distribution?</span>**
+
+Since `Product` is used as a key in the `HashMap`, it must implement `equals()` and `hashCode()` consistently. Equal products must return the 
+same hash code, and the fields used for equality and hashing should remain stable while the product is stored in the map.
+
+To maintain a good hash distribution, `hashCode()` should minimize collisions by distributing distinct products across the available hash buckets. 
+We can use an immutable, unique `productId` for equality and hash-code calculations, ensuring consistent lookup behavior even if other product 
+attributes, such as `name` or `price`, change.
+
+```mermaid
+classDiagram
+    class Product {
+        -String productId
+        -String name
+        -BigDecimal price
+        +Product(String productId, String name, BigDecimal price)
+        +getProductId() String
+        +getName() String
+        +getPrice() BigDecimal
+        +equals(Object obj) boolean
+        +hashCode() int
+    }
+```
+
+##### **<span className="text-emerald-500">Q4. How should the vending machine represent and track coins and banknotes inserted by the user?</span>**
+
+We can represent the inserted cash using a `Map<Denomination, Integer>`, where Denomination represents a coin or banknote value and the integer 
+represents its quantity.
+
+We can encapsulate this map inside a `Payment` class, which is responsible for tracking the inserted denominations and calculating the total 
+amount received.
+
+```mermaid
+classDiagram
+    class Payment {
+        -Map~Denomination, Integer~ insertedCash
+        +addCash(Denomination denomination, int quantity) void
+        +getTotalAmount() BigDecimal
+        +getInsertedCash() Map~Denomination, Integer~
+    }
+
+    class Denomination {
+        <<enumeration>>
+        COIN_1
+        COIN_2
+        COIN_5
+        COIN_10
+        NOTE_10
+        NOTE_20
+        NOTE_50
+        NOTE_100
+        NOTE_200
+        NOTE_500
+        +getValue() BigDecimal
+    }
+
+    Payment *-- Denomination : tracks quantities
+```
+
+
+
+
+---
+
 ### Sequence Flow
 
 The primary use case for the vending machine system is to allow users to select a product 
 and purchase it by inserting coins or banknotes as payment. Here's how its workflow looks like:
 
-1. **Select a product**: The user selects a `Product` from the available options.
+1. **Select a product**: The user selects a **<span className="text-emerald-500">product</span>** from the available options.
 
-2. **Insert payment**: The user inserts coins or banknotes as `Payment`.
+2. **Insert payment**: The user inserts coins or banknotes as **<span className="text-emerald-500">payment</span>**.
 
-3. **Validate payment**: The `VendingMachine` compares the `insertedAmount` with the `productPrice`.
+3. **Validate payment**: The **<span className="text-emerald-500">vending machine</span>** compares the 
+**<span className="text-emerald-500">inserted amount</span>** with the **<span className="text-emerald-500">product price</span>**.
 
     - If the amount is insufficient, the machine requests additional payment.
     - If the amount is sufficient, the purchase proceeds.
     - If the amount exceeds the price, the machine calculates the change to return.
 
-4. **Dispense the product and change**: The `VendingMachine` dispenses the selected `Product` and
-returns any applicable change.
+4. **Dispense the product and change**: The **<span className="text-emerald-500">vending machine</span>** dispenses the selected 
+**<span className="text-emerald-500">product</span>** and returns any applicable change.
 
-5. **Update Inventory**: The `VendingMachine` updates the `Inventory` to reflect the reduced stock.
+5. **Update Inventory**: The **<span className="text-emerald-500">vending machine</span>** updates the **<span className="text-emerald-500">inventory</span>** 
+to reflect the reduced stock.
 
 ```mermaid
 sequenceDiagram
     actor User
-    participant VM as VendingMachine
+    participant VM as Vending Machine
     participant Inv as Inventory
     participant Pay as Payment
     participant Disp as Dispenser
@@ -78,90 +204,18 @@ sequenceDiagram
     end
 ```
 
----
-
-### Object Model Design 
-
-The primary entities in the system include:
-
-#### VendingMachine
-
-Serves as the central controller for the system, handling product selection and dispensing,
-managing product inventory and processing cash payments.
-
-To prevent the `VendingMachine` from becoming a **God Object** (a class with too many 
-responsibilities), it can act as a facade and delegate the responsibility of managing the 
-product inventory and processing cash payments to specialized components.
+### Implementation
 
 ```java
 class VendingMachine {
 
-    private Inventory inventory;
-
-    public void selectProduct(Product product) {
-
-    }
-
-    public void processPayment(Payment payment) {
-
-    }
-
-    public void dispenseProduct(Product product, int quantity) {
-        inventory.removeProduct(product, quantity);
-    }
-
 }
 ```
 
-The VendingMachine should provide feedback at each stage to guide the user. For instance, 
-it should display messages like "Insert money to proceed", "Select a product", or 
-"Please collect your change". To handle this, we can use the **State Pattern**. ????
-
-#### Inventory
-
-```java
-class Inventory {
-
-    private Map<Product, Integer> stock;
-    
-    public void addProduct(Product product, int quantity) {
-        stock.put(product, stock.getOrDefault(product, 0) + quantity);
-    }
-
-    public void removeProduct(Product product, int quantity) {
-        if (stock.containsKey(product)) {
-            int currentStock = stock.get(product);
-            if (currentStock >= quantity) {
-                stock.put(product, currentStock - quantity);
-            } else {
-                throw new InsufficientStockException();
-            }
-        } else {
-            throw new ProductNotFoundException();
-        }
-    }
-}
-```
-
-#### Product
-
-```java
-class Product {
-
-    private String name;
-    private double price;
+```python
+class VendingMachine:
 
 
-    public Product(String name, double price) {
-        this.name = name;
-        this.price = price;
-    }
-
-    public double getPrice() {
-        return price;
-    }
-    
-}
 ```
 
 ---
