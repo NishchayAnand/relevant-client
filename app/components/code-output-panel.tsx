@@ -1,6 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { Check, ChevronDown } from 'lucide-react';
 import { Marked } from 'marked';
 import { highlight } from 'sugar-high';
 import { CopyCodeButton } from './copy-code-button';
@@ -60,26 +62,158 @@ export function CodeOutputPanel({
           className="border-b border-neutral-200 @2xl:border-r @2xl:border-b-0 dark:border-neutral-800"
           headerExtra={
             codes.length > 1 ? (
-              <label className="inline-flex items-center">
-                <span className="sr-only">Model provider</span>
-                <select
-                  value={Math.min(selected, codes.length - 1)}
-                  onChange={(event) => setSelected(Number(event.target.value))}
-                  className="rounded-md border border-neutral-200 bg-white px-1.5 py-0.5 text-[11px] font-medium text-neutral-700 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-200"
-                >
-                  {codes.map((sample, index) => (
-                    <option key={`${sample.label}-${index}`} value={index}>
-                      {sample.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              <ProviderMenu
+                codes={codes}
+                selected={Math.min(selected, codes.length - 1)}
+                onSelect={setSelected}
+              />
             ) : null
           }
         />
         <Pane label={outputLabel} source={output.source} markdown={output.markdown} />
       </div>
     </div>
+  );
+}
+
+function ProviderMenu({
+  codes,
+  selected,
+  onSelect,
+}: {
+  codes: CodeSample[];
+  selected: number;
+  onSelect: (index: number) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [active, setActive] = useState(selected);
+  const [menuStyle, setMenuStyle] = useState<{ top: number; left: number; width: number } | null>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  function placeMenu() {
+    const rect = triggerRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const width = Math.max(rect.width, 148);
+    const height = codes.length * 32 + 8;
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const top = spaceBelow < height + 8 ? Math.max(8, rect.top - height - 4) : rect.bottom + 4;
+    const left = Math.min(Math.max(8, rect.right - width), window.innerWidth - width - 8);
+    setMenuStyle({ top, left, width });
+  }
+
+  useEffect(() => {
+    if (!open) return;
+    placeMenu();
+    function onPointerDown(event: PointerEvent) {
+      const target = event.target as Node;
+      if (triggerRef.current?.contains(target) || menuRef.current?.contains(target)) return;
+      setOpen(false);
+    }
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key !== 'Escape') return;
+      setOpen(false);
+      triggerRef.current?.focus();
+    }
+    window.addEventListener('pointerdown', onPointerDown);
+    window.addEventListener('keydown', onKeyDown);
+    window.addEventListener('resize', placeMenu);
+    window.addEventListener('scroll', placeMenu, true);
+    return () => {
+      window.removeEventListener('pointerdown', onPointerDown);
+      window.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('resize', placeMenu);
+      window.removeEventListener('scroll', placeMenu, true);
+    };
+  }, [open, codes.length]);
+
+  function choose(index: number) {
+    onSelect(index);
+    setOpen(false);
+    triggerRef.current?.focus();
+  }
+
+  function onTriggerKeyDown(event: React.KeyboardEvent<HTMLButtonElement>) {
+    if (!open && (event.key === 'ArrowDown' || event.key === 'ArrowUp')) {
+      event.preventDefault();
+      setActive(selected);
+      placeMenu();
+      setOpen(true);
+      return;
+    }
+    if (!open) return;
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      setActive((index) => Math.min(codes.length - 1, index + 1));
+    } else if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      setActive((index) => Math.max(0, index - 1));
+    } else if (event.key === 'Enter') {
+      event.preventDefault();
+      choose(active);
+    }
+  }
+
+  const menu =
+    open && menuStyle
+      ? createPortal(
+          <div
+            ref={menuRef}
+            role="listbox"
+            aria-label="Model provider"
+            style={{ top: menuStyle.top, left: menuStyle.left, width: menuStyle.width }}
+            className="fixed z-50 rounded-md border border-neutral-200 bg-white p-1 shadow-lg shadow-neutral-900/5"
+          >
+            {codes.map((sample, index) => {
+              const isSelected = index === selected;
+              const isActive = index === active;
+              return (
+                <button
+                  key={`${sample.label}-${index}`}
+                  type="button"
+                  role="option"
+                  aria-selected={isSelected}
+                  onMouseEnter={() => setActive(index)}
+                  onClick={() => choose(index)}
+                  className={`flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-[12px] ${
+                    isActive ? 'bg-neutral-100 text-neutral-900' : 'text-neutral-600'
+                  }`}
+                >
+                  <Check size={12} className={isSelected ? 'text-neutral-800' : 'opacity-0'} />
+                  <span className={isSelected ? 'font-medium' : ''}>{sample.label}</span>
+                </button>
+              );
+            })}
+          </div>,
+          document.body,
+        )
+      : null;
+
+  return (
+    <>
+      <button
+        ref={triggerRef}
+        type="button"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-label="Model provider"
+        onKeyDown={onTriggerKeyDown}
+        onClick={() => {
+          setActive(selected);
+          if (!open) placeMenu();
+          setOpen((value) => !value);
+        }}
+        className={`inline-flex shrink-0 items-center gap-1 rounded-md border bg-white px-2 py-1 text-[11px] font-medium transition-colors ${
+          open
+            ? 'border-neutral-300 text-neutral-800'
+            : 'border-neutral-200 text-neutral-600 hover:border-neutral-300 hover:text-neutral-800'
+        }`}
+      >
+        {codes[selected]?.label}
+        <ChevronDown size={12} className={`text-neutral-400 transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {menu}
+    </>
   );
 }
 
