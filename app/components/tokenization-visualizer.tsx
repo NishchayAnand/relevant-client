@@ -52,6 +52,31 @@ const COLORS = [
   'bg-teal-200 text-teal-950',
 ];
 
+function LookupCell({
+  label,
+  children,
+  className = '',
+}: {
+  label: string;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={`flex min-w-0 flex-1 flex-col gap-1 rounded-md bg-neutral-50 px-2.5 py-2 dark:bg-neutral-900 ${className}`}>
+      <span className="text-[10px] font-semibold uppercase tracking-wide text-neutral-400">{label}</span>
+      <span className="flex min-h-6 items-center">{children}</span>
+    </div>
+  );
+}
+
+function LookupArrow() {
+  return (
+    <span className="hidden items-center self-center text-neutral-300 sm:flex" aria-hidden="true">
+      →
+    </span>
+  );
+}
+
 function showSpace(text: string) {
   if (!text.startsWith(' ')) return text;
   return (
@@ -160,28 +185,45 @@ export function TokenizationVisualizer() {
           </div>
         </div>
 
-        <div className="rounded-md border border-neutral-200 bg-white px-3 py-2.5 dark:border-neutral-800 dark:bg-neutral-950">
-          {current ? (
-            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-[13px] text-neutral-700 dark:text-neutral-200">
-              <span className={`rounded px-1.5 py-0.5 ${COLORS[step - 1]}`}>{showSpace(current.text)}</span>
-              <span className="text-neutral-400">→</span>
-              <span>
-                id <span className="font-semibold text-neutral-900 dark:text-neutral-100">{current.id}</span>
+        <div className="overflow-hidden rounded-lg border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-950">
+          <div className="flex flex-col gap-2 p-2.5 sm:flex-row sm:items-stretch">
+            <LookupCell label="Token">
+              {current ? (
+                <span className={`rounded px-1.5 py-0.5 font-mono text-[13px] ${COLORS[step - 1]}`}>
+                  {showSpace(current.text)}
+                </span>
+              ) : (
+                <span className="font-mono text-[13px] text-neutral-300">—</span>
+              )}
+            </LookupCell>
+            <LookupArrow />
+            <LookupCell label="Token ID">
+              <span className={`font-mono text-[13px] font-semibold ${current ? 'text-neutral-900 dark:text-neutral-100' : 'text-neutral-300'}`}>
+                {current ? current.id : '—'}
               </span>
-              <span className="text-neutral-400">→</span>
-              <span className="text-neutral-500">[{current.vector}, …]</span>
-            </div>
-          ) : (
-            <div className="font-mono text-[13px] text-neutral-400">token → id → embedding</div>
-          )}
-          <div className="mt-2 text-sm leading-relaxed text-neutral-600 dark:text-neutral-300">
+            </LookupCell>
+            <LookupArrow />
+            <LookupCell label="Embedding" className="sm:flex-[1.4]">
+              <span className={`font-mono text-[12px] ${current ? 'text-neutral-600 dark:text-neutral-300' : 'text-neutral-300'}`}>
+                {current ? `[${current.vector}, …]` : '—'}
+              </span>
+            </LookupCell>
+          </div>
+          <div className="border-t border-neutral-100 px-3 py-2.5 text-sm leading-relaxed text-neutral-600 dark:border-neutral-800 dark:text-neutral-300">
             {current
               ? current.note
               : 'This is still raw text. The tokenizer has not cut it into vocabulary pieces yet.'}
           </div>
           {done ? (
-            <div className="mt-2 text-sm leading-relaxed text-neutral-600 dark:text-neutral-300">
-              The model receives the IDs [{TOKENS.map((token) => token.id).join(', ')}]. Each ID selects a row in the embedding table.
+            <div className="flex flex-wrap items-center gap-1.5 border-t border-neutral-100 px-3 py-2.5 dark:border-neutral-800">
+              <span className="mr-1 text-[11px] font-semibold uppercase tracking-wide text-neutral-400">
+                Model input
+              </span>
+              {TOKENS.map((token, index) => (
+                <span key={token.id} className={`rounded px-1.5 py-0.5 font-mono text-[12px] ${COLORS[index]}`}>
+                  {token.id}
+                </span>
+              ))}
             </div>
           ) : null}
         </div>
