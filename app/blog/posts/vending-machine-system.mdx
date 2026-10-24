@@ -6,7 +6,7 @@ publishedAt: '2026-05-23'
 Design a vending machine system that allows users to select a product from a list of 
 available items and purchase it by inserting cash. 
 
-![vending-machine-system](/vending-machine-system/vending-machine-system.png)
+<VendingMachineVisualizer />
 
 ---
 
@@ -25,19 +25,58 @@ purchase to ensure accurate inventory tracking.
 
 ---
 
-### Primary Use Cases
+### Sequence Flow
 
 The primary use case for the vending machine system is to allow users to select a product 
-and purchase it by inserting coins or notes as payment. Here's how its workflow looks like:
+and purchase it by inserting coins or banknotes as payment. Here's how its workflow looks like:
 
-1. User selects a `Product` and inserts coins or notes as `Payment`.
+1. **Select a product**: The user selects a `Product` from the available options.
 
-2. The `VendingMachine` **validates** the `insertedAmount` against the `productPrice` and 
-**dispenses** the `Product` and returns the change if the `Payment` is greater than the 
-`productPrice`.
+2. **Insert payment**: The user inserts coins or banknotes as `Payment`.
 
-4. Finally, the `VendingMachine` **updates** the `Inventory` after every successful purchase 
-to keep track of the available stock.
+3. **Validate payment**: The `VendingMachine` compares the `insertedAmount` with the `productPrice`.
+
+    - If the amount is insufficient, the machine requests additional payment.
+    - If the amount is sufficient, the purchase proceeds.
+    - If the amount exceeds the price, the machine calculates the change to return.
+
+4. **Dispense the product and change**: The `VendingMachine` dispenses the selected `Product` and
+returns any applicable change.
+
+5. **Update Inventory**: The `VendingMachine` updates the `Inventory` to reflect the reduced stock.
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant VM as VendingMachine
+    participant Inv as Inventory
+    participant Pay as Payment
+    participant Disp as Dispenser
+
+    User->>VM: Select Product
+    VM->>Inv: Check Product Availability
+    Inv-->>VM: Availability Status
+
+    alt Product Unavailable
+        VM-->>User: Display Out of Stock
+    else Product Available
+        VM-->>User: Request Payment
+        User->>VM: Insert Coins / Notes
+        VM->>Pay: Validate Inserted Amount
+        Pay-->>VM: Payment Amount
+
+        alt Insufficient Payment
+            VM-->>User: Request Additional Payment
+        else Sufficient Payment
+            VM->>VM: Calculate Change
+            VM->>Disp: Dispense Product
+            Disp-->>VM: Dispensing Successful
+            VM->>Inv: Update Stock
+            Inv-->>VM: Stock Updated
+            VM-->>User: Deliver Product and Change
+        end
+    end
+```
 
 ---
 
@@ -124,6 +163,14 @@ class Product {
     
 }
 ```
+
+---
+
+### Follow-Up Questions
+
+Q1. How to extend the system to support other payment methods such as card or UPI?
+
+
 
 
 
