@@ -32,32 +32,46 @@ function changeFor(amount: number) {
   return coins;
 }
 
-function formatChange(coins: number[]) {
-  if (coins.length === 0) return 'No change';
-  return coins.map((coin) => `₹${coin}`).join(' + ');
+function TraySlot({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex min-w-0 flex-col justify-center rounded-md bg-neutral-900 px-2.5 py-2">
+      <span className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-neutral-500">{label}</span>
+      {children}
+    </div>
+  );
 }
+
+function TrayEmpty({ label = 'Empty' }: { label?: string }) {
+  return <span className="text-[12px] text-neutral-500">{label}</span>;
+}
+
+type TrayItem = {
+  name: string;
+  count: number;
+  swatch: string;
+};
 
 export function VendingMachineVisualizer() {
   const [products, setProducts] = useState(STARTING_STOCK);
   const [quantities, setQuantities] = useState<Record<string, number>>(() =>
-    Object.fromEntries(STARTING_STOCK.map((product) => [product.id, product.stock > 0 ? 1 : 0])),
+    Object.fromEntries(STARTING_STOCK.map((product) => [product.id, 0])),
   );
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [inserted, setInserted] = useState(0);
   const [message, setMessage] = useState('Select a product');
-  const [tray, setTray] = useState<{ item: string | null; change: number[] } | null>(null);
+  const [tray, setTray] = useState<{ item: TrayItem | null; change: number[] } | null>(null);
 
   const selected = products.find((product) => product.id === selectedId) ?? null;
-  const paying = selected !== null && tray === null;
 
   function quantityOf(product: Product) {
     if (product.stock === 0) return 0;
-    const stored = quantities[product.id] ?? 1;
-    return Math.min(product.stock, Math.max(1, stored));
+    const stored = quantities[product.id] ?? 0;
+    return Math.min(product.stock, Math.max(0, stored));
   }
 
   const quantity = selected ? quantityOf(selected) : 0;
   const total = selected ? selected.price * quantity : 0;
+  const paying = selected !== null && quantity > 0 && tray === null;
 
   function vend(product: Product, count: number, paid: number) {
     const due = product.price * count;
@@ -67,10 +81,13 @@ export function VendingMachineVisualizer() {
     );
     setQuantities((current) => ({
       ...current,
-      [product.id]: left > 0 ? Math.min(current[product.id] ?? 1, left) : 0,
+      [product.id]: left > 0 ? Math.min(current[product.id] ?? 0, left) : 0,
     }));
     setInserted(paid);
-    setTray({ item: `${product.name} ×${count}`, change: changeFor(paid - due) });
+    setTray({
+      item: { name: product.name, count, swatch: product.swatch },
+      change: changeFor(paid - due),
+    });
     setMessage('Please collect your item and change');
   }
 
@@ -91,7 +108,7 @@ export function VendingMachineVisualizer() {
     }
     setSelectedId(product.id);
     if (selectedId !== product.id) setInserted(0);
-    setMessage('Insert money to proceed');
+    setMessage(quantityOf(product) > 0 ? 'Insert money to proceed' : 'Select a quantity');
   }
 
   function changeQuantity(product: Product, next: number) {
@@ -104,9 +121,13 @@ export function VendingMachineVisualizer() {
       setMessage('Cancel to choose a different product');
       return;
     }
-    const count = Math.min(product.stock, Math.max(1, next));
+    const count = Math.min(product.stock, Math.max(0, next));
     setQuantities((current) => ({ ...current, [product.id]: count }));
     setSelectedId(product.id);
+    if (count === 0) {
+      setMessage('Select a quantity');
+      return;
+    }
     const due = product.price * count;
     if (inserted === 0) {
       setMessage('Insert money to proceed');
@@ -120,7 +141,7 @@ export function VendingMachineVisualizer() {
   }
 
   function insert(note: number) {
-    if (!selected || tray) return;
+    if (!selected || quantity === 0 || tray) return;
     const next = inserted + note;
     if (next < total) {
       setInserted(next);
@@ -131,7 +152,7 @@ export function VendingMachineVisualizer() {
   }
 
   function cancel() {
-    if (!paying) return;
+    if (!selected || tray) return;
     if (inserted === 0) {
       setSelectedId(null);
       setMessage('Select a product');
@@ -150,9 +171,7 @@ export function VendingMachineVisualizer() {
 
   function restock() {
     setProducts(STARTING_STOCK);
-    setQuantities(
-      Object.fromEntries(STARTING_STOCK.map((product) => [product.id, product.stock > 0 ? 1 : 0])),
-    );
+    setQuantities(Object.fromEntries(STARTING_STOCK.map((product) => [product.id, 0])));
     setSelectedId(null);
     setInserted(0);
     setTray(null);
@@ -201,7 +220,7 @@ export function VendingMachineVisualizer() {
                       <button
                         type="button"
                         aria-label={`Decrease ${product.name} quantity`}
-                        disabled={empty || !!tray || count <= 1}
+                        disabled={empty || !!tray || count <= 0}
                         onClick={() => changeQuantity(product, count - 1)}
                         className="h-6 w-6 rounded border border-neutral-200 text-[14px] leading-none text-neutral-700 disabled:cursor-not-allowed disabled:text-neutral-300 dark:border-neutral-700"
                       >
@@ -231,7 +250,7 @@ export function VendingMachineVisualizer() {
           <div className="rounded-lg border border-neutral-800 bg-neutral-900 px-3 py-3 text-white">
             <div className="text-[10px] font-semibold uppercase tracking-wide text-neutral-400">Screen</div>
             <div className="mt-1 min-h-10 text-sm leading-snug text-emerald-300">{message}</div>
-            {paying && selected ? (
+            {selected && tray === null ? (
               <div className="mt-2 flex justify-between gap-2 font-mono text-[12px] text-neutral-300">
                 <span>
                   ₹{selected.price} × {quantity} = ₹{total}
@@ -257,7 +276,7 @@ export function VendingMachineVisualizer() {
           <button
             type="button"
             onClick={cancel}
-            disabled={!paying}
+            disabled={!selected || !!tray}
             className="rounded-md border border-neutral-200 bg-white px-2 py-1.5 text-[12px] font-medium text-neutral-600 hover:border-neutral-300 disabled:cursor-not-allowed disabled:text-neutral-300 dark:border-neutral-700 dark:bg-neutral-900"
           >
             Cancel
@@ -265,32 +284,51 @@ export function VendingMachineVisualizer() {
         </div>
       </div>
 
-      <div className="mx-3 mb-3 flex min-h-16 items-center justify-between gap-3 rounded-lg border border-dashed border-neutral-300 bg-white px-3 py-2 dark:border-neutral-700 dark:bg-neutral-900">
-        <div>
-          <div className="text-[10px] font-semibold uppercase tracking-wide text-neutral-400">Tray</div>
-          {tray ? (
-            <div className="mt-1 text-[13px] text-neutral-700 dark:text-neutral-200">
-              {tray.item ? <span className="font-medium">{tray.item}</span> : null}
-              {tray.item ? <span className="text-neutral-400"> · </span> : null}
-              <span>{formatChange(tray.change)}</span>
-            </div>
-          ) : (
-            <div className="mt-1 text-[13px] text-neutral-400">Empty</div>
-          )}
+      <div className="mx-3 mb-3 flex items-stretch gap-2">
+        <div className="grid min-h-24 flex-1 grid-cols-2 gap-2 rounded-lg bg-neutral-800 p-2">
+          <TraySlot label="Item">
+            {tray?.item ? (
+              <span className="flex items-center gap-2">
+                <span className={`h-8 w-8 shrink-0 rounded-md ${tray.item.swatch}`} />
+                <span className="text-[13px] font-medium text-white">
+                  {tray.item.name}
+                  <span className="ml-1 font-normal text-neutral-300">×{tray.item.count}</span>
+                </span>
+              </span>
+            ) : (
+              <TrayEmpty />
+            )}
+          </TraySlot>
+          <TraySlot label="Change">
+            {tray && tray.change.length > 0 ? (
+              <span className="flex flex-wrap gap-1">
+                {tray.change.map((note, index) => (
+                  <span
+                    key={`${note}-${index}`}
+                    className="rounded bg-white px-1.5 py-0.5 font-mono text-[12px] font-medium text-neutral-800"
+                  >
+                    ₹{note}
+                  </span>
+                ))}
+              </span>
+            ) : (
+              <TrayEmpty label={tray ? 'None' : 'Empty'} />
+            )}
+          </TraySlot>
         </div>
-        <div className="flex shrink-0 gap-1.5">
+        <div className="flex w-24 flex-col justify-center gap-1.5">
           <button
             type="button"
             onClick={collect}
             disabled={!tray}
-            className="rounded-md bg-neutral-900 px-2.5 py-1 text-[12px] font-medium text-white disabled:cursor-not-allowed disabled:bg-neutral-200 disabled:text-neutral-400"
+            className="rounded-md bg-neutral-900 px-2 py-1.5 text-[12px] font-medium text-white disabled:cursor-not-allowed disabled:bg-neutral-200 disabled:text-neutral-400"
           >
             Collect
           </button>
           <button
             type="button"
             onClick={restock}
-            className="rounded-md border border-neutral-200 bg-white px-2.5 py-1 text-[12px] font-medium text-neutral-600 hover:border-neutral-300 dark:border-neutral-700 dark:bg-neutral-950"
+            className="rounded-md border border-neutral-200 bg-white px-2 py-1.5 text-[12px] font-medium text-neutral-600 hover:border-neutral-300 dark:border-neutral-700 dark:bg-neutral-950"
           >
             Restock
           </button>
