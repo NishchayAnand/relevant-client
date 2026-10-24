@@ -16,7 +16,10 @@ and practices in building robust multi-agent systems.
 An LLM (Large Language Model) is the model that processes input and generates output. 
 An API allows your application to communicate with that model.
 
-#### How to connect to an LLM?
+#### How to interact with an LLM?
+
+Different providers host different models and offer SDKs or APIs that let your application 
+communicate with them. 
 
 <CodeOutput>
 
@@ -70,6 +73,15 @@ Usage: `ResponseUsage(input_tokens=37, input_tokens_details=InputTokensDetails(c
 
 </CodeOutput>
 
+The OpenAI Python SDK is a client library built on top of the API. The `client.responses.create()` 
+method is a convenient Python wrapper around an API request. It coordinates an HTTP request 
+to the model API and returns a Python object representing the response.
+
+<Note>
+instructions influence the model, but they are not a substitute for application-level 
+security controls. If an agent must never refund more than `₹10,000`, enforce that limit 
+in backend code rather than relying solely on a prompt.
+</Note>
 
 ---
 
