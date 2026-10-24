@@ -76,14 +76,18 @@ export function CodeOutputPanel({
   );
 }
 
-function ProviderMenu({
+export function ProviderMenu({
   codes,
   selected,
   onSelect,
+  menuLabel = 'Model provider',
+  align = 'right',
 }: {
   codes: CodeSample[];
   selected: number;
   onSelect: (index: number) => void;
+  menuLabel?: string;
+  align?: 'left' | 'right';
 }) {
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(selected);
@@ -98,7 +102,8 @@ function ProviderMenu({
     const height = codes.length * 32 + 8;
     const spaceBelow = window.innerHeight - rect.bottom;
     const top = spaceBelow < height + 8 ? Math.max(8, rect.top - height - 4) : rect.bottom + 4;
-    const left = Math.min(Math.max(8, rect.right - width), window.innerWidth - width - 8);
+    const preferred = align === 'left' ? rect.left : rect.right - width;
+    const left = Math.min(Math.max(8, preferred), window.innerWidth - width - 8);
     setMenuStyle({ top, left, width });
   }
 
@@ -160,7 +165,7 @@ function ProviderMenu({
           <div
             ref={menuRef}
             role="listbox"
-            aria-label="Model provider"
+            aria-label={menuLabel}
             style={{ top: menuStyle.top, left: menuStyle.left, width: menuStyle.width }}
             className="fixed z-50 rounded-md border border-neutral-200 bg-white p-1 shadow-lg shadow-neutral-900/5"
           >
@@ -196,7 +201,7 @@ function ProviderMenu({
         type="button"
         aria-haspopup="listbox"
         aria-expanded={open}
-        aria-label="Model provider"
+        aria-label={menuLabel}
         onKeyDown={onTriggerKeyDown}
         onClick={() => {
           setActive(selected);

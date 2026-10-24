@@ -101,6 +101,7 @@ import PermutationInStringSlidingWindowVisualizer from './permutation-in-string-
 import { Mermaid } from './mermaid';
 import { CopyCodeButton } from './copy-code-button';
 import { CodeOutput } from './code-output';
+import { CodeSamples } from './code-samples';
 
 hljs.registerLanguage('javascript', javascript);
 
@@ -452,6 +453,7 @@ let components = {
   Note,
   Algorithm,
   CodeOutput,
+  CodeSamples,
   Mermaid,
   a: CustomLink,
   pre: Pre,
