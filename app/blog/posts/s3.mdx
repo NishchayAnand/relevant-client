@@ -1,13 +1,145 @@
 ---
 title: 'System Design (Amazon S3): Object Storage Service'
-publishedAt: '2026-06-28'
+publishedAt: '2026-06-11'
 ---
+
+Imagine you're building an application that generates millions of photos, videos, PDFs, emails, and sensor readings. 
+You need a reliable way to store and retrieve all this data.
+
+The first thought might be to use a database. However, traditional relational databases are primarily designed 
+to manage structured data, relationships, and queries. Although they can store large files as binary data, 
+using them to manage massive volumes of large files can increase storage costs, database load, backup times, 
+and resource contention with business-critical queries.
+
+Next, you consider a traditional file system. It can store files of any format, but your application must 
+manage file paths, directories, naming conventions, and filesystem operations. As the number of files grows, 
+managing their organization and access becomes increasingly complex.
+
+This is where **object storage** comes in. Instead of organizing data around files and directories, 
+object storage treats each piece of data as an independent object containing three components: the actual data, 
+metadata describing it, and a unique identifier.
+
+Applications interact with objects through a simple RESTful API using operations such as `PUT` to upload, 
+`GET` to retrieve, and `DELETE` to remove data. The storage system manages the underlying storage implementation.
+
+By separating file storage from database operations and providing a consistent API for accessing data, 
+object storage offers a practical way to manage massive volumes of diverse, unstructured data.
+
+---
+
+### What is an object?
+
+Every object has three fundamental components:
+
+1. **Data**: The actual content, such as an image, video, document, or binary file.
+2. **Metadata**: Information describing the data, such as its size, content type, and creation date.
+3. **Unique identifier**: A key used to identify and retrieve the object.
+
+Object storage uses a flat logical namespace in which each object is identified by a unique key.
+The application retrieves an object using its identifier.
+
+When an application stores an object:
+
+1. The application provides a key, data, and optional metadata.
+2. The object store writes the data to disk.
+3. It records the key and corresponding storage location in its metadata index.
+4. It returns a success response.
+
+When the application retrieves the object, the system looks up the key, locates the data, and reads the bytes.
+
+Object storage is an abstraction and access model; it doesn't require a fundamentally different physical storage medium.
+
+On a single machine, object storage doesn't automatically outperform file storage. In fact, if our object store uses a 
+filesystem underneath, it introduces an additional abstraction layer that may add overhead.
+
+Its main advantages at this level are simplicity of the logical interface, flexible metadata, and independence from the 
+internal data format.
+
+Suppose you're building a backend service that stores profile pictures, PDFs, and videos. With a traditional filesystem, 
+your application might look like this:
+
+```java
+File file = new File("/data/users/123/profile.jpg");
+Files.write(file.toPath(), imageBytes);
+
+byte[] data = Files.readAllBytes(file.toPath());
+```
+
+Your application needs to deal with filesystem paths, directory creation, filename collisions, and file management.
+Now imagine introducing an object storage interface:
+
+```java
+objectStore.put("user-123-profile", imageBytes);
+
+byte[] data = objectStore.get("user-123-profile");
+```
+
+The application interacts with objects using identifiers. It doesn't need to know how the storage implementation 
+organizes the underlying files. The difference becomes more valuable as the application grows in complexity.
+
+Consider this interface:
+
+```java
+interface ObjectStore {
+    void put(String key, byte[] data);
+    byte[] get(String key);
+    void delete(String key);
+}
+```
+
+The interface itself doesn't make the system faster or more durable. It makes the application less dependent on 
+storage implementation details.
+
+> An object store may even use a filesystem internally.
+
+---
+
+
 
 As a general rule, if an object is over 10 MB and does not need SQL querying, 
 it should be stored in a blob storage.
 
 While blob storage solved the storage problem, it didn't
 solve the data transfer problem. 
+
+Provide object storage through a RESTful API-based interface.
+
+### Terminologies
+
+Bucket: a logical container for objects. To upload data to S3, we must first create a bucket.
+
+Object: An object is an individual piece of data we store in a bucket.
+
+---
+
+### Functional requirements
+
+1. Bucket creation
+2. Object uploading and downloading
+3. Object versioning
+4. Listing objects in a bucket. It is similar to the AWS S3 `ls` command.
+
+1. Uploading an object
+2. Downloading an object
+3. Object versioning and listing objects in the bucket.
+
+### Non-Functional requirements
+
+1. 100 PB of data.
+2. Data durability of 6 nines. Making three full copies of data gives us roughly six nines of data durability.
+3. Service availability is 4 nines.
+4. Storage efficiency reduces storage cost while maintaining a high degree of reliability and performance.
+
+---
+
+### Sequence flow
+
+1. The API service forwards the object data to the data store.
+2. The data routing service generates a UUID for this object and queries the placement service for the data node to store this object. The placement service checks the virtual cluster map and returns the primary data node.
+3. The data routing service sends data directly to the primary data node together with its UUID.
+4. The primary data node saves the data locally and replicates it to two secondary data nodes. The primary node responds to the data routing service when data is successfully replicated to all secondary nodes.
+5. The UUID of the object is returned to the API service.
+
 
 ---
 
@@ -196,4 +328,50 @@ conditions. Without these, someone could upload
 terabytes of data on a URL meant for a small image,
 exploding your storage costs.
 
+---
+
+```mermaid
+flowchart TB
+  subgraph clients [Clients]
+    SDK[AWS SDK or CLI]
+    REST[REST API]
+  end
+
+  subgraph auth [Request checks]
+    Sig[Signature Version 4]
+    IAM[IAM and bucket policy]
+  end
+
+  subgraph region [One AWS Region]
+    API[S3 API]
+    Bucket["Bucket<br/>private by default"]
+    Index["Object index<br/>bucket + key + version ID"]
+
+    subgraph azs [Durable copy]
+      AZ1[Devices in AZ 1]
+      AZ2[Devices in AZ 2]
+      AZ3[Devices in AZ 3]
+    end
+
+    Repair[Checksum checks and repair]
+  end
+
+  Events[Event notification]
+  Dest[SNS, SQS, Lambda, or EventBridge]
+  Other[Replication bucket in this or another Region]
+
+  SDK --> Sig
+  REST --> Sig
+  Sig --> API
+  IAM --> API
+  API --> Bucket --> Index
+  Index --> AZ1
+  Index --> AZ2
+  Index --> AZ3
+  AZ1 --- Repair
+  AZ2 --- Repair
+  AZ3 --- Repair
+  API --> Events --> Dest
+  Bucket -.->|only if you configure it| Other
+```
 
