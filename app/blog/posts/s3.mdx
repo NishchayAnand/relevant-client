@@ -6,8 +6,194 @@ publishedAt: '2026-06-28'
 As a general rule, if an object is over 10 MB and does not need SQL querying, 
 it should be stored in a blob storage.
 
-### Extra
+While blob storage solved the storage problem, it didn't
+solve the data transfer problem. 
 
-Q. What are presigned URLs?
+---
 
-Q. Explain the significance of an object key.
+### Server As a Proxy
+
+The standard approach
+routes file bytes through your application servers. A client
+uploads a 2GB video, the API server receives it, then
+forwards it to blob storage. Same for downloads - blob
+storage sends to the API server, which forwards to the
+client. This works for small files, but breaks down as files
+get bigger.
+
+We're forcing application servers to be dumb pipes. They
+add no value to the transfer, just latency and cost.
+
+---
+
+### Direct uploads
+
+we switch from uploading through our
+servers to uploading directly from the client to blob
+storage.
+
+That 25GB upload failing at 99% means starting over from
+scratch. You lose visibility into upload progress since it
+bypasses your servers entirely. Your database shows
+"pending" while S3 might already have the complete file -
+or maybe it doesn't, and you can't tell without checking.
+
+The seemingly simple act of moving bytes around has
+become a distributed systems problem with eventual
+consistency, progress tracking, and state synchronization
+challenges that the proxy approach never faced.
+
+---
+
+### What are presigned URLs?
+
+When a client wants to upload a file, instead of receiving
+the entire file, your server just receives a request for
+upload permission. You validate the user, check quotas,
+then generate a temporary upload URL. This URL encodes
+permission to upload one specific file to one specific
+location for a limited time - typically 15 minutes to 1 hour.
+This is called a presigned URL.
+
+```json
+https://mybucket.s3.amazonaws.com/uploads/user123/video.mp4
+?X-Amz-Algorithm=AWS4-HMAC-SHA256
+&X-Amz-Credential=AKIAIOSFODNN7EXAMPLE%2F20240115%2Fus-east-1%2Fs3%2Faws4_requ
+&X-Amz-Date=20240115T000000Z
+&X-Amz-Expires=900
+&X-Amz-SignedHeaders=host
+&X-Amz-Signature=b2754f5b1c9d7c4b8d4f6e9a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9
+```
+
+The signature is a cryptographic hash of the request
+details (HTTP method, resource path, expiry time)
+combined with your secret key. When the client uploads to
+this URL, the storage service recalculates the same hash
+using its copy of your credentials. If the signatures match
+and the URL hasn't expired, the upload proceeds.
+
+Since anyone with the URL can use it, you need to encode
+restrictions when generating them. Storage services let
+you add conditions that get validated during upload:
+
+- `content-length-range` : Set min/max file sizes to
+prevent someone uploading 10GB when you expect
+10MB
+
+- `content-type` : Ensure that profile picture endpoint
+only accepts images, not videos
+
+These restrictions are baked into the signature. A URL
+generated for a 5MB image upload will be rejected if
+someone tries to upload a 500MB video.
+
+The client performs a simple HTTP PUT to this URL with the
+file in the request body. From their perspective, they're
+uploading directly to storage. Your infrastructure never
+touches the bytes. That Sydney user uploads to Sydney's
+blob storage region at full speed while your servers in
+Virginia handle other requests.
+
+---
+
+#### Resumable Uploads for Large Files
+
+Consider what happens when uploading really large files.
+Say a 5 GB video. With a typical network connection of 100
+Mbps, it would take 429 seconds to upload. That's 7
+minutes and 9 seconds. If the connection drops at 99%,
+you have to start over from scratch.
+
+Fortunately, all major cloud providers solve this with
+chunked upload APIs. AWS S3 uses multipart uploads
+where each 5MB+ part gets its own presigned URL. Google
+Cloud Storage and Azure use single session URLs where
+you upload chunks with range headers to the same
+endpoint.
+
+The client uploads these parts, tracking completion
+checksums returned by the storage service. These are just
+hashes of the uploaded data, so they're cheap to compute
+and verify. If the connection drops after uploading 60 of
+100 parts, the client doesn't start over. Instead, it queries
+the storage API to see which parts already uploaded
+successfully, then resumes from part 61. The storage
+service maintains this state using the session ID (upload ID
+in S3, resumable upload URL in GCS, etc.).
+
+Finally, after all parts upload, the client must call a
+completion endpoint with the list of part numbers and
+their checksums. The storage service then assembles these
+parts into the final object. Until this completion succeeds,
+you have parts in storage but no accessible file. Incomplete
+multipart uploads cost money, so lifecycle rules should
+clean them up after 24-48 hours.
+
+---
+
+### State Synchronization Challenges
+
+Moving your servers out of the critical path solves the
+bottleneck, but introduces a new class of problems around
+distributed state management.
+
+The common pattern is to store file metadata in your
+database while the actual file lives in blob storage. This
+gives you the best of both worlds - fast queries on
+metadata with unlimited storage for the files themselves.
+
+But this creates several problems:
+
+1. Race conditions: The database might show
+'completed' before the file actually exists in storage
+
+2. Orphaned files: The client might crash after
+uploading but before notifying you, leaving files in
+storage with no database record
+
+3. Malicious clients: Users could mark uploads as
+complete without actually uploading anything
+
+4. Network failures: The completion notification might
+fail to reach your servers
+
+Most blob storage services solve this with event
+notifications. When S3 receives a file, it publishes events
+through messaging services (like SNS/SQS) with details
+about what was uploaded. The event includes the object key - 
+the same storage_key you stored in your database
+when generating the presigned URL. This lets you find the
+exact row to update.
+
+---
+
+### How do you prevent abuse?
+
+Implement a processing pipeline where uploads go into a
+quarantine bucket first. Run virus scans, content
+validation, and any other checks before moving files to the
+public bucket. This prevents someone from uploading
+malicious content and immediately sharing the link.
+
+Set up automatic content analysis - image recognition to
+detect inappropriate content, file type validation to ensure
+a "photo" isn't actually an executable, size checks to
+prevent storage bombs. Only after these checks pass do
+you move the file to its final location and update the
+database status to "available."
+
+This approach is much more robust than trying to detect
+abuse patterns in real-time. Even if someone bypasses
+your rate limiting and uploads malicious content, they
+can't use it until your systems approve it.
+
+The processing delay also naturally throttles abuse -
+attackers can't immediately see if their upload worked,
+making automation harder.
+
+Always include file size limits in the presigned URL
+conditions. Without these, someone could upload
+terabytes of data on a URL meant for a small image,
+exploding your storage costs.
+
+

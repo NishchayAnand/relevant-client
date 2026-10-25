@@ -2,3 +2,15 @@
 title: 'System Design (Cloudflare): Content Delivery Network'
 publishedAt: '2026-06-11'
 ---
+
+For CDN delivery, you're not signing blob storage URLs.
+Instead, you're creating signed URLs or signed cookies that
+your CDN validates. Here's how CloudFront handles it:
+
+```json
+https://d123456.cloudfront.net/videos/lecture.mp4
+?Expires=1705305600
+&Signature=j1k2l3m4n5o6p7q8r9s0t1u2v3w4x5y6z7a8b9c0d1e2f3g4h5i6j7k8l9m0
+&Key-Pair-Id=APKAIOSFODNN7EXAMPLE
+```
+
