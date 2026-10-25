@@ -3,6 +3,15 @@ title: 'System Design (Amazon S3): Object Storage Service'
 publishedAt: '2026-06-11'
 ---
 
+Amazon S3 (Simple Storage Service) is a distributed object storage system designed to store and retrieve large 
+amounts of data reliably over a network.
+
+![amazon-s3](/amazon-s3/intro.png)
+
+---
+
+### Why Do We Need Object Storage?
+
 Imagine you're building an application that generates millions of photos, videos, PDFs, emails, and sensor readings. 
 You need a reliable way to store and retrieve all this data.
 
@@ -24,6 +33,29 @@ Applications interact with objects through a simple RESTful API using operations
 
 By separating file storage from database operations and providing a consistent API for accessing data, 
 object storage offers a practical way to manage massive volumes of diverse, unstructured data.
+
+---
+
+### How Object Storage Works in a Distributed System?
+
+In a single-machine object storage system, all objects are stored on one machine's disk. But what 
+happens when the amount of data grows beyond its storage capacity, or the machine cannot handle the 
+incoming requests?
+
+Considering you're building a service like Amazon S3, millions of users upload photos, videos, documents, 
+and backups every day. As the data grows, a single machine becomes a bottleneck in terms of storage capacity, 
+request throughput, and reliability. If the machine fails, the stored data may also become unavailable or lost.
+
+To overcome these limitations, we build a distributed object storage system that spreads data across multiple 
+machines. Each machine contributes storage capacity and processing power, allowing the system to handle growing 
+volumes of data and requests.
+
+However, distributing data introduces new challenges: **deciding which machine should store an object**, **locating 
+it when requested**, and **ensuring it remains available when a machine fails**.
+
+The system handles these complexities internally while exposing a single, unified API to clients. Applications can 
+continue using operations such as `PUT`, `GET`, and `DELETE` without knowing which machine physically stores 
+their objects.
 
 ---
 
