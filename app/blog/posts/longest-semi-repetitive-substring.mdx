@@ -112,7 +112,17 @@ remains constant regardless of the input size, the overall space complexity is `
 
 ### Key Observations
 
+If a substring `[i...j]` represents the longest valid substring starting at index `i`, we 
+don't need to explore all substrings ending before `j` and starting between `(i+1)` and `j`,
+since they will always be shorter than the current substring `[i..j]`.
 
+![key-observation-1](/longest-semi-repetitive-substring/key-observation-1.png)
+
+Once the substring `[i...j]` becomes invalid, we don't need to restart 
+exploration from `i`. Instead, we can keep the right pointer fixed at `j` and move 
+the left pointer forward until the current substring becomes valid again.
+
+![key-observation-2](/longest-semi-repetitive-substring/key-observation-2.png)
 
 ---
 
