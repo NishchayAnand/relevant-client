@@ -82,7 +82,31 @@ contains more than one adjacent equal pair).
 
 #### Time Complexity
 
+In the worst-case scenario, i.e., when the string contains all distinct characters, we'll 
+end up exploring all possible substrings.
+
+The outer loop iterates for each starting index. For each `ith` iteration, the inner loop 
+executes `(n-i-1)` times, where `i` ranges from `0` to `(n-1)`. 
+
+Since each inner-loop iteration performs only constant-time operations, the time complexity
+depends on the total number of iterations.
+
+```
+= (n-0) + (n-1) + (n-2) + ... + (n - (n-2)) + (n - (n-1))
+= n + (n-1) + (n-2) + ... + 2 + 1
+= [n x (n+1)] / 2
+```
+
+Since, the total number of iterations are of the order `n^2`, the overall time 
+complexity is `O(n^2)`.
+
 #### Space Complexity
+
+We use only a few variables to track the length of the longest valid substring 
+and whether an adjacent equal pair has already been observed. 
+
+Since the algorithm does not use any additional data structures and the number of variables
+remains constant regardless of the input size, the overall space complexity is `O(1)`.
 
 ---
 
