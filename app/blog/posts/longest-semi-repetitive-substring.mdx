@@ -167,6 +167,33 @@ equal to the next character.
 ```java
 public int longestSemiRepetitiveSubstring(String s) {
 
+    // 1. Initialize
+    int left = 0;
+    int adjacentEqualPairCount = 0;
+    int maxLength = 1;
+
+    // 2. Expand the current window
+    for (int right = 0; right < s.length(); right++) {
+        // 3. Update the count of adjacent equal pairs.
+        // What if no equal characters are found? Add this as a pop question with answer on the visualization when  hovered over it.
+        if (right > 0 && s.charAt(right) == s.charAt(right - 1)) adjacentEqualPairCount++;
+
+        // 4. Shrink the current window to make it valid.
+        while (adjacentEqualPairCount > 1) {
+            // left + 1 will always exist?? Add this as a pop question with answer on the visualization when hovered over it.
+            if (s.charAt(left) == s.charAt(left + 1)) adjacentEqualPairCount--;
+            left++;
+        }
+
+        // 5. Update the length of the longest valid substring if necessary.
+        maxLength = Math.max(maxLength, right - left + 1);
+
+
+    }
+
+    // 6. Return the length of the longest valid substring.
+    return maxLength;
+
 }
 ```
 
