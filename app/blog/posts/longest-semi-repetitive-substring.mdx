@@ -168,13 +168,44 @@ equal to the next character.
 
 #### Time Complexity
 
+In the worst-case scenario, i.e., when all digits in `s` are the same, both `left` and `right` pointers traverse the string 
+once.
+
+Since the total number of pointer movements is bounded by `2n` and all the remaining operations, including 
+character comparisons, updating `adjacentEqualPairCount`, and updating `maxLength`, take constant time, the overall 
+time complexity is `O(2n) ~ O(n)`.
+
 #### Space Complexity
+
+We are maintaining only a few varaible to track the boundaries of the current substring, the number of adjacent equal 
+pairs, and the length of the longest valid substring found so far.
+
+Since no additional data structures are used and the number of variables remains constant regardless of the input size, 
+the overall space complexity is `O(1)`.
 
 ---
 
-### Follow Up Questions
+### Follow-Up Questions
 
 **<span className="text-emerald-800">Q1. How would you modify this solution if the substring were allowed to contain at most 
 `k` adjacent equal pairs instead of just one?</span>**
+
+In the existing solution, we have:
+
+```java
+while (adjacentEqualPairCount > 1) {
+    // Shrink the window
+}
+```
+
+We simply replace `1` with `k`:
+
+```java
+while (adjacentEqualPairCount > k) {
+    // Shrink the window
+}
+```
+
+---
 
 

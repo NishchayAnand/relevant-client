@@ -266,7 +266,7 @@ function AlgorithmPanel({
           <div
             key={lineNum}
             ref={isActive && lineNum === activeLines[0] ? activeRef : undefined}
-            className={`flex transition-colors duration-150 ${isActive ? "bg-amber-100/80" : ""}`}
+            className={`flex min-w-full w-max transition-colors duration-150 ${isActive ? "bg-amber-100/80" : ""}`}
             style={{ borderLeft: `3px solid ${isActive ? "#f59e0b" : "transparent"}` }}
           >
             <div className={`sticky left-0 z-[1] flex shrink-0 items-start ${isActive ? "bg-amber-100" : "bg-white"}`}>
@@ -301,7 +301,7 @@ function AlgorithmPanel({
                 ) : null}
               </span>
             </div>
-            <span className={`flex-1 min-w-0 whitespace-pre-wrap pl-1.5 ${isActive ? "text-amber-900 font-semibold" : "text-gray-600"}`}>
+            <span className={`whitespace-pre pl-1.5 ${isActive ? "text-amber-900 font-semibold" : "text-gray-600"}`}>
               {line || " "}
             </span>
           </div>
