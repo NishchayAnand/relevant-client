@@ -112,13 +112,15 @@ remains constant regardless of the input size, the overall space complexity is `
 
 ### Key Observations
 
-If a substring `[i...j]` represents the longest valid substring starting at index `i`, we 
+<br/>
+
+1. If a substring `[i...j]` represents the longest valid substring starting at index `i`, we 
 don't need to explore all substrings ending before `j` and starting between `(i+1)` and `j`,
 since they will always be shorter than the current substring `[i..j]`.
 
 ![key-observation-1](/longest-semi-repetitive-substring/key-observation-1.png)
 
-Once the substring `[i...j]` becomes invalid, we don't need to restart 
+2. Once the substring `[i...j]` becomes invalid, we don't need to restart 
 exploration from `i`. Instead, we can keep the right pointer fixed at `j` and move 
 the left pointer forward until the current substring becomes valid again.
 
@@ -128,15 +130,44 @@ the left pointer forward until the current substring becomes valid again.
 
 ### Suitable Approach: Sliding Window
 
+Use two pointers, `left` and `right`, to maintain a sliding window representing the 
+current substring under consideration.
+
+1. Expand the window by moving `right` pointer forward and updating the count of adjacent equal 
+pairs if current character is equal to the previous character.
+
+2. If the count of adjacent equal pairs becomes greater than one, start shrinking the 
+window by moving `left` pointer forward and reducing the count if current character is 
+equal to the next character.
+
 #### Algorithm
 
-```
+```java
+1. Initialize:
+    a. Two pointers, "left" and "right", to represent the boundaries of the current substring.
+    b. A variable, "adjacentEqualPairCount", to track the number of adjacent equal pairs in the 
+       current substring.
+    c. A variable, "result", to track the length of longest valid substring found so far. 
+
+2. Expand the current window by moving "right" one character at a time:
+    3. If the current character is equal to the immediately preceding character, increment 
+       "adjacentEqualPairCount" by 1.
+    4. If the "adjacentEqualPairCount" exceeds 1:
+            a. If the character at "left" is equal to the next character, decrement 
+               "adjacentEqualPairCount" by 1.
+            b. Move "left" forward to shrink the current window.
+    5. Once the window becomes valid, update "result" if the current window length is greater 
+       than the maximum length found so far.
+
+6. Return "result".
 ```
 
 #### Implementation
 
 ```java
+public int longestSemiRepetitiveSubstring(String s) {
 
+}
 ```
 
 #### Time Complexity

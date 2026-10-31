@@ -1,0 +1,63 @@
+---
+title: 'Data Structures & Algorithms: Sliding Window Technique'
+publishedAt: '2026-02-01'
+---
+
+Sliding Window is an algorithmic technique used to solve problems involving 
+**contiguous subarrays** or **substrings** efficiently.
+
+---
+
+### Basic Intution
+
+The core idea is to maintain a window over the input and move its boundaries instead 
+of repeatedly exploring every possible subarray or substring. The general strategy is:
+
+---
+
+### Algorithm
+
+```java
+1. Expand the window by moving `right` forward.
+2. Update the state of the current window based on the newly included element.
+3. Check whether the current window satisfies the problem's constraint.
+4. If the window becomes invalid, move `left` forward until the window becomes 
+valid again.
+5. Once the window is valid, update the result.
+6. Continue expanding until `right` reaches the end of the input.
+```
+
+<br/>
+
+---
+
+### General Sliding Window Template
+
+```java
+int left = 0;
+int result = 0;
+
+for (int right = 0; right < n; right++) {
+
+    // 1. Expand the window
+    // Include the current element in the window
+    // Update window state
+
+    // 2. Restore validity if the window becomes invalid
+    while (/* window is invalid */) {
+
+        // Remove the element at left from window state
+        left++;
+    }
+
+    // 3. Update the result using the valid window
+    result = Math.max(result, right - left + 1);
+}
+
+return result;
+```
+
+<br/>
+
+---
+
