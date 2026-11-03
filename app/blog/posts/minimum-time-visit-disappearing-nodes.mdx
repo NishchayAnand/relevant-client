@@ -21,6 +21,8 @@ reach node `i` from node `0`. If node `i` is unreachable from node `0` then `ans
 
 Input: `n = 3`, edges = `[[0,1,2],[1,2,1],[0,2,4]]`, disappear = `[1,1,5]`
 
+![example-1](/minimum-time-visit-disappearing-nodes/example-1.png)
+
 We are starting our journey from node `0`, and our goal is to find the minimum time required to reach each node 
 before it disappears.
 
@@ -28,6 +30,8 @@ before it disappears.
 - For node `1`, we need at least `2` units of time to traverse `edges[0]`. Unfortunately, it disappears at that 
 moment, so we won't be able to visit it.
 - For node `2`, we need at least `4` units of time to traverse `edges[2]`.
+
+<br/>
 
 ---
 
