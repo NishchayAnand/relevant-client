@@ -10,21 +10,181 @@ be achieved using localized and single-node testing processes.
 
 ### Unit Testing
 
+Test individual units of code independently to verify that they behave as expected.
+
+**The AAA pattern**: A good unit test generally follows three stages:
+
+1. **Arrange**: Prepare the test environment.
+2. **Act**: Execute the method being tested.
+3. **Assert**: Verify the actual result against the expected result.
+
+#### Junit & Mockito
+
+JUnit provides the testing framework. Mockito allows us to create mock dependencies.
+
+```java
+@ExtendWith(MockitoExtension.class)
+class UserServiceTest {
+
+    @Mock
+    private UserRepository userRepository;
+
+    @InjectMocks
+    private UserService userService;
+
+    @Test
+    void shouldReturnUserWhenUserExists() {
+
+        // Arrange
+        User user = new User(1L, "Nish");
+
+        when(userRepository.findById(1L))
+            .thenReturn(Optional.of(user));
+
+        // Act
+        User result = userService.getUserById(1L);
+
+        // Assert
+        assertNotNull(result);
+        assertEquals("Nish", result.getName());
+
+        verify(userRepository).findById(1L); // Verifies a method invocation
+    }
+}
+```
+
+<br/>
+
 ---
 
 ### Component Testing
 
-A component test verifies that a single application component works correctly by testing its behavior 
-through its interfaces, often while replacing external dependencies with mocks or stubs.
+Test an individual component of an application along with its **internal dependencies** to 
+verify that the component behaves correctly as a whole.
 
-For example, `postPayment_validData_returnsSuccess()`
+The key idea is that we test a complete functional component rather than an individual 
+method.
+
+```java
+@SpringBootTest
+@AutoConfigureMockMvc
+class UserComponentTest {
+
+    @Autowired
+    private MockMvc mockMvc; // Simulates HTTP requests without starting an actual HTTP server.
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @BeforeEach
+    void setUp() {
+        userRepository.deleteAll();
+
+        userRepository.save(
+            new User(1L, "Nish")
+        );
+    }
+
+    @Test
+    void shouldReturnUserById() throws Exception {
+
+        mockMvc.perform(
+                get("/users/1")
+            )
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.name")
+                .value("Nish"));
+    }
+}
+```
+
+<Note>
+Component testing is especially important in backend systems because individual classes 
+might work correctly in isolation, but multiple classes working together can still 
+introduce defects.
+
+The important distinction is that component testing generally uses real internal 
+dependencies, although external dependencies can still be mocked or simulated.
+</Note>
 
 ---
 
 ### Black Box Testing
 
-A black-box test is a test where you test the external behavior of a system without knowing or considering
-its internal implementation.
+Black box testing is a software testing technique in which we validate an application's 
+functionality without knowing or depending on its internal implementation.
+
+As black box testers, we don't need to know:
+
+- Which controller handles the request.
+- Which service executes the business logic.
+- Which database is queried.
+- Whether the application uses JPA or JDBC.
+
+We only care whether the API returns the expected response.
+
+### How to implement black box tests?
+
+REST Assured is a Java library that allows us to test REST APIs by sending HTTP requests 
+and validating HTTP responses.
+
+The important idea is that we interact with our application through its public API, 
+without depending on its internal implementation.
+
+REST Assured follows a simple request-response validation model. The three main stages are:
+
+1. `given()`: Define request configuration
+2. `when()`: Execute HTTP request
+3. `then()`: Validate response
+
+```java
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+class UserApiTest {
+
+    @LocalServerPort
+    private int port;
+
+    @BeforeEach
+    void setUp() {
+        RestAssured.port = port;
+    }
+
+    @Test
+    void shouldReturnUserDetails() {
+
+        given()
+            .basePath("/api/users/101")
+        .when()
+            .get()
+        .then()
+            .statusCode(200)
+            .contentType(ContentType.JSON)
+            .body("id", equalTo(101))
+            .body("name", equalTo("Nish"))
+            .body("email", equalTo("nish@example.com"))
+            .body("status", equalTo("ACTIVE"));
+    }
+}
+```
+
+---
+
+### System Testing 
+
+System testing verifies whether an entire application works correctly as a complete 
+system against its functional and non-functional requirements.
+
+The objective is to validate the entire system, not just individual services.
+
+#### How to implement system tests in distributed environments?
+
+TestNG (Test Next Generation) is a Java testing framework inspired by JUnit and NUnit.
+It is particularly useful for organizing large automated test suites, including API-level 
+system tests.
+
+---
+
+### Extra 
 
 #### Why do we need blackbox testing?
 
