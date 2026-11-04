@@ -7,7 +7,36 @@ Dijkstra's Algorithm is a graph traversal algorithm used to **find the shortest
 path from a source node to all other nodes in a weighted graph, provided all 
 edge weights are non-negative**.
 
+---
+
+### Basic Intuition
+
+Since edge weights cannot be negative, we can use a greedy approach where:
+
+1. Out of all the nodes whose shortest path are not yet confirmed, we pick the 
+node with the smallest known distance from the source. Any alternative path to 
+this node must pass through another unprocessed node. Since all edge weights 
+are non-negative, that path cannot produce a shorter distance than the one we 
+have already found.
+
+2. Once we know the shortest path of a node from the source, we can explore its 
+neighbours and attempt to improve their shortest known distances.
+
+---
+
+### Example: Travelling Between Countries
+
 Imagine you are travelling between different countries and want to find the minimum 
 time required to travel from India to every other country.
 
 <DijkstraVisualizer />
+
+---
+
+### Algorithm
+
+---
+
+### Implementation
+
+---
