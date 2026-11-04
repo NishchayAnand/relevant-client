@@ -1,30 +1,52 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Pause, Play, RotateCcw, SkipForward } from "lucide-react";
+import {
+  Check,
+  Flag,
+  Info,
+  Minus,
+  Pause,
+  Play,
+  RotateCcw,
+  SkipForward,
+  TrendingDown,
+} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 
-const NODES = ["A", "B", "C", "D", "E"] as const;
+const NODES = ["India", "UAE", "Singapore", "UK", "USA"] as const;
 type NodeId = (typeof NODES)[number];
 
+const FLAG: Record<NodeId, string> = {
+  India: "🇮🇳",
+  UAE: "🇦🇪",
+  Singapore: "🇸🇬",
+  UK: "🇬🇧",
+  USA: "🇺🇸",
+};
+
+const VB_W = 620;
+const VB_H = 320;
+const NODE_W = 136;
+const NODE_H = 58;
+
 const POS: Record<NodeId, { x: number; y: number }> = {
-  A: { x: 72, y: 150 },
-  B: { x: 188, y: 56 },
-  C: { x: 188, y: 244 },
-  D: { x: 360, y: 56 },
-  E: { x: 360, y: 244 },
+  India: { x: 108, y: 160 },
+  UAE: { x: 282, y: 60 },
+  Singapore: { x: 282, y: 260 },
+  UK: { x: 478, y: 60 },
+  USA: { x: 528, y: 260 },
 };
 
 const EDGES: { u: NodeId; v: NodeId; w: number }[] = [
-  { u: "A", v: "C", w: 2 },
-  { u: "A", v: "B", w: 4 },
-  { u: "B", v: "C", w: 1 },
-  { u: "B", v: "D", w: 5 },
-  { u: "B", v: "E", w: 12 },
-  { u: "C", v: "E", w: 10 },
-  { u: "D", v: "E", w: 2 },
+  { u: "India", v: "UAE", w: 3 },
+  { u: "India", v: "Singapore", w: 5 },
+  { u: "India", v: "UK", w: 11 },
+  { u: "UAE", v: "UK", w: 7 },
+  { u: "UAE", v: "Singapore", w: 9 },
+  { u: "Singapore", v: "USA", w: 17 },
+  { u: "UK", v: "USA", w: 8 },
 ];
-
-const NODE_R = 22;
 
 type StepKind = "init" | "settle" | "relax" | "skip" | "done";
 
@@ -35,15 +57,12 @@ type Step = {
   current: NodeId | null;
   edge: { u: NodeId; v: NodeId; w: number } | null;
   updated: NodeId | null;
-  fromDist: number | null;
-  candidate: number | null;
-  previousDist: number | null;
   kind: StepKind;
   description: string;
 };
 
-function formatDist(d: number) {
-  return d === Infinity ? "∞" : String(d);
+function formatHours(d: number) {
+  return d === Infinity ? "∞" : `${d}h`;
 }
 
 function neighbors(node: NodeId) {
@@ -62,7 +81,7 @@ function simulate(): Step[] {
     dist[node] = Infinity;
     prev[node] = null;
   }
-  dist.A = 0;
+  dist.India = 0;
 
   const settled = new Set<NodeId>();
   const steps: Step[] = [];
@@ -73,9 +92,6 @@ function simulate(): Step[] {
     current: NodeId | null,
     edge: Step["edge"],
     updated: NodeId | null,
-    fromDist: number | null,
-    candidate: number | null,
-    previousDist: number | null,
   ) {
     steps.push({
       dist: { ...dist },
@@ -84,9 +100,6 @@ function simulate(): Step[] {
       current,
       edge,
       updated,
-      fromDist,
-      candidate,
-      previousDist,
       kind,
       description,
     });
@@ -94,10 +107,7 @@ function simulate(): Step[] {
 
   snap(
     "init",
-    "Every node starts unreachable (∞), except the source A, which is already at distance 0.",
-    null,
-    null,
-    null,
+    "You are flying out of India. Edge weights are flight times in hours, and every other country is still unreached (∞).",
     null,
     null,
     null,
@@ -120,24 +130,22 @@ function simulate(): Step[] {
 
     settled.add(current);
 
-    const closer =
-      unfinished.length > 0
-        ? ` It is closer than ${unfinished
-            .map((node) => `${node} (${formatDist(dist[node])})`)
-            .join(" and ")}.`
-        : "";
-
-    let settleText = `Settle ${current} at distance ${formatDist(dist[current])}.${closer}`;
-    if (current === "A") {
+    let settleText: string;
+    if (current === "India") {
       settleText =
-        "Settle A. It is the unfinished node with the smallest distance, so 0 is final. Next, relax each edge that leaves A.";
-    } else if (current === "C") {
-      settleText = `Settle C at distance ${formatDist(dist.C)}.${closer} Weights are never negative, so no later path can undercut a distance this small.`;
-    } else if (current === "E") {
-      settleText = `Settle E at distance ${formatDist(dist.E)}. Every node is now final.`;
+        "India is the departure city, so its time is final at 0h. Next, relax the direct flights that leave it.";
+    } else if (unfinished.length === 0) {
+      settleText = `${current} is the last country left. ${dist[current]}h is final.`;
+    } else {
+      const other = unfinished[0];
+      const extra =
+        current === "UAE"
+          ? " Flight times are never negative, so no later path can undercut this."
+          : "";
+      settleText = `${current} is the closest unfinished country (${dist[current]}h, closer than ${other} at ${dist[other]}h), so lock it in.${extra}`;
     }
 
-    snap("settle", settleText, current, null, null, null, null, null);
+    snap("settle", settleText, current, null, null);
 
     for (const { to, w } of neighbors(current)) {
       if (settled.has(to)) continue;
@@ -147,51 +155,34 @@ function simulate(): Step[] {
       const edge = { u: current, v: to, w };
 
       if (candidate < previousDist) {
-        const oldPrev = prev[to];
         dist[to] = candidate;
         prev[to] = current;
-        const replaced =
+        const text =
           previousDist === Infinity
-            ? `${formatDist(fromDist)} + ${w} = ${candidate} is the first path that reaches ${to}.`
-            : `${formatDist(fromDist)} + ${w} = ${candidate}, which is shorter than ${to}'s ${formatDist(previousDist)}.${
-                oldPrev ? ` The path through ${oldPrev} is no longer best.` : ""
-              }`;
-        snap(
-          "relax",
-          `${current}–${to} weighs ${w}. ${replaced}`,
-          current,
-          edge,
-          to,
-          fromDist,
-          candidate,
-          previousDist,
-        );
+            ? `${current} → ${to} takes ${w}h. First known route to ${to}: ${candidate}h.`
+            : `Hop through ${current}: ${fromDist} + ${w} = ${candidate}h to ${to}. Beats the previous ${previousDist}h route.`;
+        snap("relax", text, current, edge, to);
       } else {
         snap(
           "skip",
-          `${current}–${to} weighs ${w}. ${formatDist(fromDist)} + ${w} = ${candidate}, which is not shorter than ${to}'s ${formatDist(previousDist)}. ${to} stays at ${formatDist(previousDist)}.`,
+          `${current} → ${to} takes ${w}h. ${fromDist} + ${w} = ${candidate}h is not better than ${to}'s ${previousDist}h. Skip.`,
           current,
           edge,
           null,
-          fromDist,
-          candidate,
-          previousDist,
         );
       }
     }
   }
 
   const summary = [...NODES]
+    .filter((node) => node !== "India")
     .sort((a, b) => dist[a] - dist[b])
-    .map((node) => `${node} ${formatDist(dist[node])}`)
-    .join(", ");
+    .map((node) => `${node} ${dist[node]}h`)
+    .join(" · ");
 
   snap(
     "done",
-    `Shortest distances from A are ${summary}. Green edges are the shortest-path tree.`,
-    null,
-    null,
-    null,
+    `Fastest times from India: ${summary}. Green edges form the shortest-path tree.`,
     null,
     null,
     null,
@@ -208,46 +199,63 @@ function isTreeEdge(u: NodeId, v: NodeId, prev: Record<NodeId, NodeId | null>) {
   return prev[u] === v || prev[v] === u;
 }
 
-type Paint = { fill: string; stroke: string; text: string };
-
-function paintNode(id: NodeId, step: Step): Paint {
-  const isUpdated = step.updated === id;
-  const isCurrent =
-    step.current === id &&
-    (step.kind === "settle" || step.kind === "relax" || step.kind === "skip");
-
-  if (isUpdated) return { fill: "#ede9fe", stroke: "#8b5cf6", text: "#5b21b6" };
-  if (isCurrent) return { fill: "#fef3c7", stroke: "#d97706", text: "#92400e" };
-  if (step.settled.includes(id)) return { fill: "#d1fae5", stroke: "#059669", text: "#065f46" };
-  if (step.dist[id] !== Infinity) return { fill: "#e0f2fe", stroke: "#0284c7", text: "#075985" };
-  return { fill: "#ffffff", stroke: "#d1d5db", text: "#6b7280" };
+function borderPoint(from: { x: number; y: number }, to: { x: number; y: number }) {
+  const dx = to.x - from.x;
+  const dy = to.y - from.y;
+  const tx = dx === 0 ? Infinity : NODE_W / 2 / Math.abs(dx);
+  const ty = dy === 0 ? Infinity : NODE_H / 2 / Math.abs(dy);
+  const t = Math.min(tx, ty);
+  return { x: from.x + dx * t, y: from.y + dy * t };
 }
-
-const KIND_META: Record<StepKind, { label: string; className: string }> = {
-  init: { label: "Setup", className: "text-gray-400" },
-  settle: { label: "Settle the closest node", className: "text-amber-600" },
-  relax: { label: "Relax an edge", className: "text-violet-600" },
-  skip: { label: "No improvement", className: "text-rose-500" },
-  done: { label: "Done", className: "text-emerald-600" },
-};
 
 function edgeGeometry(u: NodeId, v: NodeId) {
   const a = POS[u];
   const b = POS[v];
-  const dx = b.x - a.x;
-  const dy = b.y - a.y;
-  const len = Math.hypot(dx, dy) || 1;
-  const ux = dx / len;
-  const uy = dy / len;
+  const start = borderPoint(a, b);
+  const end = borderPoint(b, a);
   return {
-    x1: a.x + ux * NODE_R,
-    y1: a.y + uy * NODE_R,
-    x2: b.x - ux * NODE_R,
-    y2: b.y - uy * NODE_R,
+    x1: start.x,
+    y1: start.y,
+    x2: end.x,
+    y2: end.y,
     mx: (a.x + b.x) / 2,
     my: (a.y + b.y) / 2,
   };
 }
+
+type NodeState = "updated" | "current" | "settled" | "tentative" | "unreached";
+
+const NODE_PAINT: Record<NodeState, { fill: string; stroke: string; text: string; subText: string }> = {
+  updated:   { fill: "#f5f3ff", stroke: "#8b5cf6", text: "#4c1d95", subText: "#6d28d9" },
+  current:   { fill: "#fffbeb", stroke: "#f59e0b", text: "#78350f", subText: "#b45309" },
+  settled:   { fill: "#ecfdf5", stroke: "#10b981", text: "#064e3b", subText: "#047857" },
+  tentative: { fill: "#eff6ff", stroke: "#3b82f6", text: "#1e3a8a", subText: "#1d4ed8" },
+  unreached: { fill: "#ffffff", stroke: "#e5e7eb", text: "#6b7280", subText: "#9ca3af" },
+};
+
+function nodeState(id: NodeId, step: Step): NodeState {
+  if (step.updated === id) return "updated";
+  if (
+    step.current === id &&
+    (step.kind === "settle" || step.kind === "relax" || step.kind === "skip")
+  ) {
+    return "current";
+  }
+  if (step.settled.includes(id)) return "settled";
+  if (step.dist[id] !== Infinity) return "tentative";
+  return "unreached";
+}
+
+const KIND_META: Record<
+  StepKind,
+  { label: string; icon: LucideIcon; className: string; dotClass: string }
+> = {
+  init:   { label: "Setup",       icon: Info,         className: "border-slate-200 bg-slate-50 text-slate-700",       dotClass: "bg-slate-400" },
+  settle: { label: "Settle",      icon: Check,        className: "border-amber-200 bg-amber-50 text-amber-900",       dotClass: "bg-amber-500" },
+  relax:  { label: "Relax",       icon: TrendingDown, className: "border-violet-200 bg-violet-50 text-violet-900",    dotClass: "bg-violet-500" },
+  skip:   { label: "No improvement", icon: Minus,     className: "border-rose-200 bg-rose-50 text-rose-900",          dotClass: "bg-rose-500" },
+  done:   { label: "Done",        icon: Flag,         className: "border-emerald-200 bg-emerald-50 text-emerald-900", dotClass: "bg-emerald-500" },
+};
 
 export default function DijkstraVisualizer() {
   const steps = useMemo(() => simulate(), []);
@@ -256,24 +264,28 @@ export default function DijkstraVisualizer() {
 
   const isDone = index >= steps.length - 1;
   const step = steps[index];
+  const kindMeta = KIND_META[step.kind];
+  const KindIcon = kindMeta.icon;
 
   useEffect(() => {
     if (!isPlaying || isDone) return;
-    const timer = setTimeout(() => setIndex((i) => i + 1), 1600);
+    const timer = setTimeout(() => setIndex((i) => i + 1), 2200);
     return () => clearTimeout(timer);
   }, [isPlaying, isDone, index]);
 
-  const frontier = NODES.filter(
-    (node) => !step.settled.includes(node) && step.dist[node] !== Infinity,
-  )
-    .map((node) => ({ node, dist: step.dist[node] }))
-    .sort((a, b) => a.dist - b.dist);
-
   return (
-    <div className="not-prose border border-gray-200 rounded-2xl overflow-hidden bg-white mt-5 mb-10">
-      <div className="flex flex-col md:flex-row md:divide-x md:divide-gray-100">
-        <div className="px-4 pt-4 pb-2 md:w-[46%] shrink-0">
-          <svg viewBox="0 0 440 300" className="w-full h-auto" role="img" aria-label="Weighted graph for Dijkstra">
+    <div className="not-prose rounded-2xl border border-gray-200 bg-white overflow-hidden mt-5 mb-10">
+      {/* Map */}
+      <div className="overflow-x-auto bg-gradient-to-b from-slate-50/60 to-white">
+        <div className="mx-auto min-w-[560px] max-w-[720px] px-3 py-5">
+          <svg
+            viewBox={`0 0 ${VB_W} ${VB_H}`}
+            className="w-full h-auto block"
+            role="img"
+            aria-label="Flight-time graph between India, UAE, Singapore, UK, and USA"
+          >
+
+            {/* edges */}
             {EDGES.map((edge) => {
               const active =
                 step.edge !== null && sameEdge(edge.u, edge.v, step.edge.u, step.edge.v);
@@ -307,76 +319,85 @@ export default function DijkstraVisualizer() {
               );
             })}
 
+            {/* nodes */}
             {NODES.map((id) => {
-              const paint = paintNode(id, step);
+              const state = nodeState(id, step);
+              const paint = NODE_PAINT[state];
               const { x, y } = POS[id];
               return (
                 <g key={id}>
-                  <circle cx={x} cy={y} r={NODE_R} fill={paint.fill} stroke={paint.stroke} strokeWidth={2} />
+                  <rect
+                    x={x - NODE_W / 2}
+                    y={y - NODE_H / 2}
+                    width={NODE_W}
+                    height={NODE_H}
+                    rx={16}
+                    fill={paint.fill}
+                    stroke={paint.stroke}
+                    strokeWidth={2}
+                  />
                   <text
                     x={x}
-                    y={y - 4}
+                    y={y - 6}
                     textAnchor="middle"
                     fontSize={14}
                     fontWeight={700}
                     fill={paint.text}
                     fontFamily="var(--font-geist-sans), sans-serif"
                   >
-                    {id}
+                    <tspan>{FLAG[id]} </tspan>
+                    <tspan>{id}</tspan>
                   </text>
                   <text
                     x={x}
-                    y={y + 11}
+                    y={y + 14}
                     textAnchor="middle"
-                    fontSize={11}
+                    fontSize={12}
                     fontWeight={600}
-                    fill={paint.text}
+                    fill={paint.subText}
                     fontFamily="var(--font-geist-mono), ui-monospace, monospace"
                   >
-                    {formatDist(step.dist[id])}
+                    {formatHours(step.dist[id])}
                   </text>
                 </g>
               );
             })}
 
-            <text
-              x={POS.A.x}
-              y={POS.A.y - 32}
-              textAnchor="middle"
-              fontSize={10}
-              fill="#9ca3af"
-              fontFamily="var(--font-geist-sans), sans-serif"
-            >
-              source
-            </text>
-
+            {/* edge weight pills */}
             {EDGES.map((edge) => {
               const active =
                 step.edge !== null && sameEdge(edge.u, edge.v, step.edge.u, step.edge.v);
               const tree = isTreeEdge(edge.u, edge.v, step.prev);
               let stroke = "#e5e7eb";
               let text = "#4b5563";
-              if (tree) stroke = "#6ee7b7";
+              let fill = "#ffffff";
+              if (tree) {
+                stroke = "#6ee7b7";
+                fill = "#ecfdf5";
+                text = "#047857";
+              }
               if (active && step.kind === "relax") {
                 stroke = "#c4b5fd";
+                fill = "#f5f3ff";
                 text = "#6d28d9";
               }
               if (active && step.kind === "skip") {
                 stroke = "#fda4af";
+                fill = "#fff1f2";
                 text = "#be123c";
               }
               const { mx, my } = edgeGeometry(edge.u, edge.v);
-              const label = String(edge.w);
-              const width = Math.max(20, label.length * 8 + 12);
+              const label = `${edge.w}h`;
+              const width = Math.max(26, label.length * 7 + 14);
               return (
                 <g key={`w-${edge.u}-${edge.v}`}>
                   <rect
                     x={mx - width / 2}
-                    y={my - 9}
+                    y={my - 10}
                     width={width}
-                    height={18}
-                    rx={6}
-                    fill="white"
+                    height={20}
+                    rx={10}
+                    fill={fill}
                     stroke={stroke}
                   />
                   <text
@@ -385,7 +406,7 @@ export default function DijkstraVisualizer() {
                     textAnchor="middle"
                     dominantBaseline="central"
                     fontSize={11}
-                    fontWeight={600}
+                    fontWeight={700}
                     fill={text}
                     fontFamily="var(--font-geist-mono), ui-monospace, monospace"
                   >
@@ -396,102 +417,29 @@ export default function DijkstraVisualizer() {
             })}
           </svg>
         </div>
+      </div>
 
-        <div className="flex-1 flex flex-col gap-3 px-4 py-4 min-w-0">
-          <div>
-            <div className={`text-[10px] font-semibold uppercase tracking-wide ${KIND_META[step.kind].className}`}>
-              {KIND_META[step.kind].label}
-            </div>
-            <p className="mt-1 text-sm text-gray-600 leading-relaxed" aria-live="polite">
-              {step.description}
-            </p>
-          </div>
-
-          {step.edge && step.candidate !== null && step.previousDist !== null && step.fromDist !== null && (
-            <div
-              className={`font-mono text-xs rounded-lg px-3 py-2 border ${
-                step.kind === "relax"
-                  ? "bg-violet-50 border-violet-200 text-violet-800"
-                  : "bg-rose-50 border-rose-200 text-rose-700"
-              }`}
-            >
-              {formatDist(step.fromDist)} + {step.edge.w} = {step.candidate}
-              <span className="px-1.5">{step.kind === "relax" ? "<" : "≥"}</span>
-              {formatDist(step.previousDist)}
-              <span className="ml-1.5 text-[10px] opacity-70">
-                dist[{step.edge.v}]
-              </span>
-            </div>
-          )}
-
-          <div className="grid grid-cols-5 gap-1.5">
-            {NODES.map((id) => {
-              const paint = paintNode(id, step);
-              const via = id === "A" ? "source" : step.prev[id] ? `via ${step.prev[id]}` : "—";
-              return (
-                <div
-                  key={id}
-                  className="rounded-lg border px-1 py-1.5 text-center"
-                  style={{ background: paint.fill, borderColor: paint.stroke, color: paint.text }}
-                >
-                  <div className="text-xs font-semibold">{id}</div>
-                  <div className="font-mono text-sm leading-tight">{formatDist(step.dist[id])}</div>
-                  <div className="text-[10px] opacity-70">{via}</div>
-                </div>
-              );
-            })}
-          </div>
-
-          <div className="flex flex-col gap-1.5">
-            <span className="text-[10px] text-gray-400 uppercase tracking-wide">
-              Unsettled, closest first
+      {/* Explanation */}
+      <div className="px-3 pb-3 pt-1 sm:px-4">
+        <div
+          className={`flex h-[76px] items-start gap-2.5 overflow-hidden rounded-xl border px-3 py-2.5 text-sm leading-snug shadow-sm ${kindMeta.className}`}
+          aria-live="polite"
+        >
+          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-white/70">
+            <KindIcon size={14} />
+          </span>
+          <div className="flex flex-col gap-0.5 min-w-0">
+            <span className="text-[10px] font-semibold uppercase tracking-wide opacity-80">
+              {kindMeta.label}
             </span>
-            <div className="flex flex-wrap gap-1.5 min-h-[26px]">
-              {frontier.length === 0 ? (
-                <span className="text-xs text-gray-400 italic">none</span>
-              ) : (
-                frontier.map((item, i) => (
-                  <span
-                    key={item.node}
-                    className={`inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-xs font-medium ${
-                      i === 0 && step.kind !== "done"
-                        ? "border-sky-400 bg-sky-50 text-sky-800"
-                        : "border-gray-200 bg-gray-50 text-gray-600"
-                    }`}
-                  >
-                    {item.node}
-                    <span className="font-mono">{formatDist(item.dist)}</span>
-                    {i === 0 && step.kind !== "done" && (
-                      <span className="text-[9px] uppercase tracking-wide text-sky-500">next</span>
-                    )}
-                  </span>
-                ))
-              )}
-            </div>
-          </div>
-
-          <div className="flex flex-wrap gap-x-3 gap-y-1 mt-auto text-[10px] text-gray-500">
-            {[
-              { color: "#d97706", label: "Settling" },
-              { color: "#8b5cf6", label: "Just updated" },
-              { color: "#059669", label: "Final" },
-              { color: "#0284c7", label: "Tentative" },
-              { color: "#d1d5db", label: "Unreached" },
-            ].map((item) => (
-              <span key={item.label} className="inline-flex items-center gap-1">
-                <span
-                  className="inline-block w-2.5 h-2.5 rounded-full"
-                  style={{ background: item.color }}
-                />
-                {item.label}
-              </span>
-            ))}
+            <span className="line-clamp-3 text-[13px]">{step.description}</span>
           </div>
         </div>
       </div>
 
-      <div className="border-t border-gray-100 px-3 py-3 flex flex-col gap-2 sm:px-4">
-        <div className="grid grid-cols-3 gap-2">
+      {/* Controls */}
+      <div className="flex flex-wrap items-center gap-3 border-t border-gray-100 bg-white px-3 py-3 sm:px-4">
+        <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={() => {
@@ -502,9 +450,9 @@ export default function DijkstraVisualizer() {
               }
               setIsPlaying((playing) => !playing);
             }}
-            className="flex items-center justify-center gap-1.5 px-2 py-2 rounded-lg bg-sky-600 text-white text-xs sm:text-sm font-medium hover:bg-sky-700"
+            className="inline-flex items-center gap-1.5 rounded-full bg-sky-600 px-4 py-1.5 text-sm font-semibold text-white transition-all hover:bg-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2 active:scale-[0.97]"
           >
-            {isPlaying && !isDone ? <Pause size={14} /> : <Play size={14} />}
+            {isPlaying && !isDone ? <Pause size={14} strokeWidth={2.5} /> : <Play size={14} strokeWidth={2.5} />}
             {isDone ? "Replay" : isPlaying ? "Pause" : "Play"}
           </button>
           <button
@@ -513,7 +461,7 @@ export default function DijkstraVisualizer() {
               if (!isDone && !isPlaying) setIndex((i) => i + 1);
             }}
             disabled={isPlaying || isDone}
-            className="flex items-center justify-center gap-1.5 px-2 py-2 rounded-lg bg-gray-800 text-white text-xs sm:text-sm font-medium hover:bg-gray-700 disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed"
+            className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-3.5 py-1.5 text-sm font-medium text-gray-700 transition-all hover:border-gray-300 hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-200 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
           >
             <SkipForward size={14} /> Step
           </button>
@@ -523,19 +471,20 @@ export default function DijkstraVisualizer() {
               setIndex(0);
               setIsPlaying(false);
             }}
-            className="flex items-center justify-center gap-1.5 px-2 py-2 rounded-lg border border-gray-200 text-gray-600 text-xs sm:text-sm font-medium hover:bg-gray-50"
+            aria-label="Reset"
+            className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-2.5 py-1.5 text-gray-500 transition-all hover:border-gray-300 hover:bg-gray-50 hover:text-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-200 active:scale-[0.97]"
           >
-            <RotateCcw size={14} /> Reset
+            <RotateCcw size={14} />
           </button>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="flex-1 h-1 bg-gray-100 rounded-full overflow-hidden">
+        <div className="ml-auto flex min-w-[140px] flex-1 items-center gap-2.5 sm:flex-none sm:min-w-[180px]">
+          <div className="relative h-1.5 flex-1 overflow-hidden rounded-full bg-gray-100">
             <div
-              className="h-full bg-sky-400 rounded-full transition-all duration-200"
+              className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-sky-400 to-sky-600 transition-all duration-200"
               style={{ width: `${(index / (steps.length - 1)) * 100}%` }}
             />
           </div>
-          <span className="text-xs text-gray-400 tabular-nums">
+          <span className="text-[11px] font-medium tabular-nums text-gray-500">
             {index + 1}/{steps.length}
           </span>
         </div>
