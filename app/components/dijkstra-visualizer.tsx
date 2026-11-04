@@ -107,7 +107,7 @@ function simulate(): Step[] {
 
   snap(
     "init",
-    "You are flying out of India. Edge weights are flight times in hours, and every other country is still unreached (∞).",
+    "Find the shortest flight time from India. Start India at 0h and every other country at ∞.",
     null,
     null,
     null,
@@ -133,7 +133,7 @@ function simulate(): Step[] {
     let settleText: string;
     if (current === "India") {
       settleText =
-        "India is the departure city, so its time is final at 0h. Next, relax the direct flights that leave it.";
+        "India is the starting point, so its shortest time is 0h. Now check its direct flights.";
     } else if (unfinished.length === 0) {
       settleText = `${current} is the last country left. ${dist[current]}h is final.`;
     } else {
@@ -248,14 +248,36 @@ function nodeState(id: NodeId, step: Step): NodeState {
 
 const KIND_META: Record<
   StepKind,
-  { label: string; icon: LucideIcon; className: string; dotClass: string }
+  { label: string; icon: LucideIcon; className: string; iconClass: string }
 > = {
-  init:   { label: "Setup",       icon: Info,         className: "border-slate-200 bg-slate-50 text-slate-700",       dotClass: "bg-slate-400" },
-  settle: { label: "Settle",      icon: Check,        className: "border-amber-200 bg-amber-50 text-amber-900",       dotClass: "bg-amber-500" },
-  relax:  { label: "Relax",       icon: TrendingDown, className: "border-violet-200 bg-violet-50 text-violet-900",    dotClass: "bg-violet-500" },
-  skip:   { label: "No improvement", icon: Minus,     className: "border-rose-200 bg-rose-50 text-rose-900",          dotClass: "bg-rose-500" },
-  done:   { label: "Done",        icon: Flag,         className: "border-emerald-200 bg-emerald-50 text-emerald-900", dotClass: "bg-emerald-500" },
+  init:   { label: "Setup",         icon: Info,         className: "border-slate-200/70 bg-slate-50/40 text-slate-700",       iconClass: "bg-slate-100 text-slate-600" },
+  settle: { label: "Settle",        icon: Check,        className: "border-amber-200/70 bg-amber-50/40 text-amber-900",       iconClass: "bg-amber-100 text-amber-700" },
+  relax:  { label: "Relax",         icon: TrendingDown, className: "border-violet-200/70 bg-violet-50/40 text-violet-900",    iconClass: "bg-violet-100 text-violet-700" },
+  skip:   { label: "No improvement", icon: Minus,       className: "border-rose-200/70 bg-rose-50/40 text-rose-900",          iconClass: "bg-rose-100 text-rose-700" },
+  done:   { label: "Done",          icon: Flag,         className: "border-emerald-200/70 bg-emerald-50/40 text-emerald-900", iconClass: "bg-emerald-100 text-emerald-700" },
 };
+
+function anchorNode(step: Step): NodeId {
+  if (step.kind === "settle" && step.current) return step.current;
+  if (step.kind === "relax" && step.updated) return step.updated;
+  if (step.kind === "skip" && step.edge) return step.edge.v;
+  return "India";
+}
+
+function tooltipStyle(nodeId: NodeId) {
+  const x = POS[nodeId].x;
+  const y = POS[nodeId].y;
+  const xPct = (x / VB_W) * 100;
+  const yPct = (y / VB_H) * 100;
+  const above = y >= VB_H / 2;
+  const horiz = xPct < 30 ? "0%" : xPct > 70 ? "-100%" : "-50%";
+  const vert = above ? "calc(-100% - 44px)" : "44px";
+  return {
+    left: `${xPct}%`,
+    top: `${yPct}%`,
+    transform: `translate(${horiz}, ${vert})`,
+  };
+}
 
 export default function DijkstraVisualizer() {
   const steps = useMemo(() => simulate(), []);
@@ -278,6 +300,7 @@ export default function DijkstraVisualizer() {
       {/* Map */}
       <div className="overflow-x-auto bg-gradient-to-b from-slate-50/60 to-white">
         <div className="mx-auto min-w-[560px] max-w-[720px] px-3 py-5">
+          <div className="relative">
           <svg
             viewBox={`0 0 ${VB_W} ${VB_H}`}
             className="w-full h-auto block"
@@ -416,23 +439,25 @@ export default function DijkstraVisualizer() {
               );
             })}
           </svg>
-        </div>
-      </div>
 
-      {/* Explanation */}
-      <div className="px-3 pb-3 pt-1 sm:px-4">
-        <div
-          className={`flex h-[76px] items-start gap-2.5 overflow-hidden rounded-xl border px-3 py-2.5 text-sm leading-snug shadow-sm ${kindMeta.className}`}
-          aria-live="polite"
-        >
-          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-white/70">
-            <KindIcon size={14} />
-          </span>
-          <div className="flex flex-col gap-0.5 min-w-0">
-            <span className="text-[10px] font-semibold uppercase tracking-wide opacity-80">
-              {kindMeta.label}
-            </span>
-            <span className="line-clamp-3 text-[13px]">{step.description}</span>
+          {/* Floating tooltip anchored to the active node */}
+          <div
+            className={`absolute z-10 w-[240px] max-w-[70%] rounded-xl border px-3 py-2.5 text-[13px] leading-snug shadow-sm backdrop-blur-sm ${kindMeta.className}`}
+            style={tooltipStyle(anchorNode(step))}
+            aria-live="polite"
+          >
+            <div className="flex items-start gap-2">
+              <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md ${kindMeta.iconClass}`}>
+                <KindIcon size={12} strokeWidth={2.5} />
+              </span>
+              <div className="flex min-w-0 flex-col gap-0.5">
+                <span className="text-[10px] font-semibold uppercase tracking-wide opacity-80">
+                  {kindMeta.label}
+                </span>
+                <span className="line-clamp-4">{step.description}</span>
+              </div>
+            </div>
+          </div>
           </div>
         </div>
       </div>
