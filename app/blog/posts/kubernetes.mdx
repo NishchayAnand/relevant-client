@@ -14,6 +14,30 @@ care of scaling and failover for your application, provides deployment patterns,
 
 ---
 
+Imagine you are deploying a Spring Boot microservice on Kubernetes.
+
+You might need the following Kubernetes resources:
+1. Deployment – Defines application replicas and container images.
+2. Service – Exposes the application inside the cluster.
+3. ConfigMap – Stores application configuration.
+4. Secret – Stores sensitive configuration.
+5. Ingress – Exposes the application externally.
+6. HorizontalPodAutoscaler – Automatically scales application replicas.
+
+---
+
+### Helm Chart
+
+Helm:
+1. Reads the chart.
+2. Loads values.yaml.
+3. Processes the templates.
+4. Generates Kubernetes manifests.
+5. Submits the resources to the Kubernetes API server.
+6. Tracks the installation as a Helm release.
+
+---
+
 ### Functional Requirements
 
 1. `kube-apiserver`: 
