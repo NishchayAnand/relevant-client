@@ -14,7 +14,7 @@ const navItems = {
 export function Navbar() {
   return (
         <nav
-          className="lg:px-10 flex justify-between " // flex flex-row items-start relative px-0 pb-0 fade md:overflow-auto scroll-pr-6 md:relative
+          className="relative z-20 lg:px-10 flex justify-between " // flex flex-row items-start relative px-0 pb-0 fade md:overflow-auto scroll-pr-6 md:relative
           id="navbar"
         >
           <Link href="/" className='text-xl font-semibold hover:text-neutral-800 dark:hover:text-neutral-200'>Relevant</Link>

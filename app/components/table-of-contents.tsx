@@ -55,13 +55,13 @@ export function TableOfContents({ headings }: { headings: TocHeading[] }) {
   return (
     <aside className="hidden min-[1360px]:block">
       <div
-        className="fixed top-0 z-10 flex h-dvh w-[11rem] items-center"
+        className="pointer-events-none fixed top-0 z-10 flex h-dvh w-[11rem] items-center"
         style={{ left: 'calc((100vw - 56rem) / 2 - 13.25rem)' }}
       >
         <nav
           ref={navRef}
           aria-label="Contents"
-          className="max-h-[70dvh] w-full overflow-y-auto border-l border-neutral-300 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          className="pointer-events-auto max-h-[70dvh] w-full overflow-y-auto border-l border-neutral-300 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         >
           {headings.map((heading) => {
             const active = heading.id === activeId;
