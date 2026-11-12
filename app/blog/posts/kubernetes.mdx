@@ -14,21 +14,116 @@ care of scaling and failover for your application, provides deployment patterns,
 
 ---
 
+### Declarative desired-state management
+
+You describe the desired state of your application, and Kubernetes continuously works to 
+make the actual state match that desired state.
+
+---
+
 Imagine you are deploying a Spring Boot microservice on Kubernetes.
 
 You might need the following Kubernetes resources:
-1. Deployment – Defines application replicas and container images.
-2. Service – Exposes the application inside the cluster.
-3. ConfigMap – Stores application configuration.
-4. Secret – Stores sensitive configuration.
-5. Ingress – Exposes the application externally.
-6. HorizontalPodAutoscaler – Automatically scales application replicas.
+
+1. Deployment - Defines application replicas and container images. Keeps a set of 
+identical pods running. Handles rollouts and restarts.
+
+2. Service - Exposes the application inside the cluster. A stable address in front of 
+pods. Pods get new IPs when they restart, the service does not.
+
+3. ConfigMap - Stores application configuration.
+4. Secret - Stores sensitive configuration.
+5. Ingress - Exposes the application externally.
+6. HorizontalPodAutoscaler - Automatically scales application replicas.
+
+---
+
+### Kubernetes Architecture
+
+A cluster has two parts.
+
+The control plane is the brain. The API server is the only front door. Every change goes 
+through it. etcd stores the desired state and the current state. Controllers compare the 
+two and act. The scheduler picks a node for each new container.
+
+Worker nodes are the machines that actually run containers. ECS those machines are EC2 
+instances managed by AWS. Each node runs a kubelet, which pulls the work assigned to that 
+node and starts the containers.
+
+---
+
+### Key Capabilities 
+
+1. Automated scaling
+2. Self-healing 
+3. Service discovery and load balancing 
+4. Automated deployments and rollbacks
+5. Resource Orchestration
+
+---
+
+### What is Control Plane?
+
+The Control Plane primarily consists of four components.
+
+1. **API Server:** Every interaction with the Kubernetes cluster goes through it.
+2. **etcd:** A distributed key-value store that stores Kubernetes cluster state.
+3. **Scheduler:** Decides which worker node should run a newly created Pod.
+4. **Controller Manager:** Runs different controllers responsible for maintaining the 
+desired state.
+
+---
+
+### What is Worker Node?
+
+They primarily contain three components.
+
+1. **Kubelet:** An agent running on every worker node. Responsible to ensure that the Pods 
+assigned to its node are running as expected.
+
+2. **Container Runtime:** Responsible for actually running containers. Kubelet communicates 
+with the runtime through the Container Runtime Interface (CRI).
+
+3. **Kube-proxy:** Maintains network rules that enable Kubernetes Services to route 
+traffic to appropriate backend Pods. For example, suppose you have five Hotel Service Pods.
+Instead of maintaining the IP address of every Pod, your application can communicate 
+through a stable Kubernetes Service endpoint. Kube-proxy helps implement this networking 
+behavior using mechanisms such as iptables or IPVS, depending on configuration.
+
+---
+
+### Workflow
+
+1. **Submit the desired state**: The request reaches the API Server.
+
+2. **Persist the desired state**: The API Server validates the Deployment specification and 
+persists it in etcd.
+
+3. **Create Pods**: The Deployment Controller observes the new Deployment and ensures that 
+a corresponding ReplicaSet exists. The ReplicaSet Controller then creates the required 
+Pod objects through the API Server.
+
+4. **Schedule Pods**: The Scheduler observes Pods that don't have an assigned node. It 
+selects suitable worker nodes and records the scheduling decisions through the API Server.
+
+5. **Start containers**: The Kubelet on each selected worker node observes the assigned Pods.
+It communicates with the container runtime to pull the image and start the containers.
+
+6. **Monitor and reconcile**: Controllers and Kubelets continue monitoring the cluster.
+If one Pod disappears, the controllers work to create a replacement.
+
+<Note>
+Something outside the cluster, typically the ingress or gateway in front of EKS, sends 
+traffic to the service. The service picks a ready pod. The readiness comes from the 
+health check using actuator.
+</Note>
 
 ---
 
 ### Helm Chart
 
 Helm:
+
 1. Reads the chart.
 2. Loads values.yaml.
 3. Processes the templates.
