@@ -1,6 +1,5 @@
 import { notFound } from 'next/navigation';
 import { CustomMDX } from '@/app/components/mdx';
-import { BackToTop } from '@/app/components/back-to-top';
 import { TableOfContents } from '@/app/components/table-of-contents';
 import { Tags } from '@/app/components/tags';
 import { getToc } from '@/app/blog/toc';
@@ -37,7 +36,7 @@ export default async function Blog({ params }: { params: Promise<{ slug: string 
       >
         <TableOfContents headings={headings} />
         <div className="min-w-0">
-          <h1 id="post-top" className="title font-semibold text-2xl tracking-tighter scroll-mt-6">
+          <h1 className="title font-semibold text-2xl tracking-tighter">
             {post.metadata.title}
           </h1>
           <div className="mt-2 mb-8 flex flex-wrap items-center gap-2 text-sm">
@@ -56,7 +55,6 @@ export default async function Blog({ params }: { params: Promise<{ slug: string 
           </article>
         </div>
       </div>
-      <BackToTop />
     </section>
   )
 }
