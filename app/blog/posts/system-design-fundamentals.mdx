@@ -931,5 +931,27 @@ DELETE /employees/{id}
 19 CQRS
 ↳ Separate write model & read model so each can scale on its own
 
-20 Sidecar/Service Mesh
+#### 20. Sidecar/Service Mesh
+
+The Sidecar Pattern is a design pattern in which an additional application (called a 
+sidecar) runs alongside the main application to provide supporting functionality without 
+modifying the main application's code.
+
+Instead of putting everything inside the main application, we run two separate processes:
+
+- Main application: Handles business logic.
+- Sidecar application: Handles supporting infrastructure functionality.
+
+Both processes run alongside each other and share resources such as network interfaces, 
+storage volumes, or configuration.
+
+For example, your Spring Boot application might send an outgoing HTTP request to 
+`localhost:15001`. The Envoy sidecar intercepts or handles that traffic and applies 
+networking policies. This is one of the foundational ideas behind a service mesh such as 
+**Istio**.
+
+<Note>
 ↳ Move networking, retries & mTLS into a proxy beside each service
+</Note>
+
+---

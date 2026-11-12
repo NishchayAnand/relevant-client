@@ -14,10 +14,16 @@ care of scaling and failover for your application, provides deployment patterns,
 
 ---
 
-### Declarative desired-state management
+### Functional Requirements
 
-You describe the desired state of your application, and Kubernetes continuously works to 
-make the actual state match that desired state.
+1. **Declarative desired-state management**: You describe the desired state of your 
+application, and Kubernetes continuously works to make the actual state match that 
+desired state.
+
+---
+
+### Non-Functional Requirements 
+
 
 ---
 
@@ -49,6 +55,69 @@ two and act. The scheduler picks a node for each new container.
 Worker nodes are the machines that actually run containers. ECS those machines are EC2 
 instances managed by AWS. Each node runs a kubelet, which pulls the work assigned to that 
 node and starts the containers.
+
+```mermaid
+
+flowchart TB
+    U["Developer / kubectl"] --> API
+
+    subgraph CP["KUBERNETES CONTROL PLANE"]
+        API["API Server"]
+        ETCD[("etcd<br/>Cluster State")]
+        SCH["Scheduler"]
+        CM["Controller Manager"]
+        CCM["Cloud Controller Manager"]
+
+        API <--> ETCD
+        SCH <--> API
+        CM <--> API
+        CCM <--> API
+    end
+
+    API --> K1
+    API --> K2
+
+    subgraph W1["WORKER NODE 1"]
+        K1["Kubelet"]
+        KP1["kube-proxy"]
+        CR1["Container Runtime"]
+        subgraph P1["Pod 1"]
+            C1["Application Container"]
+            S1["Sidecar Container"]
+        end
+        subgraph P2["Pod 2"]
+            C2["Application Container"]
+        end
+        K1 --> CR1
+        CR1 --> P1
+        CR1 --> P2
+    end
+
+    subgraph W2["WORKER NODE 2"]
+        K2["Kubelet"]
+        KP2["kube-proxy"]
+        CR2["Container Runtime"]
+        subgraph P3["Pod 3"]
+            C3["Application Container"]
+        end
+        subgraph P4["Pod 4"]
+            C4["Application Container"]
+        end
+        K2 --> CR2
+        CR2 --> P3
+        CR2 --> P4
+    end
+
+    KP1 <-. "Service networking" .-> KP2
+
+    classDef control fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+    classDef worker fill:#dcfce7,stroke:#16a34a,color:#14532d
+    classDef storage fill:#fef3c7,stroke:#d97706,color:#78350f
+
+    class API,SCH,CM,CCM control
+    class K1,K2,KP1,KP2,CR1,CR2,C1,C2,C3,C4,S1 worker
+    class ETCD storage
+```
 
 ---
 
@@ -92,7 +161,7 @@ behavior using mechanisms such as iptables or IPVS, depending on configuration.
 
 ---
 
-### Workflow
+### Sequence Flows
 
 1. **Submit the desired state**: The request reaches the API Server.
 
@@ -117,6 +186,93 @@ Something outside the cluster, typically the ingress or gateway in front of EKS,
 traffic to the service. The service picks a ready pod. The readiness comes from the 
 health check using actuator.
 </Note>
+
+---
+
+### What is a Pod?
+
+A Pod provides a shared execution environment for one or more tightly coupled containers.
+
+Technically speaking, containers inside the same Pod share:
+
+1. **Network namespace**: They share the same IP address and can communicate using `localhost`.
+2. **Storage volumes**: They can mount and access shared volumes.
+3. **Lifecycle and scheduling**: They are scheduled together on the same worker node.
+
+<Note>
+They do not necessarily share the same filesystem or process namespace by default.
+</Note>
+
+#### Supports Sidecar Pattern 
+
+Let's consider a simple example. You have a Reservation Service 
+and a logging sidecar container. Both containers run inside one Pod. Because they share 
+the network namespace, the logging agent can communicate with the application using 
+`localhost`.
+
+### How do we create a Pod?
+
+```yaml
+apiVersion: v1 # Specifies the Kubernetes API version
+kind: Pod # Specifies the resource type
+
+metadata: # Contains Pod name and labels
+  name: reservation-pod
+  labels:
+    app: reservation-service
+
+spec: # Defines the desired configuration
+  containers: # Lists the containers running inside the Pod
+    - name: reservation-container
+      image: reservation-service:v1
+      ports:
+        - containerPort: 8080
+```
+
+You can create this Pod using:
+
+```bash
+kubectl apply -f reservation-pod.yaml
+```
+
+The following happens:
+
+1. **API Server receives the request**: It authenticates, authorizes and validates the Pod specification.
+2. **API Server persists the Pod**: The Pod specification is stored in etcd.
+3. **Scheduler selects a worker node**: The Scheduler identifies a suitable node based on 
+available resources and scheduling constraints.
+4. **Kubelet detects the assigned Pod**: The Kubelet running on that worker node observes 
+the Pod assignment through the API Server.
+5. **Container runtime creates containers**: Kubelet communicates with containerd or 
+another supported runtime to create the Pod's containers.
+6. **Pod status is updated**: Kubelet reports the Pod's status back to the API Server.
+
+Useful commands:
+
+```bash
+# List all Pods
+kubectl get pods
+
+# Get detailed information about a Pod
+kubectl describe pod reservation-pod
+
+# View Pod logs
+kubectl logs reservation-pod
+
+# Execute a command inside a container
+kubectl exec -it reservation-pod -- /bin/sh
+
+# Delete a Pod
+kubectl delete pod reservation-pod
+```
+
+#### Why are Pods ephemeral?
+
+Kubernetes treats Pods as replaceable units rather than permanent machines.
+Therefore, applications should not depend on fixed Pod IP addresses.
+
+Instead, Kubernetes provides Services, which offer stable network endpoints for 
+communicating with Pods.
 
 ---
 
