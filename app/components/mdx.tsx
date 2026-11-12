@@ -104,6 +104,7 @@ import { Mermaid } from './mermaid';
 import { CopyCodeButton } from './copy-code-button';
 import { CodeOutput } from './code-output';
 import { CodeSamples } from './code-samples';
+import { remarkHeadingIds, slugify } from '@/app/blog/toc';
 
 hljs.registerLanguage('javascript', javascript);
 
@@ -324,23 +325,12 @@ export function Code({ children, ...props }: { children?: React.ReactNode } & Re
   return <code dangerouslySetInnerHTML={{ __html: codeHTML }} {...props} />;
 }
 
-function slugify(str: string) {
-  return String(str)
-    .toLowerCase()
-    .trim() // Remove whitespace from both ends of a string
-    .replace(/\s+/g, '-') // Replace spaces with -
-    .replace(/&/g, '-and-') // Replace & with 'and'
-    .replace(/[^\w\-]+/g, '') // Remove all non-word characters except for -
-    .replace(/\-\-+/g, '-') // Replace multiple - with single -
-}
-
 function createHeading(level: number) {
-  const Heading: React.FC<{ children?: React.ReactNode }> = ({ children }) => {
-    let slug = slugify(String(children ?? ''));
-    const tag = `h${level}`;
+  const Heading: React.FC<{ children?: React.ReactNode; id?: string }> = ({ children, id }) => {
+    const slug = id || slugify(codeText(children)) || 'section';
     return React.createElement(
-      tag as any,
-      { id: slug },
+      `h${level}`,
+      { id: slug, className: 'relative scroll-mt-24' },
       React.createElement('a', {
         href: `#${slug}`,
         key: `link-${slug}`,
@@ -498,7 +488,7 @@ export function CustomMDX(props: React.ComponentProps<typeof MDXRemote>) {
       {...props}
       options={{
         mdxOptions: {
-          remarkPlugins: [remarkGfm],
+          remarkPlugins: [remarkGfm, remarkHeadingIds],
         },
       }}
       components={{ ...components, ...(props.components || {}) }}
