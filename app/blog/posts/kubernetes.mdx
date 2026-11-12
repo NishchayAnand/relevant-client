@@ -22,29 +22,29 @@ desired state.
 
 ---
 
-### Non-Functional Requirements 
+### Non-Functional Requirements
 
-
----
-
-Imagine you are deploying a Spring Boot microservice on Kubernetes.
-
-You might need the following Kubernetes resources:
-
-1. Deployment - Defines application replicas and container images. Keeps a set of 
-identical pods running. Handles rollouts and restarts.
-
-2. Service - Exposes the application inside the cluster. A stable address in front of 
-pods. Pods get new IPs when they restart, the service does not.
-
-3. ConfigMap - Stores application configuration.
-4. Secret - Stores sensitive configuration.
-5. Ingress - Exposes the application externally.
-6. HorizontalPodAutoscaler - Automatically scales application replicas.
+1. Automated scaling
+2. Self-healing 
+3. Service discovery and load balancing 
+4. Automated deployments and rollbacks
+5. Resource Orchestration
 
 ---
 
-### Kubernetes Architecture
+### Kubernetes as a Distributed System: How Everything Works Together
+
+To understand Kubernetes deeply, I want you to stop thinking of it as a tool that runs 
+Docker containers.
+
+Instead, think of Kubernetes as a distributed system consisting of multiple machines, each 
+running specialized components that coordinate with one another to manage application 
+workloads.
+
+When you deploy Kubernetes, you are not installing one application on one machine. You are 
+creating a cluster of machines that collectively behave like one computing platform.
+
+#### What does a Kubernetes cluster actually consist of?
 
 A cluster has two parts.
 
@@ -55,6 +55,77 @@ two and act. The scheduler picks a node for each new container.
 Worker nodes are the machines that actually run containers. ECS those machines are EC2 
 instances managed by AWS. Each node runs a kubelet, which pulls the work assigned to that 
 node and starts the containers.
+
+Imagine you are building your Hotel Reservation System.
+
+You have six microservices:
+- User Service
+- Hotel Service
+- Search Service
+- Inventory Service
+- Reservation Service
+- Payment Service
+
+You want to deploy these services across multiple EC2 instances.
+
+Let's say you provision four EC2 instances:
+- 1 Control Plane Node
+- 3 Worker Nodes
+
+Each EC2 instance is an independent machine with its own:
+- CPU and memory.
+- Operating system.
+- Network interface and IP address.
+- Disk storage.
+- Processes.
+
+The machines communicate over a network.
+
+| Machine | Role | Responsibility |
+|--------|--------|--------|
+| EC2-1 | Control Plane | Manages the cluster |
+| EC2-2 | Worker Node 1 | Runs application Pods |
+| EC2-3 | Worker Node 2 | Runs application Pods |
+| EC2-4 | Worker Node 3 | Runs application Pods |
+
+
+#### What is the Control Plane?
+
+The Control Plane primarily consists of four components.
+
+1. **API Server (communication gateway):** Every interaction with the Kubernetes cluster goes through it. It is the 
+central communication interface of Kubernetes. Kubernetes components generally 
+communicate through the API Server instead of directly modifying each other's internal 
+state.
+
+2. **etcd (cluster's persistent database):** A distributed key-value store that stores Kubernetes cluster state. In 
+production, etcd is generally deployed with multiple members for high availability, 
+typically three or five, rather than relying on a single instance.
+
+3. **Scheduler (placement decision-maker):** Decides where a newly created Pod should run. It simply selects a 
+suitable worker node and records the assignment through the API Server.
+
+4. **Controller Manager (reconciliation engine):** Runs controllers that continuously 
+monitor cluster resources. This is the foundation of Kubernetes self-healing.
+
+#### What are Worker Nodes?
+
+Worker Nodes are the machines that actually execute your application workloads. 
+
+Unlike the Control Plane, which manages the cluster, Worker Nodes provide the compute 
+resources for your applications. They primarily contain three components.
+
+1. **Kubelet:** Node-level agent responsible for managing Pods assigned to this machine.
+It communicates with the API Server and watches for Pods assigned to its node.
+
+2. **Container Runtime:** Creates, starts, stops and manages containers.
+
+3. **Kube-proxy:** Maintains networking rules that help route traffic addressed to the 
+Service to the appropriate backend Pods.
+
+---
+
+### Kubernetes Architecture
 
 ```mermaid
 
@@ -121,47 +192,11 @@ flowchart TB
 
 ---
 
-### Key Capabilities 
-
-1. Automated scaling
-2. Self-healing 
-3. Service discovery and load balancing 
-4. Automated deployments and rollbacks
-5. Resource Orchestration
-
----
-
-### What is Control Plane?
-
-The Control Plane primarily consists of four components.
-
-1. **API Server:** Every interaction with the Kubernetes cluster goes through it.
-2. **etcd:** A distributed key-value store that stores Kubernetes cluster state.
-3. **Scheduler:** Decides which worker node should run a newly created Pod.
-4. **Controller Manager:** Runs different controllers responsible for maintaining the 
-desired state.
-
----
-
-### What is Worker Node?
-
-They primarily contain three components.
-
-1. **Kubelet:** An agent running on every worker node. Responsible to ensure that the Pods 
-assigned to its node are running as expected.
-
-2. **Container Runtime:** Responsible for actually running containers. Kubelet communicates 
-with the runtime through the Container Runtime Interface (CRI).
-
-3. **Kube-proxy:** Maintains network rules that enable Kubernetes Services to route 
-traffic to appropriate backend Pods. For example, suppose you have five Hotel Service Pods.
-Instead of maintaining the IP address of every Pod, your application can communicate 
-through a stable Kubernetes Service endpoint. Kube-proxy helps implement this networking 
-behavior using mechanisms such as iptables or IPVS, depending on configuration.
-
----
-
 ### Sequence Flows
+
+#### Deployment Flow
+
+Developer → API Server → etcd → Controllers → Scheduler → Kubelet → Container Runtime → Pod.
 
 1. **Submit the desired state**: The request reaches the API Server.
 
@@ -178,8 +213,20 @@ selects suitable worker nodes and records the scheduling decisions through the A
 5. **Start containers**: The Kubelet on each selected worker node observes the assigned Pods.
 It communicates with the container runtime to pull the image and start the containers.
 
-6. **Monitor and reconcile**: Controllers and Kubelets continue monitoring the cluster.
+#### Self-healing Flow 
+
+Container crashes → Kubelet detects failure → Restart according to restart policy.
+
+1. **Monitor and reconcile**: Controllers and Kubelets continue monitoring the cluster.
 If one Pod disappears, the controllers work to create a replacement.
+
+<Note>
+If a Pod disappears, the ReplicaSet Controller can create a replacement.
+</Note>
+
+#### Networking Flow 
+
+Application Pod → Kubernetes Service → Backend Pods.
 
 <Note>
 Something outside the cluster, typically the ingress or gateway in front of EKS, sends 
@@ -374,10 +421,15 @@ This approach gives you a robust foundation in Java for managing containerized w
 
 ---
 
-### Extra
+### Kubernetes Compoenents 
 
-1. `kubectl get nodes`: get the details of the nodes in the cluster.
-
-2. `kubectl get nodes -o wide`: get operating system details of the nodes.
-
-3.  
+| Component | Runs where | Communication |
+|--------|--------|--------|
+| API Server | Control Plane | HTTP API |
+| etcd | Control Plane / dedicated etcd machines | etcd protocol |
+| Scheduler | Control Plane | Kubernetes API |
+| Controller Manager | Control Plane | Kubernetes API |
+| Kubelet | Every Worker Node | Kubernetes API |
+| Container Runtime | Every Worker Node | Local CRI interface |
+| kube-proxy | Worker Nodes, if deployed | Local networking rules |
+| CNI Agent | Depends on implementation, commonly every Worker Node | Networking interfaces and APIs |
