@@ -31,32 +31,109 @@ neighbours and attempt to improve their shortest known distances.
 
 ### Algorithm
 
-We want to find the shortest path from the source node to every other node. 
+The algorithm uses a **<span className='bg-indigo-200 p-0.5 rounded'>greedy approach</span>** 
+combined with a **<span className='bg-indigo-200 p-0.5 rounded'>min-priority queue</span>** 
+to always process the node with the smallest known distance from the source. By repeatedly 
+exploring its neighbours and relaxing edges, we gradually determine the shortest paths 
+to all reachable nodes.
 
-1. Start from the source node with an initial distance of `0`. Initialize the distance of 
+Let's understand the algorithm through the following questions.
+
+##### **<span className='text-emerald-500'>Q1. How do we start?</span>**
+
+We start from the source node with an initial distance of `0`. Initialize the distance of 
 all other nodes to `infinity`.
-2. Explore all the neighbours of the source node and update their shortest known distances
-based on the edge weights.
-3. Store the discovered nodes in a **min-priority queue**, where each entry contains the 
-node and its shortest known distance from the source.
-4. Extract the node with the smallest known distance from the priority queue. 
-5. Explore all the neighbours of the extracted node and attempt to improve their 
-shortest known distances by relaxing the edges. If a shorter path is found, update the
-distance and insert the updated entry into the priority queue.
-6. Repeat this process until the priority queue becomes empty.
 
-At the end, the distance array contains the shortest distance from the source node to 
-every reachable node. 
+![algorithm-1](/dijkstra-algorithm/algorithm-1.png)
 
-<Note>
-Nodes that remain unreachable have an infinite distance.
-</Note>
+##### **<span className='text-emerald-500'>Q2. What do we do after initializing the distances?</span>**
 
-#### Time Complexity 
+We explore all the neighbours of the source node and update their shortest known distances 
+based on the corresponding edge weights.
 
-#### Space Complexity 
+![algorithm-2](/dijkstra-algorithm/algorithm-2.png)
 
+##### **<span className='text-emerald-500'>Q3. How do we store the unprocessed nodes?</span>**
 
+We use a **min-priority queue** to store the discovered nodes along with their shortest 
+known distances from the source.
+
+![algorithm-3](/dijkstra-algorithm/algorithm-3.png)
+
+##### **<span className='text-emerald-500'>Q4. How do we decide which node to process next?</span>**
+
+We extract the node with the smallest known distance from the priority queue. This ensures 
+that we always process the closest unprocessed node first.
+
+![algorithm-4](/dijkstra-algorithm/algorithm-4.png)
+
+##### **<span className='text-emerald-500'>Q5. What happens when we process a node?</span>**
+
+We explore all its neighbours and attempt to improve their shortest known distances by relaxing the edges.
+
+For every neighbour, we calculate:
+
+```
+newDistance = dist[currentNode] + edgeWeight
+```
+
+If the newly calculated distance is smaller than the existing distance, we update it and insert the updated entry into the priority queue.
+
+Q6. How do we continue the process?
+
+We repeat the same process:
+
+Extract the node with the smallest known distance.
+
+Explore its neighbours.
+
+Relax the edges and update distances if a shorter path is found.
+
+Insert the updated entries into the priority queue.
+
+We continue until the priority queue becomes empty.
+
+Q7. What is the final result?
+
+At the end, the distance array contains the shortest distance from the source node to every reachable node. Nodes that remain unreachable retain an infinite distance.
+
+Q8. What is the time complexity of Dijkstra's Algorithm?
+
+Let:
+
+(V) = Number of vertices.
+
+(E) = Number of edges.
+
+Using an adjacency list and a binary min-heap:
+
+Building the adjacency list takes (O(V + E)).
+
+Edge relaxation and priority queue insertion take (O(\log V)) per successful relaxation.
+
+Extracting nodes from the priority queue takes (O(\log V)) per extraction.
+
+Therefore, the overall time complexity is:
+
+```
+\boxed{O((V+E)\log V)}
+```
+
+Q9. What is the space complexity of Dijkstra's Algorithm?
+
+We use:
+
+Adjacency list: (O(V+E)).
+
+Distance array: (O(V)).
+
+Priority queue: (O(E)) in the lazy implementation.
+
+Therefore, the overall space complexity is:
+
+```
+\boxed{O(V+E)}
+```
 
 ---
 
