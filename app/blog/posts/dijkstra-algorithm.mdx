@@ -7,13 +7,18 @@ Dijkstra's Algorithm is a graph traversal algorithm used to **find the shortest
 path from a source node to all other nodes in a weighted graph, provided all 
 edge weights are non-negative**.
 
+#### Example: Travelling Between Countries
+
+Imagine you are travelling between different countries and want to find the minimum 
+time required to travel from India to every other country.
+
+<DijkstraVisualizer />
+
 ---
 
-### Basic Intuition
+### Key Observations
 
-Since edge weights cannot be negative, we can use a greedy approach where:
-
-1. Out of all the nodes whose shortest path are not yet confirmed, we pick the 
+1. Out of all the nodes whose shortest path are not yet confirmed, we can pick the 
 node with the smallest known distance from the source. Any alternative path to 
 this node must pass through another unprocessed node. Since all edge weights 
 are non-negative, that path cannot produce a shorter distance than the one we 
@@ -24,16 +29,34 @@ neighbours and attempt to improve their shortest known distances.
 
 ---
 
-### Example: Travelling Between Countries
-
-Imagine you are travelling between different countries and want to find the minimum 
-time required to travel from India to every other country.
-
-<DijkstraVisualizer />
-
----
-
 ### Algorithm
+
+We want to find the shortest path from the source node to every other node. 
+
+1. Start from the source node with an initial distance of `0`. Initialize the distance of 
+all other nodes to `infinity`.
+2. Explore all the neighbours of the source node and update their shortest known distances
+based on the edge weights.
+3. Store the discovered nodes in a **min-priority queue**, where each entry contains the 
+node and its shortest known distance from the source.
+4. Extract the node with the smallest known distance from the priority queue. 
+5. Explore all the neighbours of the extracted node and attempt to improve their 
+shortest known distances by relaxing the edges. If a shorter path is found, update the
+distance and insert the updated entry into the priority queue.
+6. Repeat this process until the priority queue becomes empty.
+
+At the end, the distance array contains the shortest distance from the source node to 
+every reachable node. 
+
+<Note>
+Nodes that remain unreachable have an infinite distance.
+</Note>
+
+#### Time Complexity 
+
+#### Space Complexity 
+
+
 
 ---
 
