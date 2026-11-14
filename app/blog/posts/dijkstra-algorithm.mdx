@@ -129,40 +129,50 @@ neighbours of each node along with their corresponding edge weights.
 
 ### Time Complexity
 
-Let:
+The time complexity of Dijkstra's Algorithm can be broken down into four major operations:
 
-(V) = Number of vertices.
+1. **Building the Adjacency List**: We iterate over all vertices `(V)` to initialize 
+their adjacency lists and iterate over all edges `(E)` to populate them. This operation 
+takes `O(V + E)`.
 
-(E) = Number of edges.
+2. **Adding nodes to the Priority Queue**: Whenever we discover a shorter path to a 
+neighbouring node, we insert an updated entry into the priority queue. Every successful 
+relaxation corresponds to examining a particular edge. Hence, the number of 
+successful relaxations is bounded by `(E)`. Considering each insertion into a binary 
+min-heap takes `O(V)` time, the total node addition is `O(E * logV)`.
 
-Using an adjacency list and a binary min-heap:
+3. **Removing nodes from the Priority Queue**: Since there can be at most `O(E)` 
+successful relaxations, there can be at most `O(E)` extractions. Considering each 
+extraction takes `O(V)` time, the total node removal is `O(E * logV)`.
 
-Building the adjacency list takes (O(V + E)).
+4. **Exploring the neighbours of a node**: Since each vertex is processed at most once, 
+and all its adjacency entries are examined once, the total neighbour traversal is 
+`O(V + E)`.
 
-Edge relaxation and priority queue insertion take (O(\log V)) per successful relaxation.
+Combining all four operations, the overall time complexity is `O(V + E) + O(E * logV) + O(E * logV) + O(V + E)`
+~ `O(V + E + E * logV)` ~ `O((V+E) * log V)`.
 
-Extracting nodes from the priority queue takes (O(\log V)) per extraction.
-
-Therefore, the overall time complexity is:
-
-```
-\boxed{O((V+E)\log V)}
-```
+<Note>
+This is an upper-bound simplification, not an exact algebraic equality. Big-O allows us 
+to express a tighter collection of terms using a simpler asymptotic upper bound.
+</Note>
 
 ---
 
 ### Space Complexity
 
-We use:
+Let's break it down into the different data structures we maintain.
 
-Adjacency list: (O(V+E)).
+1. **Adjacency List**: Every vertex has an adjacency list, requiring `O(V)` space. Every 
+edge is stored in the adjacency list. Therefore, this takes `O(V + E)`.
 
-Distance array: (O(V)).
+2. **Distance array**: We maintain a `dist[]` array to store the shortest known distance 
+from the source to every vertex. Since there are `(V)` vertices, the array requires `O(V)`.
 
-Priority queue: (O(E)) in the lazy implementation.
+3. **Priority queue**: Since each successful relaxation can result in one insertion, and 
+there are at most `O(E)` successful relaxations, the priority queue can contain up to 
+`O(E)` entries.
 
-Therefore, the overall space complexity is:
+Therefore, the overall space complexity is `O(V+E)`.
 
-```
-\boxed{O(V+E)}
-```
+---
