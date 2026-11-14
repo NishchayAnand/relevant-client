@@ -69,35 +69,67 @@ that we always process the closest unprocessed node first.
 
 ##### **<span className='text-emerald-500'>Q5. What happens when we process a node?</span>**
 
-We explore all its neighbours and attempt to improve their shortest known distances by relaxing the edges.
+We explore all its neighbours and attempt to improve their shortest known distances by 
+relaxing the edges.
 
-For every neighbour, we calculate:
+For every neighbour, we calculate: `newDistance = dist[currentNode] + edgeWeight`.
+If the newly calculated distance is smaller than the existing distance, we update it and 
+insert the updated entry into the priority queue.
 
-```
-newDistance = dist[currentNode] + edgeWeight
-```
+![algorithm-5](/dijkstra-algorithm/algorithm-5.png)
 
-If the newly calculated distance is smaller than the existing distance, we update it and insert the updated entry into the priority queue.
-
-Q6. How do we continue the process?
+##### **<span className='text-emerald-500'>Q6. How do we continue the process?</span>**
 
 We repeat the same process:
 
-Extract the node with the smallest known distance.
-
-Explore its neighbours.
-
-Relax the edges and update distances if a shorter path is found.
-
-Insert the updated entries into the priority queue.
+```
+1. Extract the node with the smallest known distance.
+2. Explore its neighbours.
+3. Relax the edges and update distances if a shorter path is found.
+4. Insert the updated entries into the priority queue.
+```
 
 We continue until the priority queue becomes empty.
 
-Q7. What is the final result?
+##### **<span className='text-emerald-500'>Q7. What is the final result?</span>**
 
-At the end, the distance array contains the shortest distance from the source node to every reachable node. Nodes that remain unreachable retain an infinite distance.
+At the end, the distance array contains the shortest distance from the source node to 
+every reachable node.
 
-Q8. What is the time complexity of Dijkstra's Algorithm?
+![algorithm-6](/dijkstra-algorithm/algorithm-6.png)
+
+<Note>
+**Nodes that remain unreachable retain an infinite distance.**
+</Note>
+
+---
+
+### Implementation
+
+Most DSA problems represent a graph using an array of edges where each entry represents: 
+`{source, destination, weight}`.
+
+An **Edge List** is a convenient way to provide the graph as input because we only need to 
+specify the existing connections. However, it does not provide an efficient way to 
+explore the neighbours of a particular node.
+
+add visualization here...
+
+To find the neighbours of a node, we would have to iterate over the entire **Edge List** and 
+identify all edges connected to that node. Since Dijkstra frequently explores the 
+neighbours of the currently extracted node, repeatedly scanning the entire Edge List 
+introduces unnecessary overhead.
+
+Therefore, we convert the **Edge List** into an **Adjacency List**, which maintains the 
+neighbours of each node along with their corresponding edge weights.
+
+```java
+
+```
+
+---
+
+### Time Complexity
 
 Let:
 
@@ -119,7 +151,9 @@ Therefore, the overall time complexity is:
 \boxed{O((V+E)\log V)}
 ```
 
-Q9. What is the space complexity of Dijkstra's Algorithm?
+---
+
+### Space Complexity
 
 We use:
 
@@ -134,9 +168,3 @@ Therefore, the overall space complexity is:
 ```
 \boxed{O(V+E)}
 ```
-
----
-
-### Implementation
-
----
