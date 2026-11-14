@@ -367,7 +367,7 @@ function colorize(text: string): ReactNode {
   while ((match = keywords.exec(code)) !== null) {
     if (match.index > last) parts.push(code.slice(last, match.index));
     parts.push(
-      <span key={`${match.index}-${match[0]}`} style={{ color: "#c4b5fd" }}>
+      <span key={`${match.index}-${match[0]}`} style={{ color: "#4f46e5" }}>
         {match[0]}
       </span>,
     );
@@ -376,7 +376,7 @@ function colorize(text: string): ReactNode {
   if (last < code.length) parts.push(code.slice(last));
   if (comment) {
     parts.push(
-      <span key="comment" style={{ color: "#a1a1aa", fontStyle: "italic" }}>
+      <span key="comment" style={{ color: "#737373", fontStyle: "italic" }}>
         {comment}
       </span>,
     );
@@ -413,7 +413,7 @@ export default function DijkstraCodeVisualizer() {
 
   return (
     <div className="not-prose my-6 overflow-hidden rounded-2xl border border-gray-200 bg-white">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 px-4 py-3">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 px-4 py-1.5">
         <p className="font-mono text-sm text-neutral-800">dijkstra(n = 6, edges, source = 0)</p>
         <p className="text-xs tabular-nums text-neutral-500">
           {index + 1}/{FRAMES.length}
@@ -423,7 +423,7 @@ export default function DijkstraCodeVisualizer() {
       <div className="grid lg:grid-cols-2 lg:divide-x lg:divide-gray-100">
         <div
           ref={scrollerRef}
-          className="h-[520px] min-w-0 overflow-x-auto overflow-y-auto bg-[#111113]"
+          className="h-[520px] min-w-0 overflow-x-auto overflow-y-auto bg-neutral-50"
         >
           <div className="w-max min-w-full py-2">
             {CODE.map((text, lineIndex) => {
@@ -436,19 +436,19 @@ export default function DijkstraCodeVisualizer() {
                     lineRefs.current[lineIndex] = element;
                   }}
                   className="flex w-max min-w-full items-start pr-4 text-[12.5px] leading-5"
-                  style={{ background: active ? "#1e1b4b" : "#111113" }}
+                  style={{ background: active ? "#eef2ff" : "#fafafa" }}
                 >
                   <span
                     className="sticky left-0 w-9 shrink-0 select-none pr-2 text-right font-mono tabular-nums"
                     style={{
-                      color: active ? "#a5b4fc" : "#52525b",
-                      background: active ? "#1e1b4b" : "#111113",
-                      boxShadow: active ? "inset 2px 0 0 #818cf8" : "none",
+                      color: active ? "#4338ca" : "#a3a3a3",
+                      background: active ? "#eef2ff" : "#fafafa",
+                      boxShadow: active ? "inset 2px 0 0 #4f46e5" : "none",
                     }}
                   >
                     {lineNumber}
                   </span>
-                  <span className="whitespace-pre font-mono text-neutral-100">
+                  <span className="whitespace-pre font-mono text-neutral-800">
                     {text.length > 0 ? colorize(text) : " "}
                   </span>
                 </div>
@@ -462,7 +462,7 @@ export default function DijkstraCodeVisualizer() {
         </div>
       </div>
 
-      <div className="flex items-center justify-between gap-3 border-t border-gray-100 px-4 py-3">
+      <div className="flex items-center justify-between gap-3 border-t border-gray-100 px-4 py-1.5">
         <p className="text-sm text-neutral-600" aria-live="polite">
           {frame.note}
         </p>
