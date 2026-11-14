@@ -833,16 +833,16 @@ function StatePanel({ frame }: { frame: Frame }) {
   return (
     <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col divide-y divide-gray-100">
       <section className="flex min-h-0 flex-1 flex-col">
-        <SectionLabel>Graph</SectionLabel>
+        <SectionLabel>Input</SectionLabel>
         <div className="relative min-h-0 flex-1">
           <Graph frame={frame} />
         </div>
       </section>
 
-      <div className="grid grid-cols-2 divide-x divide-gray-100">
-        <section className="min-w-0">
+      <div className="grid h-[112px] shrink-0 grid-cols-2 divide-x divide-gray-100 overflow-hidden">
+        <section className="flex min-h-0 min-w-0 flex-col">
           <SectionLabel>dist</SectionLabel>
-          <div className="px-3 py-2">
+          <div className="min-h-0 flex-1 overflow-y-auto px-3 py-2">
             {frame.dist === null ? (
               <div className="text-xs text-neutral-400">not created</div>
             ) : (
@@ -868,9 +868,9 @@ function StatePanel({ frame }: { frame: Frame }) {
             )}
           </div>
         </section>
-        <section className="min-w-0">
+        <section className="flex min-h-0 min-w-0 flex-col">
           <SectionLabel>pq</SectionLabel>
-          <div className="px-3 py-2">
+          <div className="min-h-0 flex-1 overflow-y-auto px-3 py-2">
             {frame.pq.length === 0 ? (
               <div className="text-xs text-neutral-400">empty</div>
             ) : (
@@ -894,9 +894,9 @@ function StatePanel({ frame }: { frame: Frame }) {
         </section>
       </div>
 
-      <section>
+      <section className="flex h-[172px] shrink-0 flex-col overflow-hidden">
         <SectionLabel>graph</SectionLabel>
-        <div className="px-3 py-2">
+        <div className="min-h-0 flex-1 overflow-y-auto px-3 py-2">
           {frame.adj === null ? (
             <div className="text-xs text-neutral-400">not created</div>
           ) : (
@@ -939,22 +939,20 @@ function StatePanel({ frame }: { frame: Frame }) {
 }
 
 function Graph({ frame }: { frame: Frame }) {
-  const ordered = EDGES.map((edge, index) => {
-    const visible = index < frame.added;
+  const ordered = EDGES.map((edge) => {
     const active =
       frame.activeEdge !== null &&
       ((frame.activeEdge[0] === edge[0] && frame.activeEdge[1] === edge[1]) ||
         (frame.activeEdge[0] === edge[1] && frame.activeEdge[1] === edge[0]));
     const tree =
       frame.tree[edge[0]] === edge[1] || frame.tree[edge[1]] === edge[0];
-    const rank = !visible ? 0 : active ? 3 : tree ? 2 : 1;
-    return { edge, index, visible, active, tree, rank };
+    const rank = active ? 3 : tree ? 2 : 1;
+    return { edge, active, tree, rank };
   }).sort((a, b) => a.rank - b.rank);
 
   return (
-    <svg viewBox="0 0 280 276" className="absolute inset-0 h-full w-full" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Graph for this dry run">
-      {ordered.map(({ edge, visible, active, tree }) => {
-        if (!visible) return null;
+    <svg viewBox="0 0 280 276" className="absolute inset-0 h-full w-full" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Input graph">
+      {ordered.map(({ edge, active, tree }) => {
         const { x1, y1, x2, y2, mx, my } = segment(edge[0], edge[1]);
         const stroke = active ? "#4f46e5" : tree ? "#10b981" : "#d4d4d8";
         const width = active ? 2.75 : tree ? 2.25 : 1.5;
