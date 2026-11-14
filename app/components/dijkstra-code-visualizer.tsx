@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
-import { Pause, Play, RotateCcw } from "lucide-react";
+import { createPortal } from "react-dom";
+import { Check, ChevronDown, Pause, Play, RotateCcw } from "lucide-react";
 
 const N = 6;
 const SOURCE = 0;
@@ -17,7 +18,7 @@ const EDGES: [number, number, number][] = [
   [4, 5, 1],
 ];
 
-const CODE = [
+const JAVA = [
   "public int[] dijkstra(int n, int[][] edges, int source) {",
   "",
   "    // Step 1: Build the adjacency list.",
@@ -106,16 +107,202 @@ const CODE = [
   "}",
 ];
 
-function at(snippet: string, occurrence = 0) {
+const PYTHON = [
+  "import heapq",
+  "",
+  "def dijkstra(n, edges, source):",
+  "",
+  "    # Step 1: Build the adjacency list.",
+  "    graph = [None] * n",
+  "",
+  "    for i in range(n):",
+  "        graph[i] = []",
+  "",
+  "    # Add edges to the adjacency list.",
+  "    for edge in edges:",
+  "",
+  "        u = edge[0]",
+  "        v = edge[1]",
+  "        weight = edge[2]",
+  "",
+  "        graph[u].append([v, weight])",
+  "        # If the graph is undirected, add both directions.",
+  "        graph[v].append([u, weight])",
+  "",
+  "    # Step 2: Initialize the distance array.",
+  "    dist = [float(\"inf\")] * n",
+  "",
+  "    # Distance from the source to itself is 0.",
+  "    dist[source] = 0",
+  "",
+  "    # Step 3: Create a min-priority queue.",
+  "    pq = []",
+  "",
+  "    # Add the source node with distance 0.",
+  "    heapq.heappush(pq, [0, source])",
+  "",
+  "    # Step 4: Process the nodes until the priority queue is empty.",
+  "    while pq:",
+  "",
+  "        # Extract the node with the smallest known distance.",
+  "        current = heapq.heappop(pq)",
+  "",
+  "        distance = current[0]",
+  "        node = current[1]",
+  "",
+  "        # Step 5: Skip outdated entries.",
+  "        # A better distance might have been discovered",
+  "        # after this entry was inserted into the queue.",
+  "        if distance > dist[node]:",
+  "            continue",
+  "",
+  "        # Step 6: Explore all neighbours of the current node.",
+  "        for neighbour in graph[node]:",
+  "",
+  "            next_node = neighbour[0]",
+  "            weight = neighbour[1]",
+  "",
+  "            # Calculate the distance to the neighbour",
+  "            # through the current node.",
+  "            new_distance = distance + weight",
+  "",
+  "            # Step 7: Relax the edge.",
+  "            # Update the distance if we discover a shorter path.",
+  "            if new_distance < dist[next_node]:",
+  "",
+  "                dist[next_node] = new_distance",
+  "",
+  "                # Insert the updated distance into the min-heap.",
+  "                heapq.heappush(pq, [new_distance, next_node])",
+  "",
+  "    # Step 8: Return the shortest distances.",
+  "    # Convert unreachable nodes from inf to -1.",
+  "    for i in range(n):",
+  "",
+  "        if dist[i] == float(\"inf\"):",
+  "            dist[i] = -1",
+  "",
+  "    return dist",
+];
+
+type Language = "java" | "python";
+type StepId =
+  | "signature"
+  | "allocate"
+  | "init-for"
+  | "init-list"
+  | "edge-for"
+  | "u"
+  | "v"
+  | "weight"
+  | "add-uv"
+  | "add-vu"
+  | "dist-alloc"
+  | "dist-fill"
+  | "dist-source"
+  | "pq-create"
+  | "pq-cmp"
+  | "offer-source"
+  | "while"
+  | "poll"
+  | "distance"
+  | "node"
+  | "stale-if"
+  | "continue"
+  | "neighbour-for"
+  | "next"
+  | "edge-weight"
+  | "new-distance"
+  | "relax-if"
+  | "assign"
+  | "offer-update"
+  | "return-for"
+  | "unreachable"
+  | "return";
+
+const CODES: Record<Language, string[]> = { java: JAVA, python: PYTHON };
+
+function locate(code: string[], snippet: string, occurrence = 0) {
   let seen = 0;
-  for (let index = 0; index < CODE.length; index++) {
-    if (CODE[index].includes(snippet)) {
+  for (let index = 0; index < code.length; index++) {
+    if (code[index].includes(snippet)) {
       if (seen === occurrence) return index + 1;
       seen++;
     }
   }
   throw new Error(`Missing code line: ${snippet}`);
 }
+
+const LINE_OF: Record<Language, Record<StepId, number>> = {
+  java: {
+    signature: locate(JAVA, "public int[] dijkstra"),
+    allocate: locate(JAVA, "List<int[]>[] graph"),
+    "init-for": locate(JAVA, "for (int i = 0; i < n; i++)"),
+    "init-list": locate(JAVA, "graph[i] = new ArrayList"),
+    "edge-for": locate(JAVA, "for (int[] edge: edges)"),
+    u: locate(JAVA, "int u = edge[0]"),
+    v: locate(JAVA, "int v = edge[1]"),
+    weight: locate(JAVA, "int weight = edge[2]"),
+    "add-uv": locate(JAVA, "graph[u].add"),
+    "add-vu": locate(JAVA, "graph[v].add"),
+    "dist-alloc": locate(JAVA, "int[] dist = new int[n]"),
+    "dist-fill": locate(JAVA, "Arrays.fill"),
+    "dist-source": locate(JAVA, "dist[source] = 0"),
+    "pq-create": locate(JAVA, "new PriorityQueue"),
+    "pq-cmp": locate(JAVA, "Comparator.comparingInt"),
+    "offer-source": locate(JAVA, "pf.offer"),
+    while: locate(JAVA, "while (!pq.empty())"),
+    poll: locate(JAVA, "pq.poll()"),
+    distance: locate(JAVA, "int distance = current[0]"),
+    node: locate(JAVA, "int node = current[1]"),
+    "stale-if": locate(JAVA, "distance > dist[node]"),
+    continue: locate(JAVA, "continue;"),
+    "neighbour-for": locate(JAVA, "for (int[] neighbour"),
+    next: locate(JAVA, "int nextNode = neighbour[0]"),
+    "edge-weight": locate(JAVA, "int weight = neighbour[1]"),
+    "new-distance": locate(JAVA, "int newDistance = distance + weight"),
+    "relax-if": locate(JAVA, "newDistance < dist[nextNode]"),
+    assign: locate(JAVA, "dist[node] = newDistance"),
+    "offer-update": locate(JAVA, "new int[]{newDistance, nextNode}"),
+    "return-for": locate(JAVA, "for (int i = 0; i < n; i++)", 1),
+    unreachable: locate(JAVA, "dist[i] == Integer.MAX_VALUE"),
+    return: locate(JAVA, "return dist"),
+  },
+  python: {
+    signature: locate(PYTHON, "def dijkstra"),
+    allocate: locate(PYTHON, "graph = [None] * n"),
+    "init-for": locate(PYTHON, "for i in range(n):"),
+    "init-list": locate(PYTHON, "graph[i] = []"),
+    "edge-for": locate(PYTHON, "for edge in edges:"),
+    u: locate(PYTHON, "u = edge[0]"),
+    v: locate(PYTHON, "v = edge[1]"),
+    weight: locate(PYTHON, "weight = edge[2]"),
+    "add-uv": locate(PYTHON, "graph[u].append"),
+    "add-vu": locate(PYTHON, "graph[v].append"),
+    "dist-alloc": locate(PYTHON, "dist = [float"),
+    "dist-fill": locate(PYTHON, "dist = [float"),
+    "dist-source": locate(PYTHON, "dist[source] = 0"),
+    "pq-create": locate(PYTHON, "pq = []"),
+    "pq-cmp": locate(PYTHON, "pq = []"),
+    "offer-source": locate(PYTHON, "[0, source]"),
+    while: locate(PYTHON, "while pq:"),
+    poll: locate(PYTHON, "heappop"),
+    distance: locate(PYTHON, "distance = current[0]"),
+    node: locate(PYTHON, "node = current[1]"),
+    "stale-if": locate(PYTHON, "distance > dist[node]"),
+    continue: locate(PYTHON, "continue"),
+    "neighbour-for": locate(PYTHON, "for neighbour in graph[node]"),
+    next: locate(PYTHON, "next_node = neighbour[0]"),
+    "edge-weight": locate(PYTHON, "weight = neighbour[1]"),
+    "new-distance": locate(PYTHON, "new_distance = distance + weight"),
+    "relax-if": locate(PYTHON, "new_distance < dist[next_node]"),
+    assign: locate(PYTHON, "dist[next_node] = new_distance"),
+    "offer-update": locate(PYTHON, "[new_distance, next_node]"),
+    "return-for": locate(PYTHON, "for i in range(n):", 1),
+    unreachable: locate(PYTHON, 'dist[i] == float("inf")'),
+    return: locate(PYTHON, "return dist"),
+  },
+};
 
 const POS: Record<number, { x: number; y: number }> = {
   0: { x: 140, y: 28 },
@@ -132,7 +319,7 @@ type Pair = [number, number];
 type Entry = { d: number; node: number; seq: number; fresh: boolean };
 
 type Frame = {
-  lines: number[];
+  marks: StepId[];
   note: string;
   adj: (Pair[] | null)[] | null;
   dist: number[] | null;
@@ -180,9 +367,9 @@ function buildFrames(): Frame[] {
       .map((entry) => ({ d: entry.d, node: entry.node, fresh: entry.fresh }));
   }
 
-  function snap(lines: number[], note: string) {
+  function snap(marks: StepId[], note: string) {
     frames.push({
-      lines,
+      marks,
       note,
       adj: adj === null ? null : adj.map((list) => (list === null ? null : list.map((pair) => [pair[0], pair[1]]))),
       dist: dist === null ? null : dist.slice(),
@@ -210,12 +397,12 @@ function buildFrames(): Frame[] {
 
   begin();
   current = null;
-  snap([at("public int[] dijkstra")], "Call dijkstra with n = 6 and source = 0.");
+  snap(["signature"], "Call dijkstra with n = 6 and source = 0.");
 
   begin();
   adj = Array.from({ length: N }, () => null);
   snap(
-    [at("List<int[]>[] graph")],
+    ["allocate"],
     "Allocate graph as an array of n lists. The slots are still empty.",
   );
 
@@ -225,8 +412,8 @@ function buildFrames(): Frame[] {
     focus = [i];
     current = i;
     snap(
-      [at("for (int i = 0; i < n; i++)"), at("graph[i] = new ArrayList")],
-      `graph[${i}] = new ArrayList<>().`,
+      ["init-for", "init-list"],
+      `Create an empty list for node ${i}.`,
     );
   }
 
@@ -240,14 +427,7 @@ function buildFrames(): Frame[] {
     hot = [`${u}-${v}`, `${v}-${u}`];
     current = null;
     snap(
-      [
-        at("for (int[] edge: edges)"),
-        at("int u = edge[0]"),
-        at("int v = edge[1]"),
-        at("int weight = edge[2]"),
-        at("graph[u].add"),
-        at("graph[v].add"),
-      ],
+      ["edge-for", "u", "v", "weight", "add-uv", "add-vu"],
       `edges[${index}] = [${u}, ${v}, ${weight}] adds ${u} → ${v} and ${v} → ${u}.`,
     );
   });
@@ -256,36 +436,29 @@ function buildFrames(): Frame[] {
   dist = Array(N).fill(Infinity);
   current = null;
   snap(
-    [at("int[] dist = new int[n]"), at("Arrays.fill")],
-    "Fill dist with Integer.MAX_VALUE. Every node starts unreachable.",
+    ["dist-alloc", "dist-fill"],
+    "Fill dist with infinity. Every node starts unreachable.",
   );
 
   begin();
   dist[SOURCE] = 0;
   updated = SOURCE;
   current = SOURCE;
-  snap([at("dist[source] = 0")], "dist[source] = 0.");
+  snap(["dist-source"], "dist[source] = 0.");
 
   begin();
   current = null;
   updated = null;
   snap(
-    [at("new PriorityQueue"), at("Comparator.comparingInt")],
+    ["pq-create", "pq-cmp"],
     "Create a min-heap ordered by the distance stored at index 0.",
   );
 
   begin();
   offer(0, SOURCE);
-  snap([at("pf.offer")], "Offer [0, 0], the source with distance 0.");
+  snap(["offer-source"], "Offer [0, 0], the source with distance 0.");
 
-  const whileLine = at("while (!pq.empty())");
-  const pollLines = [
-    whileLine,
-    at("pq.poll()"),
-    at("int distance = current[0]"),
-    at("int node = current[1]"),
-    at("distance > dist[node]"),
-  ];
+  const pollMarks: StepId[] = ["while", "poll", "distance", "node", "stale-if"];
 
   while (pq.length > 0) {
     begin();
@@ -294,7 +467,7 @@ function buildFrames(): Frame[] {
     const stale = entry.d > dist![entry.node];
     if (!stale) settled.push(entry.node);
     snap(
-      stale ? [...pollLines, at("continue;")] : pollLines,
+      stale ? [...pollMarks, "continue"] : pollMarks,
       stale
         ? `Poll [${entry.d}, ${entry.node}]. ${entry.d} > dist[${entry.node}] (${showDist(dist![entry.node])}), so skip this outdated entry.`
         : `Poll [${entry.d}, ${entry.node}]. distance = ${entry.d} matches dist[${entry.node}], so node ${entry.node} is settled.`,
@@ -318,22 +491,8 @@ function buildFrames(): Frame[] {
       }
       snap(
         better
-          ? [
-              at("for (int[] neighbour"),
-              at("int nextNode = neighbour[0]"),
-              at("int weight = neighbour[1]"),
-              at("int newDistance = distance + weight"),
-              at("newDistance < dist[nextNode]"),
-              at("dist[node] = newDistance"),
-              at("new int[]{newDistance, nextNode}"),
-            ]
-          : [
-              at("for (int[] neighbour"),
-              at("int nextNode = neighbour[0]"),
-              at("int weight = neighbour[1]"),
-              at("int newDistance = distance + weight"),
-              at("newDistance < dist[nextNode]"),
-            ],
+          ? ["neighbour-for", "next", "edge-weight", "new-distance", "relax-if", "assign", "offer-update"]
+          : ["neighbour-for", "next", "edge-weight", "new-distance", "relax-if"],
         better
           ? `${entry.node} → ${nextNode} costs ${newDistance}, which is shorter than ${showDist(oldDistance)}. dist[${nextNode}] = ${newDistance}, and [${newDistance}, ${nextNode}] enters the queue.`
           : `${entry.node} → ${nextNode} costs ${newDistance}, which is not shorter than dist[${nextNode}] = ${showDist(oldDistance)}.`,
@@ -343,11 +502,11 @@ function buildFrames(): Frame[] {
 
   begin();
   current = null;
-  snap([whileLine], "The priority queue is empty, so the loop ends.");
+  snap(["while"], "The priority queue is empty, so the loop ends.");
 
   begin();
   snap(
-    [at("for (int i = 0; i < n; i++)", 1), at("dist[i] == Integer.MAX_VALUE"), at("return dist")],
+    ["return-for", "unreachable", "return"],
     `Every distance is finite, so none become -1. return [${dist!.map(showDist).join(", ")}].`,
   );
 
@@ -356,11 +515,14 @@ function buildFrames(): Frame[] {
 
 const FRAMES = buildFrames();
 
-function colorize(text: string): ReactNode {
-  const commentAt = text.indexOf("//");
+function colorize(text: string, language: Language): ReactNode {
+  const commentAt = language === "python" ? text.indexOf("#") : text.indexOf("//");
   const code = commentAt >= 0 ? text.slice(0, commentAt) : text;
   const comment = commentAt >= 0 ? text.slice(commentAt) : "";
-  const keywords = /\b(public|int|for|if|while|new|return|void)\b/g;
+  const keywords =
+    language === "python"
+      ? /\b(import|def|for|if|while|in|return|None)\b/g
+      : /\b(public|int|for|if|while|new|return|void)\b/g;
   const parts: ReactNode[] = [];
   let last = 0;
   let match: RegExpExecArray | null;
@@ -384,12 +546,161 @@ function colorize(text: string): ReactNode {
   return parts;
 }
 
+const LANGUAGES: { id: Language; label: string }[] = [
+  { id: "java", label: "Java" },
+  { id: "python", label: "Python" },
+];
+
+function LanguageMenu({
+  language,
+  onChange,
+}: {
+  language: Language;
+  onChange: (language: Language) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [active, setActive] = useState(language);
+  const [menuStyle, setMenuStyle] = useState<{ top: number; left: number; width: number } | null>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const selected = LANGUAGES.find((option) => option.id === language) ?? LANGUAGES[0];
+
+  function placeMenu() {
+    const rect = triggerRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const width = Math.max(rect.width, 148);
+    const height = LANGUAGES.length * 32 + 8;
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const top = spaceBelow < height + 8 ? Math.max(8, rect.top - height - 4) : rect.bottom + 4;
+    const left = Math.min(Math.max(8, rect.left), window.innerWidth - width - 8);
+    setMenuStyle({ top, left, width });
+  }
+
+  useEffect(() => {
+    if (!open) return;
+    placeMenu();
+    function onPointerDown(event: PointerEvent) {
+      const target = event.target as Node;
+      if (triggerRef.current?.contains(target) || menuRef.current?.contains(target)) return;
+      setOpen(false);
+    }
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key !== "Escape") return;
+      setOpen(false);
+      triggerRef.current?.focus();
+    }
+    window.addEventListener("pointerdown", onPointerDown);
+    window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("resize", placeMenu);
+    window.addEventListener("scroll", placeMenu, true);
+    return () => {
+      window.removeEventListener("pointerdown", onPointerDown);
+      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("resize", placeMenu);
+      window.removeEventListener("scroll", placeMenu, true);
+    };
+  }, [open]);
+
+  function choose(next: Language) {
+    onChange(next);
+    setOpen(false);
+    triggerRef.current?.focus();
+  }
+
+  function onTriggerKeyDown(event: React.KeyboardEvent<HTMLButtonElement>) {
+    const current = LANGUAGES.findIndex((option) => option.id === active);
+    if (!open && (event.key === "ArrowDown" || event.key === "ArrowUp")) {
+      event.preventDefault();
+      setActive(language);
+      placeMenu();
+      setOpen(true);
+      return;
+    }
+    if (!open) return;
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      setActive(LANGUAGES[Math.min(LANGUAGES.length - 1, current + 1)].id);
+    } else if (event.key === "ArrowUp") {
+      event.preventDefault();
+      setActive(LANGUAGES[Math.max(0, current - 1)].id);
+    } else if (event.key === "Enter") {
+      event.preventDefault();
+      choose(active);
+    }
+  }
+
+  const menu =
+    open && menuStyle
+      ? createPortal(
+          <div
+            ref={menuRef}
+            role="listbox"
+            aria-label="Language"
+            style={{ top: menuStyle.top, left: menuStyle.left, width: menuStyle.width }}
+            className="fixed z-50 rounded-lg border border-neutral-200 bg-white p-1 shadow-lg shadow-neutral-900/5"
+          >
+            {LANGUAGES.map((option) => {
+              const isSelected = option.id === language;
+              const isActive = option.id === active;
+              return (
+                <button
+                  key={option.id}
+                  type="button"
+                  role="option"
+                  aria-selected={isSelected}
+                  onMouseEnter={() => setActive(option.id)}
+                  onClick={() => choose(option.id)}
+                  className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-xs ${
+                    isActive ? "bg-neutral-100 text-neutral-900" : "text-neutral-600"
+                  }`}
+                >
+                  <Check size={12} className={isSelected ? "text-neutral-800" : "opacity-0"} />
+                  <span className={isSelected ? "font-medium" : ""}>{option.label}</span>
+                </button>
+              );
+            })}
+          </div>,
+          document.body,
+        )
+      : null;
+
+  return (
+    <>
+      <button
+        ref={triggerRef}
+        type="button"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-label="Language"
+        onKeyDown={onTriggerKeyDown}
+        onClick={() => {
+          setActive(language);
+          if (!open) placeMenu();
+          setOpen((value) => !value);
+        }}
+        className={`inline-flex min-w-[5.75rem] items-center justify-between gap-1.5 rounded-lg border bg-white px-3 py-1.5 text-xs font-medium transition-colors ${
+          open
+            ? "border-neutral-300 text-neutral-900"
+            : "border-neutral-200 text-neutral-700 hover:border-neutral-300 hover:bg-neutral-50"
+        }`}
+      >
+        {selected.label}
+        <ChevronDown size={13} className={`text-neutral-400 transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+      {menu}
+    </>
+  );
+}
+
 export default function DijkstraCodeVisualizer() {
   const [index, setIndex] = useState(0);
   const [playing, setPlaying] = useState(false);
+  const [language, setLanguage] = useState<Language>("java");
   const scrollerRef = useRef<HTMLDivElement>(null);
   const lineRefs = useRef<(HTMLDivElement | null)[]>([]);
   const frame = FRAMES[index];
+  const code = CODES[language];
+  const activeLines = frame.marks.map((mark) => LINE_OF[language][mark]);
   const done = index >= FRAMES.length - 1;
 
   useEffect(() => {
@@ -404,31 +715,29 @@ export default function DijkstraCodeVisualizer() {
 
   useEffect(() => {
     const scroller = scrollerRef.current;
-    const line = lineRefs.current[Math.min(...frame.lines) - 1];
+    const lines = FRAMES[index].marks.map((mark) => LINE_OF[language][mark]);
+    const line = lineRefs.current[Math.min(...lines) - 1];
     if (!scroller || !line) return;
     const top =
       line.getBoundingClientRect().top - scroller.getBoundingClientRect().top + scroller.scrollTop;
     scroller.scrollTo({ top: Math.max(0, top - 36), behavior: "auto" });
-  }, [frame]);
+  }, [index, language]);
 
   return (
-    <div className="not-prose my-6 overflow-hidden rounded-2xl border border-gray-200 bg-white">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 px-4 py-1.5">
-        <p className="font-mono text-sm text-neutral-800">dijkstra(n = 6, edges, source = 0)</p>
-        <p className="text-xs tabular-nums text-neutral-500">
-          {index + 1}/{FRAMES.length}
-        </p>
+    <div className="not-prose my-6 flex h-[90vh] flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white">
+      <div className="flex h-[65px] shrink-0 items-center gap-2 border-b border-gray-100 px-4">
+        <span className="text-[11px] font-medium uppercase tracking-wide text-neutral-400">Language</span>
+        <LanguageMenu language={language} onChange={setLanguage} />
       </div>
-
-      <div className="grid lg:grid-cols-2 lg:divide-x lg:divide-gray-100">
+      <div className="flex min-h-0 flex-1 flex-col divide-y divide-gray-100 lg:flex-row lg:divide-x lg:divide-y-0">
         <div
           ref={scrollerRef}
-          className="h-[520px] min-w-0 overflow-x-auto overflow-y-auto bg-neutral-50"
+          className="min-h-0 min-w-0 flex-1 overflow-x-auto overflow-y-auto bg-neutral-50"
         >
           <div className="w-max min-w-full py-2">
-            {CODE.map((text, lineIndex) => {
+            {code.map((text, lineIndex) => {
               const lineNumber = lineIndex + 1;
-              const active = frame.lines.includes(lineNumber);
+              const active = activeLines.includes(lineNumber);
               return (
                 <div
                   key={lineNumber}
@@ -449,7 +758,7 @@ export default function DijkstraCodeVisualizer() {
                     {lineNumber}
                   </span>
                   <span className="whitespace-pre font-mono text-neutral-800">
-                    {text.length > 0 ? colorize(text) : " "}
+                    {text.length > 0 ? colorize(text, language) : " "}
                   </span>
                 </div>
               );
@@ -457,15 +766,10 @@ export default function DijkstraCodeVisualizer() {
           </div>
         </div>
 
-        <div className="h-[520px] min-w-0 overflow-x-hidden overflow-y-auto px-4 py-3">
-          <StatePanel frame={frame} />
-        </div>
+        <StatePanel frame={frame} />
       </div>
 
-      <div className="flex items-center justify-between gap-3 border-t border-gray-100 px-4 py-1.5">
-        <p className="text-sm text-neutral-600" aria-live="polite">
-          {frame.note}
-        </p>
+      <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-t border-gray-100 px-4 py-1.5">
         <div className="flex shrink-0 items-center gap-2">
           <button
             type="button"
@@ -506,100 +810,129 @@ export default function DijkstraCodeVisualizer() {
             Step
           </button>
         </div>
+        <p className="min-w-0 flex-1 text-sm text-neutral-600" aria-live="polite">
+          {frame.note}
+        </p>
+        <p className="text-xs tabular-nums text-neutral-500">
+          {index + 1}/{FRAMES.length}
+        </p>
       </div>
+    </div>
+  );
+}
+
+function SectionLabel({ children }: { children: ReactNode }) {
+  return (
+    <div className="border-b border-gray-100 bg-neutral-50 px-3 py-1 font-mono text-[11px] text-neutral-500">
+      {children}
     </div>
   );
 }
 
 function StatePanel({ frame }: { frame: Frame }) {
   return (
-    <div className="flex flex-col gap-4">
-      <Graph frame={frame} />
-      <section>
-        <p className="mb-1 font-mono text-xs text-neutral-500">dist</p>
-        {frame.dist === null ? (
-          <p className="text-xs text-neutral-400">not created</p>
-        ) : (
-          <div className="flex flex-wrap gap-1">
-            {frame.dist.map((value, node) => {
-              const settled = frame.settled.includes(node);
-              const tone =
-                frame.updated === node
-                  ? "border-amber-300 bg-amber-50 text-amber-950"
-                  : frame.current === node
-                    ? "border-indigo-300 bg-indigo-50 text-indigo-950"
-                    : settled
-                      ? "border-emerald-200 bg-emerald-50 text-emerald-950"
-                      : "border-neutral-200 text-neutral-800";
-              return (
-                <div
-                  key={node}
-                  className={"w-10 rounded-md border px-1 py-1 text-center font-mono " + tone}
-                >
-                  <div className="text-[10px] text-neutral-400">{node}</div>
-                  <div className="text-xs">{showDist(value)}</div>
-                </div>
-              );
-            })}
-          </div>
-        )}
+    <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col divide-y divide-gray-100">
+      <section className="flex min-h-0 flex-1 flex-col">
+        <SectionLabel>Graph</SectionLabel>
+        <div className="relative min-h-0 flex-1">
+          <Graph frame={frame} />
+        </div>
       </section>
-      <section>
-        <p className="mb-1 font-mono text-xs text-neutral-500">pq</p>
-        {frame.pq.length === 0 ? (
-          <p className="text-xs text-neutral-400">empty</p>
-        ) : (
-          <div className="flex flex-wrap gap-1">
-            {frame.pq.map((entry, entryIndex) => (
-              <span
-                key={`${entryIndex}-${entry.node}-${entry.d}`}
-                className={
-                  "rounded-md border px-2 py-1 font-mono text-xs " +
-                  (entry.fresh
-                    ? "border-amber-300 bg-amber-50 text-amber-950"
-                    : "border-neutral-200 text-neutral-700")
-                }
-              >
-                [{entry.d}, {entry.node}]
-              </span>
-            ))}
+
+      <div className="grid grid-cols-2 divide-x divide-gray-100">
+        <section className="min-w-0">
+          <SectionLabel>dist</SectionLabel>
+          <div className="px-3 py-2">
+            {frame.dist === null ? (
+              <div className="text-xs text-neutral-400">not created</div>
+            ) : (
+              <div className="grid grid-cols-6 gap-1">
+                {frame.dist.map((value, node) => {
+                  const settled = frame.settled.includes(node);
+                  const tone =
+                    frame.updated === node
+                      ? "border-amber-300 bg-amber-50 text-amber-950"
+                      : frame.current === node
+                        ? "border-indigo-300 bg-indigo-50 text-indigo-950"
+                        : settled
+                          ? "border-emerald-200 bg-emerald-50 text-emerald-950"
+                          : "border-neutral-200 text-neutral-800";
+                  return (
+                    <div key={node} className={"rounded-md border px-0.5 py-1 text-center font-mono " + tone}>
+                      <div className="text-[10px] text-neutral-400">{node}</div>
+                      <div className="text-xs">{showDist(value)}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
-        )}
-      </section>
-      <section>
-        <p className="mb-1 font-mono text-xs text-neutral-500">graph</p>
-        {frame.adj === null ? (
-          <p className="text-xs text-neutral-400">not created</p>
-        ) : (
-          <div className="space-y-0.5 font-mono text-xs">
-            {frame.adj.map((list, node) => {
-              const focused = frame.focus.includes(node);
-              return (
-                <div
-                  key={node}
-                  className={"flex gap-2 rounded px-1.5 py-0.5 " + (focused ? "bg-indigo-50 text-indigo-950" : "text-neutral-700")}
-                >
-                  <span className="w-3 text-neutral-400">{node}</span>
-                  <span>
-                    {list === null
-                      ? "null"
-                      : list.length === 0
-                        ? "[]"
-                        : list.map(([next, weight]) => {
-                            const key = `${node}-${next}`;
-                            const hot = frame.hot.includes(key);
-                            return (
-                              <span key={key} className={hot ? "font-semibold text-indigo-700" : ""}>
-                                [{next}, {weight}]{" "}
-                              </span>
-                            );
-                          })}
+        </section>
+        <section className="min-w-0">
+          <SectionLabel>pq</SectionLabel>
+          <div className="px-3 py-2">
+            {frame.pq.length === 0 ? (
+              <div className="text-xs text-neutral-400">empty</div>
+            ) : (
+              <div className="flex flex-wrap gap-1">
+                {frame.pq.map((entry, entryIndex) => (
+                  <span
+                    key={`${entryIndex}-${entry.node}-${entry.d}`}
+                    className={
+                      "rounded-md border px-2 py-1 font-mono text-xs " +
+                      (entry.fresh
+                        ? "border-amber-300 bg-amber-50 text-amber-950"
+                        : "border-neutral-200 text-neutral-700")
+                    }
+                  >
+                    [{entry.d}, {entry.node}]
                   </span>
-                </div>
-              );
-            })}
+                ))}
+              </div>
+            )}
           </div>
-        )}
+        </section>
+      </div>
+
+      <section>
+        <SectionLabel>graph</SectionLabel>
+        <div className="px-3 py-2">
+          {frame.adj === null ? (
+            <div className="text-xs text-neutral-400">not created</div>
+          ) : (
+            <div className="space-y-0.5 font-mono text-xs">
+              {frame.adj.map((list, node) => {
+                const focused = frame.focus.includes(node);
+                return (
+                  <div
+                    key={node}
+                    className={
+                      "flex gap-2 rounded px-1.5 py-0.5 " +
+                      (focused ? "bg-indigo-50 text-indigo-950" : "text-neutral-700")
+                    }
+                  >
+                    <span className="w-3 text-neutral-400">{node}</span>
+                    <span>
+                      {list === null
+                        ? "null"
+                        : list.length === 0
+                          ? "[]"
+                          : list.map(([next, weight]) => {
+                              const key = `${node}-${next}`;
+                              const hot = frame.hot.includes(key);
+                              return (
+                                <span key={key} className={hot ? "font-semibold text-indigo-700" : ""}>
+                                  [{next}, {weight}]{" "}
+                                </span>
+                              );
+                            })}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </section>
     </div>
   );
@@ -619,7 +952,7 @@ function Graph({ frame }: { frame: Frame }) {
   }).sort((a, b) => a.rank - b.rank);
 
   return (
-    <svg viewBox="0 0 280 276" className="mx-auto h-auto w-full max-w-[260px]" role="img" aria-label="Graph for this dry run">
+    <svg viewBox="0 0 280 276" className="absolute inset-0 h-full w-full" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Graph for this dry run">
       {ordered.map(({ edge, visible, active, tree }) => {
         if (!visible) return null;
         const { x1, y1, x2, y2, mx, my } = segment(edge[0], edge[1]);
