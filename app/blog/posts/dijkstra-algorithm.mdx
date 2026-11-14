@@ -113,12 +113,12 @@ An **Edge List** is a convenient way to provide the graph as input because we on
 specify the existing connections. However, it does not provide an efficient way to 
 explore the neighbours of a particular node.
 
-add visualization here...
-
 To find the neighbours of a node, we would have to iterate over the entire **Edge List** and 
 identify all edges connected to that node. Since Dijkstra frequently explores the 
-neighbours of the currently extracted node, repeatedly scanning the entire Edge List 
+neighbours of the currently extracted node, repeatedly scanning the entire **Edge List**
 introduces unnecessary overhead.
+
+<EdgeListScanVisualizer />
 
 Therefore, we convert the **Edge List** into an **Adjacency List**, which maintains the 
 neighbours of each node along with their corresponding edge weights.

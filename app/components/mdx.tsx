@@ -87,6 +87,7 @@ import StreamProcessingVisualizer from './stream-processing-visualizer';
 import ConsistentHashingVisualizer from './consistent-hashing-visualizer';
 import CycleDetectionDFSVisualizer from './cycle-detection-dfs-visualizer';
 import DijkstraVisualizer from './dijkstra-visualizer';
+import EdgeListScanVisualizer from './edge-list-scan-visualizer';
 import TopologicalSortBFSVisualizer from './topological-sort-bfs-visualizer';
 import ScheduleJobSequenceVisualizer from './schedule-job-sequence-visualizer';
 import AtmSystemVisualizer from './atm-system-visualizer';
@@ -430,6 +431,7 @@ let components = {
   ConsistentHashingVisualizer: ConsistentHashingVisualizer,
   CycleDetectionDFSVisualizer: CycleDetectionDFSVisualizer,
   DijkstraVisualizer: DijkstraVisualizer,
+  EdgeListScanVisualizer: EdgeListScanVisualizer,
   TopologicalSortBFSVisualizer: TopologicalSortBFSVisualizer,
   ScheduleJobSequenceVisualizer: ScheduleJobSequenceVisualizer,
   AtmSystemVisualizer: AtmSystemVisualizer,
