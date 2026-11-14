@@ -1,5 +1,5 @@
 ---
-title: "Data Structures & Algorithms (Graph): Dijkstra's Shortest Path Pattern"
+title: "Data Structures & Algorithms (Graph): Dijkstra's Algorithm"
 publishedAt: "2026-04-14"
 ---
 
@@ -124,7 +124,92 @@ Therefore, we convert the **Edge List** into an **Adjacency List**, which mainta
 neighbours of each node along with their corresponding edge weights.
 
 ```java
+public int[] dijkstra(int n, int[][] edges, int source) {
 
+    // Step 1: Build the adjacency list.
+    List<int[]>[] graph = new ArrayList[n];
+
+    for (int i = 0; i < n; i++) {
+        graph[i] = new ArrayList<>();
+    }
+
+    // Add edges to the adjacency list.
+    for (int[] edge: edges) {
+
+        int u = edge[0];
+        int v = edge[1];
+        int weight = edge[2];
+
+        graph[u].add(new int[]{v, weight});
+        // If the graph is undirected, add both directions.
+        graph[v].add(new int[]{u, weight});
+    }
+
+    // Step 2: Initialize the distance array.
+    int[] dist = new int[n];
+    // Initially, all nodes are unreachable (infinity).
+    Arrays.fill(dist, Integer.MAX_VALUE);
+
+    // Distance from the source to iteself is 0.
+    dist[source] = 0;
+
+    // Step 3: Create a min-priority queue.
+    PriorityQueue<int[]> pq = new PriorityQueue<>(
+        Comparator.comparingInt(a -> a[0])
+    );
+
+    // Add the source node with distance 0.
+    pf.offer(new int[]{0, source});
+
+    // Step 4: Process the nodes until the priority queue is empty.
+    while (!pq.empty()) {
+
+        // Extract the node with the smallest node distance.
+        int[] current = pq.poll();
+
+        int distance = current[0];
+        int node = current[1];
+
+        // Step 5: Skip outdates entries.
+        // A better distance might have been discovered 
+        // after this entry was inserted into the queue.
+        if (distance > dist[node]) {
+            continue;
+        }
+
+        // Step 6: Explore all neighbours of the current node.
+        for (int[] neighbour : graph[node] ) {
+
+            int nextNode = neighbour[0];
+            int weight = neighbour[1];
+
+            // Calculate the distance to the neighbour 
+            // through the current node.
+            int newDistance = distance + weight;
+
+            // Step 7: Relax the edge.
+            // Update the distance if we discover a shorter path.
+            if (newDistance < dist[nextNode]) {
+
+                dist[node] = newDistance;
+
+                // Insert the updated distance into the min-heap.
+                pq.offer(new int[]{newDistance, nextNode});
+            }
+        }
+    }
+
+    // Step 8: Return the shortest distances.
+    // Convert unreachable nodes from INF to -1.
+    for (int i = 0; i < n; i++) {
+
+        if (dist[i] == Integer.MAX_VALUE) {
+            dist[i] = -1;
+        }
+    }
+
+    return dist;
+}
 ```
 
 ---
