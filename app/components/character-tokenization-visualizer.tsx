@@ -4,6 +4,26 @@ import { useEffect, useState } from 'react';
 
 const TEXT = 'I am learning about LLMs';
 
+const CHARACTER_IDS: Record<string, number> = {
+  I: 40,
+  ' ': 220,
+  a: 64,
+  m: 76,
+  l: 75,
+  e: 68,
+  r: 81,
+  n: 77,
+  i: 72,
+  g: 70,
+  b: 65,
+  o: 78,
+  u: 84,
+  t: 83,
+  L: 45,
+  M: 46,
+  s: 82,
+};
+
 const COLORS = [
   'bg-emerald-200 text-emerald-950',
   'bg-sky-200 text-sky-950',
@@ -16,6 +36,10 @@ const COLORS = [
 function showSpace(character: string, hidden = false) {
   if (character !== ' ') return character;
   return <span className={hidden ? 'text-transparent' : 'text-neutral-400'}>␣</span>;
+}
+
+function chipMinWidth(text: string, id: number) {
+  return `${Math.max(text.length, String(id).length) + 3}ch`;
 }
 
 export function CharacterTokenizationVisualizer() {
@@ -110,16 +134,43 @@ export function CharacterTokenizationVisualizer() {
           <div className="flex flex-wrap gap-1.5">
             {TEXT.split('').map((character, index) => {
               const visible = index < step;
+              const id = CHARACTER_IDS[character];
               return (
                 <span
                   key={index}
-                  className={`rounded-md border px-2 py-1 font-mono text-[13px] ${
+                  style={{ minWidth: chipMinWidth(character, id) }}
+                  className={`inline-flex items-center justify-center rounded-md border px-2 py-1 text-center font-mono text-[13px] ${
                     visible
                       ? `${COLORS[index % COLORS.length]} border-transparent`
                       : 'border-dashed border-neutral-300 text-transparent'
                   }`}
                 >
                   {showSpace(character, !visible)}
+                </span>
+              );
+            })}
+          </div>
+        </div>
+
+        <div>
+          <div className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-neutral-400">
+            Token IDs
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {TEXT.split('').map((character, index) => {
+              const visible = index < step;
+              const id = CHARACTER_IDS[character];
+              return (
+                <span
+                  key={index}
+                  style={{ minWidth: chipMinWidth(character, id) }}
+                  className={`inline-flex items-center justify-center rounded-md border px-2 py-1 text-center font-mono text-[13px] tabular-nums ${
+                    visible
+                      ? `${COLORS[index % COLORS.length]} border-transparent`
+                      : 'border-dashed border-neutral-300 text-transparent'
+                  }`}
+                >
+                  {id}
                 </span>
               );
             })}

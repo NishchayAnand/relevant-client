@@ -68,8 +68,9 @@ import { LongestSemiRepetitiveNestedVisualizer } from './longest-semi-repetitive
 import { LongestSemiRepetitiveSlidingWindowVisualizer } from './longest-semi-repetitive-sliding-window-visualizer';
 import { LongestSubstringApproach2Visualizer } from './longest-substring-approach2-visualizer';
 import { LatencyVisualizer } from './latency-visualizer';
-import { TokenizationVisualizer } from './tokenization-visualizer';
+import { WordTokenizationVisualizer } from './word-tokenization-visualizer';
 import { CharacterTokenizationVisualizer } from './character-tokenization-visualizer';
+import { SubwordTokenizationVisualizer } from './subword-tokenization-visualizer';
 import { VendingMachineVisualizer } from './vending-machine-visualizer';
 import HouseRobberVisualizer from './house-robber-visualizer';
 import HouseRobberMemoVisualizer from './house-robber-memo-visualizer';
@@ -413,8 +414,9 @@ let components = {
   LongestSemiRepetitiveSlidingWindowVisualizer: LongestSemiRepetitiveSlidingWindowVisualizer,
   LongestSubstringApproach2Visualizer: LongestSubstringApproach2Visualizer,
   LatencyVisualizer: LatencyVisualizer,
-  TokenizationVisualizer: TokenizationVisualizer,
+  WordTokenizationVisualizer: WordTokenizationVisualizer,
   CharacterTokenizationVisualizer: CharacterTokenizationVisualizer,
+  SubwordTokenizationVisualizer: SubwordTokenizationVisualizer,
   VendingMachineVisualizer: VendingMachineVisualizer,
   RemoveDuplicatesSortedListVisualizer: RemoveDuplicatesSortedListVisualizer,
   HouseRobberVisualizer: HouseRobberVisualizer,
