@@ -13,7 +13,7 @@ and practices in building robust multi-agent systems.
 
 ### What is LLM?
 
-An LLM is a **Large Language Generative AI model** that processes input and generates relevant output.
+An LLM is a **Large Language Generative AI model** that processes text and generates relevant output.
 
 Whenever a user sends a request, the LLM performs several steps behind the scenes. It converts the input into tokens, 
 processes them through a neural network to understand the context, and generates a response by predicting one token at a 
@@ -58,17 +58,37 @@ sequenceDiagram
 
 ### What is Tokenization?
 
-Tokenization is the process of converting input text into smaller units called tokens, 
-which an LLM can process numerically.
+LLMs need a consistent way to represent language in a format it can process mathematically. 
+Tokenization is the process of converting text into smaller units called **tokens**, which are then 
+mapped to numerical IDs that a model can process.
 
-An LLM does not directly process raw text. Before the model performs inference, a 
-tokenizer converts the input into token IDs, which are then mapped to numerical embeddings.
+Generally, tokenization algorithms are divided into three categories:
 
-Consider this input: **<span className="bg-emerald-200 p-0.5 rounded">"I am learning about LLMs"</span>**. 
-The tokenizer splits the text into tokens according to the vocabulary and rules of the 
-specific model.
+#### Character-Level Tokenization
+
+Character-level tokenization breaks text down into a set of characters.
+
+<CharacterTokenizationVisualizer />
+
+It is simple to implement, but difficult for the model to learn meaningful representations for each token. 
+For example, it's harder to learn a meaningful representation for the letter "G" than for the word "GO", 
+because "GO" has a clear meaning, whereas "G" does not. 
+
+Because of this, character-level tokenization often results in a loss of performance.
+
+#### Word-Level Tokenization
+
+#### Subword-Level Tokenization
 
 <TokenizationVisualizer />
+
+---
+
+### What is Token Indexing?
+
+---
+
+### What is Text Embedding?
 
 ---
 
