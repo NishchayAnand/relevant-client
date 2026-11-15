@@ -21,7 +21,10 @@ function parseTags(value: string): string[] {
 function parseFrontmatter(fileContent: string) {
   let frontmatterRegex = /---\s*([\s\S]*?)\s*---/;
   let match = frontmatterRegex.exec(fileContent);
-  let frontMatterBlock = match![1];
+  if (!match) {
+    return { metadata: {} as Metadata, content: fileContent.trim() };
+  }
+  let frontMatterBlock = match[1];
   let content = fileContent.replace(frontmatterRegex, '').trim();
   let frontMatterLines = frontMatterBlock.trim().split('\n');
   let metadata: Partial<Metadata> = {};
@@ -75,6 +78,54 @@ function getMDXData(dir: string) {
 
 export function getBlogPosts() {
     return getMDXData(path.join(process.cwd(), 'app', 'blog', 'posts'));
+}
+
+const ADDITIONAL_POSTS_DIR = path.join(process.cwd(), 'app', 'additional-blog', 'posts');
+
+function titleFromSlug(slug: string) {
+    return slug
+        .split('-')
+        .filter(Boolean)
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+}
+
+export function getAdditionalBlogSlugs() {
+    if (!fs.existsSync(ADDITIONAL_POSTS_DIR)) return [];
+    return getMDXFiles(ADDITIONAL_POSTS_DIR).map((file) => path.basename(file, path.extname(file)));
+}
+
+function readAdditionalPost(slug: string) {
+    const filePath = path.join(ADDITIONAL_POSTS_DIR, `${slug}.mdx`);
+    if (!fs.existsSync(filePath)) return null;
+
+    const { metadata, content } = readMDXFile(filePath);
+    return {
+        metadata: {
+            ...metadata,
+            title: metadata.title || titleFromSlug(slug),
+            publishedAt: metadata.publishedAt || '',
+            summary: metadata.summary || '',
+        },
+        slug,
+        content,
+    };
+}
+
+export function getAdditionalBlogPosts() {
+    return getAdditionalBlogSlugs()
+        .map((slug) => readAdditionalPost(slug))
+        .filter((post) => post !== null);
+}
+
+export function getBlogPost(slug: string) {
+    if (!/^[A-Za-z0-9-]+$/.test(slug)) return null;
+    return getBlogPosts().find((post) => post.slug === slug) ?? null;
+}
+
+export function getAdditionalBlogPost(slug: string) {
+    if (!/^[A-Za-z0-9-]+$/.test(slug)) return null;
+    return readAdditionalPost(slug);
 }
 
 export function formatDate(date: string, includeRelative: false) {

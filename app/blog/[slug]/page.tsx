@@ -3,11 +3,10 @@ import { CustomMDX } from '@/app/components/mdx';
 import { TableOfContents } from '@/app/components/table-of-contents';
 import { Tags } from '@/app/components/tags';
 import { getToc } from '@/app/blog/toc';
-import { formatDate, getBlogPosts } from '@/app/blog/utils';
+import { formatDate, getBlogPost, getBlogPosts } from '@/app/blog/utils';
 
 export async function generateStaticParams() {
-  let posts = getBlogPosts();
-  return posts.map((post) => ({
+  return getBlogPosts().map((post) => ({
     slug: post.slug,
   }));
 }
@@ -16,8 +15,7 @@ export default async function Blog({ params }: { params: Promise<{ slug: string 
 
   const { slug } = await params;
 
-  let posts = getBlogPosts();
-  let post = posts.find((post) => post.slug === slug);
+  let post = getBlogPost(slug);
 
   if (!post) {
     notFound();
@@ -39,17 +37,19 @@ export default async function Blog({ params }: { params: Promise<{ slug: string 
           <h1 className="title font-semibold text-2xl tracking-tighter">
             {post.metadata.title}
           </h1>
-          <div className="mt-2 mb-8 flex flex-wrap items-center gap-2 text-sm">
-            <p className="text-sm text-neutral-600 dark:text-neutral-400">
-              {formatDate(post.metadata.publishedAt, false)}
-            </p>
-            {post.metadata.tags?.length ? (
-              <>
+          {post.metadata.publishedAt || post.metadata.tags?.length ? (
+            <div className="mt-2 mb-8 flex flex-wrap items-center gap-2 text-sm">
+              {post.metadata.publishedAt ? (
+                <p className="text-sm text-neutral-600 dark:text-neutral-400">
+                  {formatDate(post.metadata.publishedAt, false)}
+                </p>
+              ) : null}
+              {post.metadata.publishedAt && post.metadata.tags?.length ? (
                 <span className="text-neutral-400">|</span>
-                <Tags tags={post.metadata.tags} />
-              </>
-            ) : null}
-          </div>
+              ) : null}
+              {post.metadata.tags?.length ? <Tags tags={post.metadata.tags} /> : null}
+            </div>
+          ) : null}
           <article className="prose">
             <CustomMDX source={post.content} />
           </article>
