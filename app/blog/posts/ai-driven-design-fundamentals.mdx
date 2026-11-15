@@ -56,6 +56,22 @@ sequenceDiagram
 
 ---
 
+### What is Tokenization?
+
+Tokenization is the process of converting input text into smaller units called tokens, 
+which an LLM can process numerically.
+
+An LLM does not directly process raw text. Before the model performs inference, a 
+tokenizer converts the input into token IDs, which are then mapped to numerical embeddings.
+
+Consider this input: **<span className="bg-emerald-200 p-0.5 rounded">"I am learning about LLMs"</span>**. 
+The tokenizer splits the text into tokens according to the vocabulary and rules of the 
+specific model.
+
+<TokenizationVisualizer />
+
+---
+
 ### How to interact with an LLM?
 
 Different providers host different LLM models and expose SDKs or APIs that allow applications to interact with them.
@@ -149,20 +165,6 @@ Instructions influence the model, but they are not a substitute for application-
 security controls. If an agent must never refund more than `₹10,000`, enforce that limit 
 in backend code rather than relying solely on a prompt.
 </Note>
-
----
-
-### What is Tokenization?
-
-Tokenization is the process of converting input text into smaller units called tokens, which an LLM can process numerically.
-
-An LLM does not directly process raw text. Before the model performs inference, a tokenizer converts the input into token IDs, 
-which are then mapped to numerical embeddings.
-
-Consider this input: **<span className="bg-emerald-200 p-0.5 rounded">"I am learning about LLMs"</span>**. The tokenizer splits the text 
-into tokens according to the vocabulary and rules of the specific model.
-
-<TokenizationVisualizer />
 
 ---
 
@@ -555,5 +557,25 @@ committing changes.
 ---
 
 ### Pydantic Model
+
+---
+
+### Prompt Engineering
+
+---
+
+### Context Engineering 
+
+---
+
+### Harness Engineering 
+
+---
+
+### Loop Engineering 
+
+---
+
+### Graph Engineering
 
 ---
