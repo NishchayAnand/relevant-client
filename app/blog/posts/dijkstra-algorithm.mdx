@@ -141,21 +141,16 @@ relaxation corresponds to examining a particular edge. Hence, the number of
 successful relaxations is bounded by `(E)`. Considering each insertion into a binary 
 min-heap takes `O(V)` time, the total node addition is `O(E * logV)`.
 
-3. **Removing nodes from the Priority Queue**: Since there can be at most `O(E)` 
-successful relaxations, there can be at most `O(E)` extractions. Considering each 
-extraction takes `O(V)` time, the total node removal is `O(E * logV)`.
+3. **Removing nodes from the Priority Queue**: Since there can be at most `(E)` 
+successful relaxations, there can be at most `(E)` extractions. Considering each 
+extraction takes `O(logV)` time, the total node removal is `O(E * logV)`.
 
 4. **Exploring the neighbours of a node**: Since each vertex is processed at most once, 
 and all its adjacency entries are examined once, the total neighbour traversal is 
 `O(V + E)`.
 
-Combining all four operations, the overall time complexity is `O(V + E) + O(E * logV) + O(E * logV) + O(V + E)`
-~ `O(V + E + E * logV)` ~ `O((V+E) * log V)`.
-
-<Note>
-This is an upper-bound simplification, not an exact algebraic equality. Big-O allows us 
-to express a tighter collection of terms using a simpler asymptotic upper bound.
-</Note>
+Combining all four operations, the overall time complexity is `O(V + E) + O(E * logV) + O(E * logV) + O(V + E)
+= O(V + E + E * logV) ~ O(E * logV)`.
 
 ---
 
