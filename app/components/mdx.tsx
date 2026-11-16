@@ -89,6 +89,7 @@ import StreamProcessingVisualizer from './stream-processing-visualizer';
 import ConsistentHashingVisualizer from './consistent-hashing-visualizer';
 import CycleDetectionDFSVisualizer from './cycle-detection-dfs-visualizer';
 import DijkstraVisualizer from './dijkstra-visualizer';
+import DisappearingNodesVisualizer from './disappearing-nodes-visualizer';
 import EdgeListScanVisualizer from './edge-list-scan-visualizer';
 import DijkstraCodeVisualizer from './dijkstra-code-visualizer';
 import TopologicalSortBFSVisualizer from './topological-sort-bfs-visualizer';
@@ -436,6 +437,7 @@ let components = {
   ConsistentHashingVisualizer: ConsistentHashingVisualizer,
   CycleDetectionDFSVisualizer: CycleDetectionDFSVisualizer,
   DijkstraVisualizer: DijkstraVisualizer,
+  DisappearingNodesVisualizer: DisappearingNodesVisualizer,
   EdgeListScanVisualizer: EdgeListScanVisualizer,
   DijkstraCodeVisualizer: DijkstraCodeVisualizer,
   TopologicalSortBFSVisualizer: TopologicalSortBFSVisualizer,

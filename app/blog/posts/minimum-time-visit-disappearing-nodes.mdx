@@ -17,31 +17,31 @@ reach node `i` from node `0`. If node `i` is unreachable from node `0` then `ans
 
 ---
 
-#### Understanding the Problem
+### Example: Finding the Shortest Safe Route
 
-**Input: `n = 3`, edges = `[[0,1,2],[1,2,1],[0,2,4]]`, disappear = `[1,1,5]`**
+Imagine a rescue team starting at a control centre and trying to reach different 
+locations. Roads have different travel times, but some locations will become unsafe or 
+inaccessible after a particular time.
 
-![example-1](/minimum-time-visit-disappearing-nodes/example-1.png)
+This is exactly the idea behind **Minimum Time to Visit Disappearing Nodes**.
 
-**Explanation:** We are starting our journey from node `0`, and our goal is to find the minimum time required to reach each node 
-before it disappears.
-
-- For node `0`, we don't need any time as it is our starting point.
-- For node `1`, we need at least `2` units of time to traverse `edges[0]`. Unfortunately, it disappears at that 
-moment, so we won't be able to visit it.
-- For node `2`, we need at least `4` units of time to traverse `edges[2]`.
-
-**Output: `[0,-1,4]`**
-
-<Note>
-If a node disappears at time `t`, reaching it at exactly `t` is not allowed.
-</Note>
+<DisappearingNodesVisualizer />
 
 ---
 
-### Basic Intution
+### Key Observations
 
+---
 
+### Suitable Approach: Dijkstra Algorithm 
+
+#### Algorithm 
+
+#### Implementation 
+
+#### Time Complexity 
+
+#### Space Complexity 
 
 ---
 
