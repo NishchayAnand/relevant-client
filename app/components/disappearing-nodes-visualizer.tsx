@@ -20,9 +20,10 @@ const DISAPPEAR: Record<NodeId, number> = {
 };
 
 const VB_W = 960;
-const VB_H = 348;
+const VB_H = 360;
 const NODE_W = 132;
-const NODE_H = 72;
+const BODY_H = 62;
+const ROOF_H = 28;
 
 const POS: Record<NodeId, { x: number; y: number }> = {
   0: { x: 96, y: 86 },
@@ -74,7 +75,7 @@ const STEPS: Step[] = [
     edgeTone: null,
     kept: [],
     description:
-      "A rescue team leaves the control centre and must reach each location before it becomes unsafe. Location 8 has no road to the others.",
+      "A fire brigade leaves the fire station and must reach each house before it is engulfed. House 8 has no road to the others.",
   },
   {
     kind: "select",
@@ -84,7 +85,7 @@ const STEPS: Step[] = [
     edgeTone: null,
     kept: [],
     description:
-      "The team starts at the control centre at time 0. Location 0 stays safe until 20, so the earliest arrival is 0.",
+      "The brigade starts at the fire station at time 0. The station stays reachable until 20, so the earliest arrival is 0.",
   },
   {
     kind: "reach",
@@ -94,7 +95,7 @@ const STEPS: Step[] = [
     edgeTone: "success",
     kept: [[0, 1]],
     description:
-      "The road from the control centre to location 1 takes 2. Arriving at 2 is before location 1 becomes unsafe at 4, so the earliest arrival is 2.",
+      "The road from the fire station to house 1 takes 2. Arriving at 2 is before house 1 is engulfed at 4, so the earliest arrival is 2.",
   },
   {
     kind: "reach",
@@ -104,7 +105,7 @@ const STEPS: Step[] = [
     edgeTone: "success",
     kept: [[0, 1], [0, 2]],
     description:
-      "The road from the control centre to location 2 takes 5. Arriving at 5 is before location 2 becomes unsafe at 8, so the earliest arrival is 5.",
+      "The road from the fire station to house 2 takes 5. Arriving at 5 is before house 2 is engulfed at 8, so the earliest arrival is 5.",
   },
   {
     kind: "select",
@@ -114,7 +115,7 @@ const STEPS: Step[] = [
     edgeTone: null,
     kept: [[0, 1], [0, 2]],
     description:
-      "The team can reach location 1 at 2 and location 2 at 5. It heads to location 1 next, the sooner of the two.",
+      "The brigade can reach house 1 at 2 and house 2 at 5. It heads to house 1 next, the sooner of the two.",
   },
   {
     kind: "reach",
@@ -124,7 +125,7 @@ const STEPS: Step[] = [
     edgeTone: "success",
     kept: [[0, 1], [1, 2]],
     description:
-      "From location 1, the road to location 2 takes 1. Arriving at 3 is earlier than 5, and still before the location becomes unsafe at 8.",
+      "From house 1, the road to house 2 takes 1. Arriving at 3 is earlier than 5, and still before the house is engulfed at 8.",
   },
   {
     kind: "reach",
@@ -134,7 +135,7 @@ const STEPS: Step[] = [
     edgeTone: "success",
     kept: [[0, 1], [1, 2], [1, 3]],
     description:
-      "From location 1, the road to location 3 takes 4. Arriving at 6 is before location 3 becomes unsafe at 10, so the earliest arrival is 6.",
+      "From house 1, the road to house 3 takes 4. Arriving at 6 is before house 3 is engulfed at 10, so the earliest arrival is 6.",
   },
   {
     kind: "select",
@@ -144,7 +145,7 @@ const STEPS: Step[] = [
     edgeTone: null,
     kept: [[0, 1], [1, 2], [1, 3]],
     description:
-      "The team can reach location 2 at 3 and location 3 at 6. It heads to location 2 next, the sooner of the two.",
+      "The brigade can reach house 2 at 3 and house 3 at 6. It heads to house 2 next, the sooner of the two.",
   },
   {
     kind: "reach",
@@ -154,7 +155,7 @@ const STEPS: Step[] = [
     edgeTone: "success",
     kept: [[0, 1], [1, 2], [2, 3]],
     description:
-      "From location 2, the road to location 3 takes 2. Arriving at 5 is earlier than 6, and still before the location becomes unsafe at 10.",
+      "From house 2, the road to house 3 takes 2. Arriving at 5 is earlier than 6, and still before the house is engulfed at 10.",
   },
   {
     kind: "miss",
@@ -164,7 +165,7 @@ const STEPS: Step[] = [
     edgeTone: "fail",
     kept: [[0, 1], [1, 2], [2, 3]],
     description:
-      "From location 2, the road to location 4 takes 6. The team would arrive at 9, just as location 4 becomes unsafe, so this route does not count.",
+      "From house 2, the road to house 4 takes 6. The brigade would arrive at 9, just as house 4 is engulfed, so this route does not count.",
   },
   {
     kind: "select",
@@ -174,7 +175,7 @@ const STEPS: Step[] = [
     edgeTone: null,
     kept: [[0, 1], [1, 2], [2, 3]],
     description:
-      "Location 3 is the only place left that the team can still reach, at time 5. The team heads there next.",
+      "House 3 is the only place left that the brigade can still reach, at time 5. They head there next.",
   },
   {
     kind: "reach",
@@ -184,7 +185,7 @@ const STEPS: Step[] = [
     edgeTone: "success",
     kept: [[0, 1], [1, 2], [2, 3], [3, 4]],
     description:
-      "From location 3, the road to location 4 takes 1. Arriving at 6 is before location 4 becomes unsafe at 9, so the earliest arrival is 6.",
+      "From house 3, the road to house 4 takes 1. Arriving at 6 is before house 4 is engulfed at 9, so the earliest arrival is 6.",
   },
   {
     kind: "reach",
@@ -194,7 +195,7 @@ const STEPS: Step[] = [
     edgeTone: "success",
     kept: [[0, 1], [1, 2], [2, 3], [3, 4], [3, 5]],
     description:
-      "From location 3, the road to location 5 takes 5. Arriving at 10 is before location 5 becomes unsafe at 12, so the earliest arrival is 10.",
+      "From house 3, the road to house 5 takes 5. Arriving at 10 is before house 5 is engulfed at 12, so the earliest arrival is 10.",
   },
   {
     kind: "select",
@@ -204,7 +205,7 @@ const STEPS: Step[] = [
     edgeTone: null,
     kept: [[0, 1], [1, 2], [2, 3], [3, 4], [3, 5]],
     description:
-      "The team can reach location 4 at 6 and location 5 at 10. It heads to location 4 next, the sooner of the two.",
+      "The brigade can reach house 4 at 6 and house 5 at 10. It heads to house 4 next, the sooner of the two.",
   },
   {
     kind: "reach",
@@ -214,7 +215,7 @@ const STEPS: Step[] = [
     edgeTone: "success",
     kept: [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5]],
     description:
-      "From location 4, the road to location 5 takes 2. Arriving at 8 is earlier than 10, and still before the location becomes unsafe at 12.",
+      "From house 4, the road to house 5 takes 2. Arriving at 8 is earlier than 10, and still before the house is engulfed at 12.",
   },
   {
     kind: "miss",
@@ -224,7 +225,7 @@ const STEPS: Step[] = [
     edgeTone: "fail",
     kept: [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5]],
     description:
-      "From location 4, the road to location 6 takes 3. The team would arrive at 9, just as location 6 becomes unsafe, so this route does not count.",
+      "From house 4, the road to house 6 takes 3. The brigade would arrive at 9, just as house 6 is engulfed, so this route does not count.",
   },
   {
     kind: "select",
@@ -234,7 +235,7 @@ const STEPS: Step[] = [
     edgeTone: null,
     kept: [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5]],
     description:
-      "Location 5 is the only place left that the team can still reach, at time 8. The team heads there next.",
+      "House 5 is the only place left that the brigade can still reach, at time 8. They head there next.",
   },
   {
     kind: "miss",
@@ -244,7 +245,7 @@ const STEPS: Step[] = [
     edgeTone: "fail",
     kept: [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5]],
     description:
-      "From location 5, the road to location 6 takes 2. The team would arrive at 10, after location 6 became unsafe at 9. No safe route remains, so the answer is −1.",
+      "From house 5, the road to house 6 takes 2. The brigade would arrive at 10, after house 6 was engulfed at 9. No safe route remains, so the answer is −1.",
   },
   {
     kind: "miss",
@@ -254,7 +255,7 @@ const STEPS: Step[] = [
     edgeTone: "fail",
     kept: [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5]],
     description:
-      "From location 5, the road to location 7 takes 4. The team would arrive at 12, just as location 7 becomes unsafe, so this route does not count and the answer is −1.",
+      "From house 5, the road to house 7 takes 4. The brigade would arrive at 12, just as house 7 is engulfed, so this route does not count and the answer is −1.",
   },
   {
     kind: "miss",
@@ -264,7 +265,7 @@ const STEPS: Step[] = [
     edgeTone: null,
     kept: [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5]],
     description:
-      "Location 8 becomes unsafe at 15, but no road connects it to the others. The team cannot reach it, so the answer is −1.",
+      "House 8 is engulfed at 15, but no road connects it to the others. The brigade cannot reach it, so the answer is −1.",
   },
   {
     kind: "done",
@@ -274,7 +275,7 @@ const STEPS: Step[] = [
     edgeTone: null,
     kept: [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5]],
     description:
-      "The earliest safe arrivals from the control centre are [0, 2, 3, 5, 6, 8, −1, −1, −1].",
+      "The earliest safe arrivals from the fire station are [0, 2, 3, 5, 6, 8, −1, −1, −1].",
   },
 ];
 
@@ -344,13 +345,13 @@ const KIND_META: Record<
   },
 };
 
-type NodePaint = { fill: string; stroke: string; text: string; subText: string };
+type NodePaint = { fill: string; roof: string; stroke: string; text: string; subText: string };
 
-const PROCESSED: NodePaint = { fill: "#ecfdf5", stroke: "#10b981", text: "#064e3b", subText: "#047857" };
-const PROCESSING: NodePaint = { fill: "#fef9c3", stroke: "#eab308", text: "#713f12", subText: "#a16207" };
-const UPDATED: NodePaint = { fill: "#eff6ff", stroke: "#3b82f6", text: "#1e3a8a", subText: "#1d4ed8" };
-const MISSED: NodePaint = { fill: "#fff1f2", stroke: "#f43f5e", text: "#881337", subText: "#be123c" };
-const IDLE: NodePaint = { fill: "#ffffff", stroke: "#e5e7eb", text: "#374151", subText: "#9ca3af" };
+const PROCESSED: NodePaint = { fill: "#ecfdf5", roof: "#a7f3d0", stroke: "#10b981", text: "#064e3b", subText: "#047857" };
+const PROCESSING: NodePaint = { fill: "#fef9c3", roof: "#fde047", stroke: "#eab308", text: "#713f12", subText: "#a16207" };
+const UPDATED: NodePaint = { fill: "#eff6ff", roof: "#bfdbfe", stroke: "#3b82f6", text: "#1e3a8a", subText: "#1d4ed8" };
+const MISSED: NodePaint = { fill: "#fff1f2", roof: "#fecdd3", stroke: "#f43f5e", text: "#881337", subText: "#be123c" };
+const IDLE: NodePaint = { fill: "#ffffff", roof: "#f3f4f6", stroke: "#e5e7eb", text: "#374151", subText: "#9ca3af" };
 
 function nodePaint(id: NodeId, step: Step, stepIndex: number): NodePaint {
   const status = STATUS[stepIndex];
@@ -401,20 +402,51 @@ function edgeRole(u: NodeId, v: NodeId, step: Step, stepIndex: number) {
   return STATUS[stepIndex].updated.includes(child) ? ("updated" as const) : ("processed" as const);
 }
 
-function borderPoint(from: { x: number; y: number }, to: { x: number; y: number }) {
-  const dx = to.x - from.x;
-  const dy = to.y - from.y;
-  const tx = dx === 0 ? Infinity : NODE_W / 2 / Math.abs(dx);
-  const ty = dy === 0 ? Infinity : NODE_H / 2 / Math.abs(dy);
-  const t = Math.min(tx, ty);
-  return { x: from.x + dx * t, y: from.y + dy * t };
+function houseOutline(id: NodeId) {
+  const { x, y } = POS[id];
+  const left = x - NODE_W / 2;
+  const right = x + NODE_W / 2;
+  const wallTop = y - BODY_H / 2;
+  const wallBottom = y + BODY_H / 2;
+  return [
+    { x, y: wallTop - ROOF_H },
+    { x: right, y: wallTop },
+    { x: right, y: wallBottom },
+    { x: left, y: wallBottom },
+    { x: left, y: wallTop },
+  ];
+}
+
+function outlinePath(points: { x: number; y: number }[]) {
+  return `${points.map((point, index) => `${index === 0 ? "M" : "L"} ${point.x} ${point.y}`).join(" ")} Z`;
+}
+
+function borderPoint(fromId: NodeId, to: { x: number; y: number }) {
+  const from = POS[fromId];
+  const outline = houseOutline(fromId);
+  let closest: { x: number; y: number; t: number } | null = null;
+  for (let index = 0; index < outline.length; index += 1) {
+    const start = outline[index];
+    const end = outline[(index + 1) % outline.length];
+    const rx = to.x - from.x;
+    const ry = to.y - from.y;
+    const sx = end.x - start.x;
+    const sy = end.y - start.y;
+    const denom = rx * sy - ry * sx;
+    if (Math.abs(denom) < 1e-6) continue;
+    const t = ((start.x - from.x) * sy - (start.y - from.y) * sx) / denom;
+    const u = ((start.x - from.x) * ry - (start.y - from.y) * rx) / denom;
+    if (t < 0 || t > 1 || u < 0 || u > 1) continue;
+    if (!closest || t < closest.t) closest = { x: from.x + rx * t, y: from.y + ry * t, t };
+  }
+  return closest ?? from;
 }
 
 function edgeGeometry(u: NodeId, v: NodeId) {
   const a = POS[u];
   const b = POS[v];
-  const start = borderPoint(a, b);
-  const end = borderPoint(b, a);
+  const start = borderPoint(u, b);
+  const end = borderPoint(v, a);
   const dx = b.x - a.x;
   const dy = b.y - a.y;
   const len = Math.hypot(dx, dy) || 1;
@@ -486,7 +518,7 @@ export default function DisappearingNodesVisualizer() {
               viewBox={`0 0 ${VB_W} ${VB_H}`}
               className="block h-auto w-full"
               role="img"
-              aria-label="Rescue graph with nine nodes, their roads, and the times they disappear"
+              aria-label="Rescue route drawn as nine houses, the roads between them, and the times they become unsafe"
             >
               {EDGES.map((edge) => {
                 const role = edgeRole(edge.u, edge.v, step, index);
@@ -524,21 +556,33 @@ export default function DisappearingNodesVisualizer() {
               {NODES.map((id) => {
                 const paint = nodePaint(id, step, index);
                 const { x, y } = POS[id];
+                const outline = houseOutline(id);
+                const wallTop = y - BODY_H / 2;
+                const roofRise = ROOF_H * (22 / (NODE_W / 2));
+                const chimneyTop = outline[0].y + roofRise - 12;
                 return (
                   <g key={id}>
                     <rect
-                      x={x - NODE_W / 2}
-                      y={y - NODE_H / 2}
-                      width={NODE_W}
-                      height={NODE_H}
-                      rx={16}
-                      fill={paint.fill}
+                      x={x + 16}
+                      y={chimneyTop}
+                      width={12}
+                      height={18}
+                      fill={paint.roof}
                       stroke={paint.stroke}
                       strokeWidth={2}
                     />
+                    <path d={outlinePath(outline.slice(1))} fill={paint.fill} />
+                    <path d={outlinePath([outline[0], outline[1], outline[4]])} fill={paint.roof} />
+                    <path
+                      d={outlinePath(outline)}
+                      fill="none"
+                      stroke={paint.stroke}
+                      strokeWidth={2}
+                      strokeLinejoin="round"
+                    />
                     <text
                       x={x}
-                      y={y - 14}
+                      y={wallTop + 20}
                       textAnchor="middle"
                       fontSize={16}
                       fontWeight={700}
@@ -549,7 +593,7 @@ export default function DisappearingNodesVisualizer() {
                     </text>
                     <text
                       x={x}
-                      y={y + 2}
+                      y={wallTop + 36}
                       textAnchor="middle"
                       fontSize={10}
                       fontWeight={600}
@@ -560,7 +604,7 @@ export default function DisappearingNodesVisualizer() {
                     </text>
                     <text
                       x={x}
-                      y={y + 20}
+                      y={wallTop + 52}
                       textAnchor="middle"
                       fontSize={13}
                       fontWeight={700}
