@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Check, CircleDot, Flag, Info, Minus, Pause, Play, RotateCcw, SkipBack, SkipForward, X } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -56,6 +56,15 @@ const EDGES: { u: NodeId; v: NodeId; w: number }[] = [
 type StepKind = "setup" | "select" | "reach" | "miss" | "blocked" | "done";
 type Answers = (number | null)[];
 
+type Cursor = {
+  answers: Answers;
+  processed: NodeId[];
+  parent: (NodeId | null)[];
+  phase: "relax" | "ready" | "done";
+  current: NodeId | null;
+  edgeAt: number;
+};
+
 type Step = {
   kind: StepKind;
   answers: Answers;
@@ -64,244 +73,235 @@ type Step = {
   edgeTone: "success" | "fail" | null;
   kept: Array<[NodeId, NodeId]>;
   description: string;
+  processing: NodeId | null;
+  processed: NodeId[];
+  updated: NodeId[];
+  cursor: Cursor;
 };
 
-const STEPS: Step[] = [
-  {
+type Move = { type: "step"; step: Step } | { type: "choice"; cursor: Cursor; options: { id: NodeId; time: number }[] };
+
+
+function cloneCursor(cursor: Cursor): Cursor {
+  return {
+    answers: [...cursor.answers],
+    processed: [...cursor.processed],
+    parent: [...cursor.parent],
+    phase: cursor.phase,
+    current: cursor.current,
+    edgeAt: cursor.edgeAt,
+  };
+}
+
+function neighborsOf(node: NodeId) {
+  const roads: { to: NodeId; w: number }[] = [];
+  for (const edge of EDGES) {
+    if (edge.u === node) roads.push({ to: edge.v, w: edge.w });
+    else if (edge.v === node) roads.push({ to: edge.u, w: edge.w });
+  }
+  return roads;
+}
+
+function keptEdges(parent: (NodeId | null)[]) {
+  const edges: Array<[NodeId, NodeId]> = [];
+  for (const id of NODES) {
+    const from = parent[id];
+    if (from !== null) edges.push([from, id]);
+  }
+  return edges;
+}
+
+function waitingHouses(cursor: Cursor, processing: NodeId | null) {
+  return NODES.filter((id) => {
+    const time = cursor.answers[id];
+    return time !== null && time !== -1 && !cursor.processed.includes(id) && id !== processing;
+  });
+}
+
+function makeStep(
+  cursor: Cursor,
+  processing: NodeId | null,
+  partial: Pick<Step, "kind" | "focus" | "edge" | "edgeTone" | "description">,
+): Step {
+  return {
+    ...partial,
+    answers: [...cursor.answers],
+    kept: keptEdges(cursor.parent),
+    processing,
+    processed: [...cursor.processed],
+    updated: waitingHouses(cursor, processing),
+    cursor,
+  };
+}
+
+function noRoadLeft(cursor: Cursor, target: NodeId, current: NodeId) {
+  return neighborsOf(target).every(({ to }) => {
+    if (to === current || cursor.processed.includes(to)) return true;
+    const time = cursor.answers[to];
+    return time === null || time === -1;
+  });
+}
+
+function formatTimes(answers: Answers) {
+  return answers.map((value) => (value === null || value === -1 ? "−1" : String(value))).join(", ");
+}
+
+function selectInto(base: Cursor, id: NodeId): Step {
+  const cursor = cloneCursor(base);
+  cursor.phase = "relax";
+  cursor.current = id;
+  cursor.edgeAt = 0;
+  if (cursor.answers[id] === null) cursor.answers[id] = 0;
+  const description =
+    id === 0
+      ? "An emergency team starts at the fire station at time 0. The station stays accessible until 20, so the earliest time is 0."
+      : `The next team goes to house ${id}.`;
+  return makeStep(cursor, id, {
+    kind: "select",
+    focus: id,
+    edge: null,
+    edgeTone: null,
+    description,
+  });
+}
+
+function initialStep(): Step {
+  const cursor: Cursor = {
+    answers: NODES.map(() => null),
+    processed: [],
+    parent: NODES.map(() => null),
+    phase: "ready",
+    current: null,
+    edgeAt: 0,
+  };
+  return makeStep(cursor, null, {
     kind: "setup",
-    answers: [null, null, null, null, null, null, null, null, null],
     focus: 0,
     edge: null,
     edgeTone: null,
-    kept: [],
     description:
       "A fire station dispatches emergency teams to houses across the city. Some houses become engulfed in flames and inaccessible. House 8 has no road to the others.",
-  },
-  {
-    kind: "select",
-    answers: [0, null, null, null, null, null, null, null, null],
-    focus: 0,
-    edge: null,
-    edgeTone: null,
-    kept: [],
-    description:
-      "An emergency team starts at the fire station at time 0. The station stays accessible until 20, so the earliest time is 0.",
-  },
-  {
-    kind: "reach",
-    answers: [0, 2, null, null, null, null, null, null, null],
-    focus: 1,
-    edge: { u: 0, v: 1 },
-    edgeTone: "success",
-    kept: [[0, 1]],
-    description:
-      "The road from the fire station to house 1 takes 2. The team arrives at 2, before the house is engulfed in flames at 4. The earliest time is 2.",
-  },
-  {
-    kind: "reach",
-    answers: [0, 2, 5, null, null, null, null, null, null],
-    focus: 2,
-    edge: { u: 0, v: 2 },
-    edgeTone: "success",
-    kept: [[0, 1], [0, 2]],
-    description:
-      "The road from the fire station to house 2 takes 5. The team arrives at 5, before the house is engulfed in flames at 8. The earliest time is 5.",
-  },
-  {
-    kind: "select",
-    answers: [0, 2, 5, null, null, null, null, null, null],
-    focus: 1,
-    edge: null,
-    edgeTone: null,
-    kept: [[0, 1], [0, 2]],
-    description:
-      "Emergency teams can reach house 1 at 2 and house 2 at 5. The next team is dispatched to house 1, the earlier of the two.",
-  },
-  {
-    kind: "reach",
-    answers: [0, 2, 3, null, null, null, null, null, null],
-    focus: 2,
-    edge: { u: 1, v: 2 },
-    edgeTone: "success",
-    kept: [[0, 1], [1, 2]],
-    description:
-      "From house 1, the road to house 2 takes 1. Arriving at 3 is earlier than 5, and the team still arrives before the house is engulfed in flames at 8.",
-  },
-  {
-    kind: "reach",
-    answers: [0, 2, 3, 6, null, null, null, null, null],
-    focus: 3,
-    edge: { u: 1, v: 3 },
-    edgeTone: "success",
-    kept: [[0, 1], [1, 2], [1, 3]],
-    description:
-      "From house 1, the road to house 3 takes 4. The team arrives at 6, before the house is engulfed in flames at 10. The earliest time is 6.",
-  },
-  {
-    kind: "select",
-    answers: [0, 2, 3, 6, null, null, null, null, null],
-    focus: 2,
-    edge: null,
-    edgeTone: null,
-    kept: [[0, 1], [1, 2], [1, 3]],
-    description:
-      "Emergency teams can reach house 2 at 3 and house 3 at 6. The next team is dispatched to house 2, the earlier of the two.",
-  },
-  {
-    kind: "reach",
-    answers: [0, 2, 3, 5, null, null, null, null, null],
-    focus: 3,
-    edge: { u: 2, v: 3 },
-    edgeTone: "success",
-    kept: [[0, 1], [1, 2], [2, 3]],
-    description:
-      "From house 2, the road to house 3 takes 2. Arriving at 5 is earlier than 6, and the team still arrives before the house is engulfed in flames at 10.",
-  },
-  {
-    kind: "miss",
-    answers: [0, 2, 3, 5, null, null, null, null, null],
-    focus: 4,
-    edge: { u: 2, v: 4 },
-    edgeTone: "fail",
-    kept: [[0, 1], [1, 2], [2, 3]],
-    description:
-      "From house 2, the road to house 4 takes 6. The team would arrive at 9, just as the house is engulfed in flames, so it is inaccessible.",
-  },
-  {
-    kind: "select",
-    answers: [0, 2, 3, 5, null, null, null, null, null],
-    focus: 3,
-    edge: null,
-    edgeTone: null,
-    kept: [[0, 1], [1, 2], [2, 3]],
-    description:
-      "House 3 is the only house an emergency team can still reach, at time 5. The next team is dispatched there.",
-  },
-  {
-    kind: "reach",
-    answers: [0, 2, 3, 5, 6, null, null, null, null],
-    focus: 4,
-    edge: { u: 3, v: 4 },
-    edgeTone: "success",
-    kept: [[0, 1], [1, 2], [2, 3], [3, 4]],
-    description:
-      "From house 3, the road to house 4 takes 1. The team arrives at 6, before the house is engulfed in flames at 9. The earliest time is 6.",
-  },
-  {
-    kind: "reach",
-    answers: [0, 2, 3, 5, 6, 10, null, null, null],
-    focus: 5,
-    edge: { u: 3, v: 5 },
-    edgeTone: "success",
-    kept: [[0, 1], [1, 2], [2, 3], [3, 4], [3, 5]],
-    description:
-      "From house 3, the road to house 5 takes 5. The team arrives at 10, before the house is engulfed in flames at 12. The earliest time is 10.",
-  },
-  {
-    kind: "select",
-    answers: [0, 2, 3, 5, 6, 10, null, null, null],
-    focus: 4,
-    edge: null,
-    edgeTone: null,
-    kept: [[0, 1], [1, 2], [2, 3], [3, 4], [3, 5]],
-    description:
-      "Emergency teams can reach house 4 at 6 and house 5 at 10. The next team is dispatched to house 4, the earlier of the two.",
-  },
-  {
-    kind: "reach",
-    answers: [0, 2, 3, 5, 6, 8, null, null, null],
-    focus: 5,
-    edge: { u: 4, v: 5 },
-    edgeTone: "success",
-    kept: [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5]],
-    description:
-      "From house 4, the road to house 5 takes 2. Arriving at 8 is earlier than 10, and the team still arrives before the house is engulfed in flames at 12.",
-  },
-  {
-    kind: "miss",
-    answers: [0, 2, 3, 5, 6, 8, null, null, null],
-    focus: 6,
-    edge: { u: 4, v: 6 },
-    edgeTone: "fail",
-    kept: [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5]],
-    description:
-      "From house 4, the road to house 6 takes 3. The team would arrive at 9, just as the house is engulfed in flames, so it is inaccessible.",
-  },
-  {
-    kind: "select",
-    answers: [0, 2, 3, 5, 6, 8, null, null, null],
-    focus: 5,
-    edge: null,
-    edgeTone: null,
-    kept: [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5]],
-    description:
-      "House 5 is the only house an emergency team can still reach, at time 8. The next team is dispatched there.",
-  },
-  {
-    kind: "miss",
-    answers: [0, 2, 3, 5, 6, 8, -1, null, null],
-    focus: 6,
-    edge: { u: 5, v: 6 },
-    edgeTone: "fail",
-    kept: [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5]],
-    description:
-      "From house 5, the road to house 6 takes 2. The team would arrive at 10, after the house was engulfed in flames at 9. It is inaccessible, so the earliest time is −1.",
-  },
-  {
-    kind: "miss",
-    answers: [0, 2, 3, 5, 6, 8, -1, -1, null],
-    focus: 7,
-    edge: { u: 5, v: 7 },
-    edgeTone: "fail",
-    kept: [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5]],
-    description:
-      "From house 5, the road to house 7 takes 4. The team would arrive at 12, just as the house is engulfed in flames. It is inaccessible, so the earliest time is −1.",
-  },
-  {
-    kind: "miss",
-    answers: [0, 2, 3, 5, 6, 8, -1, -1, -1],
-    focus: 8,
-    edge: null,
-    edgeTone: null,
-    kept: [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5]],
-    description:
-      "House 8 is engulfed in flames at 15, but no road connects it to the others. No emergency team can reach it, so the earliest time is −1.",
-  },
-  {
-    kind: "done",
-    answers: [0, 2, 3, 5, 6, 8, -1, -1, -1],
-    focus: 0,
-    edge: null,
-    edgeTone: null,
-    kept: [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5]],
-    description:
-      "The earliest time an emergency team can reach each house is [0, 2, 3, 5, 6, 8, −1, −1, −1].",
-  },
-];
+  });
+}
 
-const STATUS: { processing: NodeId | null; processed: NodeId[]; updated: NodeId[] }[] = [
-  { processing: null, processed: [], updated: [] },
-  { processing: 0, processed: [], updated: [] },
-  { processing: 0, processed: [], updated: [1] },
-  { processing: 0, processed: [], updated: [1, 2] },
-  { processing: 1, processed: [0], updated: [2] },
-  { processing: 1, processed: [0], updated: [2] },
-  { processing: 1, processed: [0], updated: [2, 3] },
-  { processing: 2, processed: [0, 1], updated: [3] },
-  { processing: 2, processed: [0, 1], updated: [3] },
-  { processing: 2, processed: [0, 1], updated: [3] },
-  { processing: 3, processed: [0, 1, 2], updated: [] },
-  { processing: 3, processed: [0, 1, 2], updated: [4] },
-  { processing: 3, processed: [0, 1, 2], updated: [4, 5] },
-  { processing: 4, processed: [0, 1, 2, 3], updated: [5] },
-  { processing: 4, processed: [0, 1, 2, 3], updated: [5] },
-  { processing: 4, processed: [0, 1, 2, 3], updated: [5] },
-  { processing: 5, processed: [0, 1, 2, 3, 4], updated: [] },
-  { processing: 5, processed: [0, 1, 2, 3, 4], updated: [] },
-  { processing: 5, processed: [0, 1, 2, 3, 4], updated: [] },
-  { processing: null, processed: [0, 1, 2, 3, 4, 5], updated: [] },
-  { processing: null, processed: [0, 1, 2, 3, 4, 5], updated: [] },
-];
+function readyMove(cursor: Cursor): Move {
+  if (cursor.answers.every((time) => time === null)) return { type: "step", step: selectInto(cursor, 0) };
+  const waiting = waitingHouses(cursor, null);
+  if (waiting.length >= 2) {
+    return {
+      type: "choice",
+      cursor,
+      options: waiting.map((id) => ({ id, time: cursor.answers[id] as number })),
+    };
+  }
+  if (waiting.length === 1) return { type: "step", step: selectInto(cursor, waiting[0]) };
+  const untouched = NODES.find((id) => cursor.answers[id] === null);
+  if (untouched === undefined) {
+    cursor.phase = "done";
+    return {
+      type: "step",
+      step: makeStep(cursor, null, {
+        kind: "done",
+        focus: 0,
+        edge: null,
+        edgeTone: null,
+        description: `The earliest time an emergency team can reach each house is [${formatTimes(cursor.answers)}].`,
+      }),
+    };
+  }
+  cursor.answers[untouched] = -1;
+  const alone = neighborsOf(untouched).length === 0;
+  return {
+    type: "step",
+    step: makeStep(cursor, null, {
+      kind: "miss",
+      focus: untouched,
+      edge: null,
+      edgeTone: null,
+      description: alone
+        ? `House ${untouched} is engulfed in flames at ${DISAPPEAR[untouched]}, but no road connects it to the others. No emergency team can reach it, so the earliest time is −1.`
+        : `No open road can reach house ${untouched} before it is engulfed in flames at ${DISAPPEAR[untouched]}. The earliest time is −1.`,
+    }),
+  };
+}
+
+function nextMove(step: Step): Move {
+  if (step.kind === "done") return { type: "step", step };
+  const cursor = cloneCursor(step.cursor);
+  if (cursor.phase === "ready") return readyMove(cursor);
+  const current = cursor.current;
+  if (current === null) return readyMove(cursor);
+  const roads = neighborsOf(current);
+  while (cursor.edgeAt < roads.length) {
+    const road = roads[cursor.edgeAt];
+    cursor.edgeAt += 1;
+    const arrival = (cursor.answers[current] as number) + road.w;
+    const known = cursor.answers[road.to];
+    const settled = cursor.processed.includes(road.to);
+    if (settled && (known === null || known === -1 || arrival >= known)) continue;
+    const edge = { u: current, v: road.to };
+    const from = current === 0 ? "From the fire station" : `From house ${current}`;
+    if (known !== null && known !== -1 && arrival >= known) {
+      const comparison = arrival > known ? "later than" : "no earlier than";
+      return {
+        type: "step",
+        step: makeStep(cursor, current, {
+          kind: "blocked",
+          focus: road.to,
+          edge,
+          edgeTone: null,
+          description: `${from}, the road to house ${road.to} takes ${road.w}. Arriving at ${arrival} is ${comparison} the time already known, ${known}, so the earliest time stays ${known}.`,
+        }),
+      };
+    }
+    if (arrival >= DISAPPEAR[road.to]) {
+      const moment = arrival === DISAPPEAR[road.to] ? "just as" : "after";
+      const closed =
+        (known === null || known === -1) && noRoadLeft(cursor, road.to, current);
+      if (closed) cursor.answers[road.to] = -1;
+      const description = closed
+        ? `${from}, the road to house ${road.to} takes ${road.w}. The team would arrive at ${arrival}, ${moment} the house is engulfed in flames at ${DISAPPEAR[road.to]}. It is inaccessible, so the earliest time is −1.`
+        : `${from}, the road to house ${road.to} takes ${road.w}. The team would arrive at ${arrival}, ${moment} the house is engulfed in flames at ${DISAPPEAR[road.to]}, so it is inaccessible.`;
+      return {
+        type: "step",
+        step: makeStep(cursor, current, {
+          kind: "miss",
+          focus: road.to,
+          edge,
+          edgeTone: "fail",
+          description,
+        }),
+      };
+    }
+    if (known === null || known === -1 || arrival < known) {
+      const previous = known;
+      cursor.answers[road.to] = arrival;
+      cursor.parent[road.to] = current;
+      if (settled) cursor.processed = cursor.processed.filter((id) => id !== road.to);
+      const description =
+        previous === null || previous === -1
+          ? current === 0
+            ? `The road from the fire station to house ${road.to} takes ${road.w}. The team arrives at ${arrival}, before the house is engulfed in flames at ${DISAPPEAR[road.to]}. The earliest time is ${arrival}.`
+            : `From house ${current}, the road to house ${road.to} takes ${road.w}. The team arrives at ${arrival}, before the house is engulfed in flames at ${DISAPPEAR[road.to]}. The earliest time is ${arrival}.`
+          : `From house ${current}, the road to house ${road.to} takes ${road.w}. Arriving at ${arrival} is earlier than ${previous}, and the team still arrives before the house is engulfed in flames at ${DISAPPEAR[road.to]}.`;
+      return {
+        type: "step",
+        step: makeStep(cursor, current, {
+          kind: "reach",
+          focus: road.to,
+          edge,
+          edgeTone: "success",
+          description,
+        }),
+      };
+    }
+  }
+  if (!cursor.processed.includes(current)) cursor.processed = [...cursor.processed, current];
+  cursor.phase = "ready";
+  cursor.current = null;
+  cursor.edgeAt = 0;
+  return readyMove(cursor);
+}
 
 const KIND_META: Record<
   StepKind,
@@ -353,19 +353,18 @@ const UPDATED: NodePaint = { fill: "#eff6ff", roof: "#bfdbfe", stroke: "#3b82f6"
 const MISSED: NodePaint = { fill: "#fff1f2", roof: "#fecdd3", stroke: "#f43f5e", text: "#881337", subText: "#be123c" };
 const IDLE: NodePaint = { fill: "#ffffff", roof: "#f3f4f6", stroke: "#e5e7eb", text: "#374151", subText: "#9ca3af" };
 
-function nodePaint(id: NodeId, step: Step, stepIndex: number): NodePaint {
-  const status = STATUS[stepIndex];
-  if (status.processing === id) return PROCESSING;
-  if (status.processed.includes(id)) return PROCESSED;
-  if (status.updated.includes(id)) return UPDATED;
+function nodePaint(id: NodeId, step: Step): NodePaint {
+  if (step.processing === id) return PROCESSING;
+  if (step.processed.includes(id)) return PROCESSED;
+  if (step.updated.includes(id)) return UPDATED;
   if (step.answers[id] === -1) return MISSED;
   return IDLE;
 }
 
-function noteAppearance(step: Step, stepIndex: number) {
+function noteAppearance(step: Step) {
   const base = KIND_META[step.kind];
   if (step.kind === "miss" || step.kind === "blocked") return base;
-  const paint = nodePaint(step.focus, step, stepIndex);
+  const paint = nodePaint(step.focus, step);
   if (paint === UPDATED) {
     return {
       ...base,
@@ -393,15 +392,14 @@ function sameEdge(a: NodeId, b: NodeId, u: NodeId, v: NodeId) {
   return (a === u && b === v) || (a === v && b === u);
 }
 
-function edgeRole(u: NodeId, v: NodeId, step: Step, stepIndex: number) {
+function edgeRole(u: NodeId, v: NodeId, step: Step) {
   const active = step.edge !== null && sameEdge(u, v, step.edge.u, step.edge.v);
   if (active && step.edgeTone === "fail") return "fail" as const;
   const kept = step.kept.find(([a, b]) => sameEdge(a, b, u, v));
   if (!kept) return "idle" as const;
   const child = kept[1];
-  const status = STATUS[stepIndex];
-  if (status.processing === child) return "processing" as const;
-  return status.updated.includes(child) ? ("updated" as const) : ("processed" as const);
+  if (step.processing === child) return "processing" as const;
+  return step.updated.includes(child) ? ("updated" as const) : ("processed" as const);
 }
 
 const TOWER_W = 28;
@@ -493,22 +491,73 @@ function edgeGeometry(u: NodeId, v: NodeId) {
 }
 
 export default function DisappearingNodesVisualizer() {
+  const [history, setHistory] = useState<Step[]>(() => [initialStep()]);
   const [index, setIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [pendingChoice, setPendingChoice] = useState<Move | null>(null);
+  const [resumeAfter, setResumeAfter] = useState(false);
+  const historyRef = useRef(history);
+  const indexRef = useRef(index);
+  const pendingRef = useRef(pendingChoice);
+  const resumeRef = useRef(resumeAfter);
+  historyRef.current = history;
+  indexRef.current = index;
+  pendingRef.current = pendingChoice;
+  resumeRef.current = resumeAfter;
 
-  const isDone = index >= STEPS.length - 1;
-  const step = STEPS[index];
-  const kindMeta = noteAppearance(step, index);
+  const step = history[index];
+  const isDone = step.kind === "done";
+  const kindMeta = noteAppearance(step);
   const KindIcon = kindMeta.icon;
+  const choices = pendingChoice?.type === "choice" ? pendingChoice.options : null;
+
+  function commit(frames: Step[], at: number) {
+    historyRef.current = frames;
+    indexRef.current = at;
+    setHistory(frames);
+    setIndex(at);
+  }
+
+  function advance(fromPlaying: boolean) {
+    if (pendingRef.current) return;
+    const frames = historyRef.current;
+    const at = indexRef.current;
+    const current = frames[at];
+    if (!current || current.kind === "done") return;
+    const move = nextMove(current);
+    if (move.type === "choice") {
+      pendingRef.current = move;
+      setPendingChoice(move);
+      resumeRef.current = fromPlaying;
+      setResumeAfter(fromPlaying);
+      setIsPlaying(false);
+      return;
+    }
+    pendingRef.current = null;
+    commit([...frames.slice(0, at + 1), move.step], at + 1);
+  }
+
+  function chooseHouse(id: NodeId) {
+    const pending = pendingRef.current;
+    if (pending?.type !== "choice") return;
+    const selected = selectInto(pending.cursor, id);
+    const resume = resumeRef.current;
+    pendingRef.current = null;
+    setPendingChoice(null);
+    resumeRef.current = false;
+    setResumeAfter(false);
+    commit([...historyRef.current.slice(0, indexRef.current + 1), selected], indexRef.current + 1);
+    if (resume) setIsPlaying(true);
+  }
 
   useEffect(() => {
-    if (!isPlaying || isDone) return;
-    const timer = setTimeout(() => setIndex((value) => value + 1), 2200);
+    if (!isPlaying || isDone || pendingChoice) return;
+    const timer = setTimeout(() => advance(true), 2200);
     return () => clearTimeout(timer);
-  }, [isPlaying, isDone, index]);
+  }, [isPlaying, isDone, index, pendingChoice, history]);
 
   return (
-    <div className="not-prose mt-5 mb-10 overflow-hidden rounded-2xl border border-gray-200 bg-white">
+    <div className="not-prose relative mt-5 mb-10 overflow-hidden rounded-2xl border border-gray-200 bg-white">
       <div className="border-b border-gray-100 bg-slate-50 px-4 py-3">
         <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
           <div>
@@ -546,7 +595,7 @@ export default function DisappearingNodesVisualizer() {
               aria-label="Fire station dispatching emergency teams to nine houses, along roads with different travel times, before the houses are engulfed in flames"
             >
               {EDGES.map((edge) => {
-                const role = edgeRole(edge.u, edge.v, step, index);
+                const role = edgeRole(edge.u, edge.v, step);
                 const active =
                   step.edge !== null && sameEdge(edge.u, edge.v, step.edge.u, step.edge.v);
                 const paint = roadStyle(role);
@@ -616,7 +665,7 @@ export default function DisappearingNodesVisualizer() {
               })}
 
               {NODES.map((id) => {
-                const paint = nodePaint(id, step, index);
+                const paint = nodePaint(id, step);
                 const { x, y } = POS[id];
                 const outline = houseOutline(id);
                 const wallTop = y - BODY_H / 2;
@@ -751,7 +800,7 @@ export default function DisappearingNodesVisualizer() {
               })}
 
               {EDGES.map((edge) => {
-                const role = edgeRole(edge.u, edge.v, step, index);
+                const role = edgeRole(edge.u, edge.v, step);
                 let stroke = "#e5e7eb";
                 let text = "#4b5563";
                 let fill = "#ffffff";
@@ -798,6 +847,36 @@ export default function DisappearingNodesVisualizer() {
                 );
               })}
             </svg>
+            {choices && (
+              <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/75 p-4">
+                <div
+                  role="dialog"
+                  aria-modal="true"
+                  aria-labelledby="next-house-title"
+                  className="w-full max-w-sm rounded-2xl border border-gray-200 bg-white p-4 shadow-lg"
+                >
+                  <h3 id="next-house-title" className="text-sm font-semibold text-gray-900">
+                    Which house should the next team go to?
+                  </h3>
+                  <p className="mt-1 text-[13px] leading-snug text-gray-500">
+                    More than one house can already be reached. Choose the house the next team should visit.
+                  </p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {choices.map((choice) => (
+                      <button
+                        key={choice.id}
+                        type="button"
+                        onClick={() => chooseHouse(choice.id)}
+                        className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3.5 py-1.5 text-sm font-medium text-gray-800 transition-all hover:border-gray-300 hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-200 active:scale-[0.97]"
+                      >
+                        House {choice.id}
+                        <span className="font-mono text-[12px] text-gray-500">time {choice.time}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -820,8 +899,14 @@ export default function DisappearingNodesVisualizer() {
           <button
             type="button"
             onClick={() => {
+              if (pendingChoice) return;
               if (isDone) {
-                setIndex(0);
+                const start = [initialStep()];
+                pendingRef.current = null;
+                resumeRef.current = false;
+                commit(start, 0);
+                setPendingChoice(null);
+                setResumeAfter(false);
                 setIsPlaying(true);
                 return;
               }
@@ -835,9 +920,20 @@ export default function DisappearingNodesVisualizer() {
           <button
             type="button"
             onClick={() => {
-              if (index > 0 && !isPlaying) setIndex((value) => value - 1);
+              if (isPlaying) return;
+              if (pendingRef.current) {
+                pendingRef.current = null;
+                resumeRef.current = false;
+                setPendingChoice(null);
+                setResumeAfter(false);
+                return;
+              }
+              if (indexRef.current > 0) {
+                indexRef.current -= 1;
+                setIndex(indexRef.current);
+              }
             }}
-            disabled={isPlaying || index === 0}
+            disabled={isPlaying || (index === 0 && !pendingChoice)}
             className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-3.5 py-1.5 text-sm font-medium text-gray-700 transition-all hover:border-gray-300 hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-200 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
           >
             <SkipBack size={14} /> Back
@@ -845,9 +941,9 @@ export default function DisappearingNodesVisualizer() {
           <button
             type="button"
             onClick={() => {
-              if (!isDone && !isPlaying) setIndex((value) => value + 1);
+              if (!isDone && !isPlaying) advance(false);
             }}
-            disabled={isPlaying || isDone}
+            disabled={isPlaying || isDone || pendingChoice !== null}
             className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-3.5 py-1.5 text-sm font-medium text-gray-700 transition-all hover:border-gray-300 hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-200 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
           >
             <SkipForward size={14} /> Step
@@ -855,8 +951,13 @@ export default function DisappearingNodesVisualizer() {
           <button
             type="button"
             onClick={() => {
-              setIndex(0);
+              const start = [initialStep()];
+              pendingRef.current = null;
+              resumeRef.current = false;
+              commit(start, 0);
               setIsPlaying(false);
+              setPendingChoice(null);
+              setResumeAfter(false);
             }}
             aria-label="Reset"
             className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-2.5 py-1.5 text-gray-500 transition-all hover:border-gray-300 hover:bg-gray-50 hover:text-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-200 active:scale-[0.97]"
@@ -868,11 +969,11 @@ export default function DisappearingNodesVisualizer() {
           <div className="relative h-1.5 flex-1 overflow-hidden rounded-full border border-gray-300 bg-white">
             <div
               className="absolute inset-y-0 left-0 bg-black transition-all duration-200"
-              style={{ width: `${(index / (STEPS.length - 1)) * 100}%` }}
+              style={{ width: `${isDone ? 100 : Math.min(92, ((index + 1) / 21) * 92)}%` }}
             />
           </div>
           <span className="text-[11px] font-medium tabular-nums text-gray-500">
-            {index + 1}/{STEPS.length}
+            {index + 1}
           </span>
         </div>
       </div>
