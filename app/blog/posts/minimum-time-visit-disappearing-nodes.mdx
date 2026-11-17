@@ -30,20 +30,76 @@ house becomes inaccessible.
 
 ### Basic Intuition
 
-We need to find the minimum time required to reach every node connected to the source node, provided it's 
-within the accepted theshold.
+1. We need to find the minimum time required to reach every node connected to the source node, 
+provided it is within the accepted threshold. 
 
-An improvement in one node's shortest path can lead to improvements in other nodes' shortest distances.
+2. An edge list is not an efficient representation for this problem, as it requires scanning the 
+entire list to identify the neighbours of a particular node. We can convert the edge list into 
+an adjacency list, which allows us to directly access the neighbours of a node.
+
+3. An improvement in one node's shortest path can lead to improvements in other nodes' shortest distances.
+Therefore, whenever we discover a shorter path to a node, we need to explore its neighbours again using the 
+updated distance.
 
 ---
 
 ### Naive Approach: Shortest Path Faster Algorithm
 
+We start from the source node and explore its neighbours. Whenever we find a shorter path 
+to a node, we add it to a **<span className="bg-emerald-300 rounded p-0.5">queue</span>** so that we can explore its neighbours using the updated distances.
 
+#### Algorithm
 
-#### Algorithm 
+```java
+1. Covert the input edge list into an adjacency list. Since the graph is undirected, 
+   add each edge in both directions, so that each endpoint (node) is represented as 
+   a neighbour of the other.
 
-#### Implementation 
+2. Create an "answer" array of size "n", initializing the minimum travel time for each 
+   node to Infinity.
+3. Set the minimum time of the source node to 0 and add it to the queue.
+
+4. Continue processing until the queue becomes empty.
+    5. Remove the oldest node from the queue and retrieve its current minimum travel time.
+    6. Iterate over all outgoing neigbours of the current node along with their corresponding
+       edge weights.
+        7. For each neighbour, calculate the minimum travel time required to reach it through the 
+           current node: "newTime = answer[currentNode] + edgeWeight". 
+        8. If "newTime" is smaller than the existing minimum travel time of the neighbour and denotes
+           not exceed the threshold, update its minimum travel time add the neighbour to the queue.
+
+8. Replace the minimum travel time for all unreachable nodes from Infinity to -1.
+9. Return the "answer" array.
+```
+
+#### Implementation
+
+```java
+public int[] minimumTime(int n, int[][] edges, int[] disappear) {
+
+    // Step 1: Convert the input edges list to adjacency list.
+    List<int[]>[] graph = new ArrayList<>[n];
+    for (int i = 0; i < n; i++) {
+        graph[i] = new ArrayList<>();
+    }
+
+    for (int[] edge :  edges) {
+
+        int u = edge[0];
+        int v = edge[1];
+        int weight = edge[2];
+
+        graph[u].add(new int[]{v, weight});
+        graph[v].add(new int[]{u, weight});
+    }
+
+    // Step 2: Create an answer array
+    int[] answer = new int[n];
+    Arrays.fill(answer, Math.MAX_VALUE);
+    
+
+}
+```
 
 #### Time Complexity 
 
