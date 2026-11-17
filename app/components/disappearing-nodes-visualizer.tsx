@@ -75,7 +75,7 @@ const STEPS: Step[] = [
     edgeTone: null,
     kept: [],
     description:
-      "A fire brigade leaves the fire station and must reach each house before it is engulfed. House 8 has no road to the others.",
+      "A fire station dispatches emergency teams to houses across the city. Some houses become engulfed in flames and inaccessible. House 8 has no road to the others.",
   },
   {
     kind: "select",
@@ -85,7 +85,7 @@ const STEPS: Step[] = [
     edgeTone: null,
     kept: [],
     description:
-      "The brigade starts at the fire station at time 0. The station stays reachable until 20, so the earliest arrival is 0.",
+      "An emergency team starts at the fire station at time 0. The station stays accessible until 20, so the earliest time is 0.",
   },
   {
     kind: "reach",
@@ -95,7 +95,7 @@ const STEPS: Step[] = [
     edgeTone: "success",
     kept: [[0, 1]],
     description:
-      "The road from the fire station to house 1 takes 2. Arriving at 2 is before house 1 is engulfed at 4, so the earliest arrival is 2.",
+      "The road from the fire station to house 1 takes 2. The team arrives at 2, before the house is engulfed in flames at 4. The earliest time is 2.",
   },
   {
     kind: "reach",
@@ -105,7 +105,7 @@ const STEPS: Step[] = [
     edgeTone: "success",
     kept: [[0, 1], [0, 2]],
     description:
-      "The road from the fire station to house 2 takes 5. Arriving at 5 is before house 2 is engulfed at 8, so the earliest arrival is 5.",
+      "The road from the fire station to house 2 takes 5. The team arrives at 5, before the house is engulfed in flames at 8. The earliest time is 5.",
   },
   {
     kind: "select",
@@ -115,7 +115,7 @@ const STEPS: Step[] = [
     edgeTone: null,
     kept: [[0, 1], [0, 2]],
     description:
-      "The brigade can reach house 1 at 2 and house 2 at 5. It heads to house 1 next, the sooner of the two.",
+      "Emergency teams can reach house 1 at 2 and house 2 at 5. The next team is dispatched to house 1, the earlier of the two.",
   },
   {
     kind: "reach",
@@ -125,7 +125,7 @@ const STEPS: Step[] = [
     edgeTone: "success",
     kept: [[0, 1], [1, 2]],
     description:
-      "From house 1, the road to house 2 takes 1. Arriving at 3 is earlier than 5, and still before the house is engulfed at 8.",
+      "From house 1, the road to house 2 takes 1. Arriving at 3 is earlier than 5, and the team still arrives before the house is engulfed in flames at 8.",
   },
   {
     kind: "reach",
@@ -135,7 +135,7 @@ const STEPS: Step[] = [
     edgeTone: "success",
     kept: [[0, 1], [1, 2], [1, 3]],
     description:
-      "From house 1, the road to house 3 takes 4. Arriving at 6 is before house 3 is engulfed at 10, so the earliest arrival is 6.",
+      "From house 1, the road to house 3 takes 4. The team arrives at 6, before the house is engulfed in flames at 10. The earliest time is 6.",
   },
   {
     kind: "select",
@@ -145,7 +145,7 @@ const STEPS: Step[] = [
     edgeTone: null,
     kept: [[0, 1], [1, 2], [1, 3]],
     description:
-      "The brigade can reach house 2 at 3 and house 3 at 6. It heads to house 2 next, the sooner of the two.",
+      "Emergency teams can reach house 2 at 3 and house 3 at 6. The next team is dispatched to house 2, the earlier of the two.",
   },
   {
     kind: "reach",
@@ -155,7 +155,7 @@ const STEPS: Step[] = [
     edgeTone: "success",
     kept: [[0, 1], [1, 2], [2, 3]],
     description:
-      "From house 2, the road to house 3 takes 2. Arriving at 5 is earlier than 6, and still before the house is engulfed at 10.",
+      "From house 2, the road to house 3 takes 2. Arriving at 5 is earlier than 6, and the team still arrives before the house is engulfed in flames at 10.",
   },
   {
     kind: "miss",
@@ -165,7 +165,7 @@ const STEPS: Step[] = [
     edgeTone: "fail",
     kept: [[0, 1], [1, 2], [2, 3]],
     description:
-      "From house 2, the road to house 4 takes 6. The brigade would arrive at 9, just as house 4 is engulfed, so this route does not count.",
+      "From house 2, the road to house 4 takes 6. The team would arrive at 9, just as the house is engulfed in flames, so it is inaccessible.",
   },
   {
     kind: "select",
@@ -175,7 +175,7 @@ const STEPS: Step[] = [
     edgeTone: null,
     kept: [[0, 1], [1, 2], [2, 3]],
     description:
-      "House 3 is the only place left that the brigade can still reach, at time 5. They head there next.",
+      "House 3 is the only house an emergency team can still reach, at time 5. The next team is dispatched there.",
   },
   {
     kind: "reach",
@@ -185,7 +185,7 @@ const STEPS: Step[] = [
     edgeTone: "success",
     kept: [[0, 1], [1, 2], [2, 3], [3, 4]],
     description:
-      "From house 3, the road to house 4 takes 1. Arriving at 6 is before house 4 is engulfed at 9, so the earliest arrival is 6.",
+      "From house 3, the road to house 4 takes 1. The team arrives at 6, before the house is engulfed in flames at 9. The earliest time is 6.",
   },
   {
     kind: "reach",
@@ -195,7 +195,7 @@ const STEPS: Step[] = [
     edgeTone: "success",
     kept: [[0, 1], [1, 2], [2, 3], [3, 4], [3, 5]],
     description:
-      "From house 3, the road to house 5 takes 5. Arriving at 10 is before house 5 is engulfed at 12, so the earliest arrival is 10.",
+      "From house 3, the road to house 5 takes 5. The team arrives at 10, before the house is engulfed in flames at 12. The earliest time is 10.",
   },
   {
     kind: "select",
@@ -205,7 +205,7 @@ const STEPS: Step[] = [
     edgeTone: null,
     kept: [[0, 1], [1, 2], [2, 3], [3, 4], [3, 5]],
     description:
-      "The brigade can reach house 4 at 6 and house 5 at 10. It heads to house 4 next, the sooner of the two.",
+      "Emergency teams can reach house 4 at 6 and house 5 at 10. The next team is dispatched to house 4, the earlier of the two.",
   },
   {
     kind: "reach",
@@ -215,7 +215,7 @@ const STEPS: Step[] = [
     edgeTone: "success",
     kept: [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5]],
     description:
-      "From house 4, the road to house 5 takes 2. Arriving at 8 is earlier than 10, and still before the house is engulfed at 12.",
+      "From house 4, the road to house 5 takes 2. Arriving at 8 is earlier than 10, and the team still arrives before the house is engulfed in flames at 12.",
   },
   {
     kind: "miss",
@@ -225,7 +225,7 @@ const STEPS: Step[] = [
     edgeTone: "fail",
     kept: [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5]],
     description:
-      "From house 4, the road to house 6 takes 3. The brigade would arrive at 9, just as house 6 is engulfed, so this route does not count.",
+      "From house 4, the road to house 6 takes 3. The team would arrive at 9, just as the house is engulfed in flames, so it is inaccessible.",
   },
   {
     kind: "select",
@@ -235,7 +235,7 @@ const STEPS: Step[] = [
     edgeTone: null,
     kept: [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5]],
     description:
-      "House 5 is the only place left that the brigade can still reach, at time 8. They head there next.",
+      "House 5 is the only house an emergency team can still reach, at time 8. The next team is dispatched there.",
   },
   {
     kind: "miss",
@@ -245,7 +245,7 @@ const STEPS: Step[] = [
     edgeTone: "fail",
     kept: [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5]],
     description:
-      "From house 5, the road to house 6 takes 2. The brigade would arrive at 10, after house 6 was engulfed at 9. No safe route remains, so the answer is −1.",
+      "From house 5, the road to house 6 takes 2. The team would arrive at 10, after the house was engulfed in flames at 9. It is inaccessible, so the earliest time is −1.",
   },
   {
     kind: "miss",
@@ -255,7 +255,7 @@ const STEPS: Step[] = [
     edgeTone: "fail",
     kept: [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5]],
     description:
-      "From house 5, the road to house 7 takes 4. The brigade would arrive at 12, just as house 7 is engulfed, so this route does not count and the answer is −1.",
+      "From house 5, the road to house 7 takes 4. The team would arrive at 12, just as the house is engulfed in flames. It is inaccessible, so the earliest time is −1.",
   },
   {
     kind: "miss",
@@ -265,7 +265,7 @@ const STEPS: Step[] = [
     edgeTone: null,
     kept: [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5]],
     description:
-      "House 8 is engulfed at 15, but no road connects it to the others. The brigade cannot reach it, so the answer is −1.",
+      "House 8 is engulfed in flames at 15, but no road connects it to the others. No emergency team can reach it, so the earliest time is −1.",
   },
   {
     kind: "done",
@@ -275,7 +275,7 @@ const STEPS: Step[] = [
     edgeTone: null,
     kept: [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5]],
     description:
-      "The earliest safe arrivals from the fire station are [0, 2, 3, 5, 6, 8, −1, −1, −1].",
+      "The earliest time an emergency team can reach each house is [0, 2, 3, 5, 6, 8, −1, −1, −1].",
   },
 ];
 
@@ -308,13 +308,13 @@ const KIND_META: Record<
   { label: string; icon: LucideIcon; className: string; iconClass: string }
 > = {
   setup: {
-    label: "Route",
+    label: "Dispatch",
     icon: Info,
     className: "border-slate-200/70 bg-slate-50/90 text-slate-700",
     iconClass: "bg-slate-100 text-slate-600",
   },
   select: {
-    label: "Next stop",
+    label: "Next team",
     icon: CircleDot,
     className: "border-yellow-200/70 bg-yellow-50/90 text-yellow-950",
     iconClass: "bg-yellow-100 text-yellow-800",
@@ -326,7 +326,7 @@ const KIND_META: Record<
     iconClass: "bg-emerald-100 text-emerald-700",
   },
   miss: {
-    label: "Unsafe",
+    label: "Inaccessible",
     icon: X,
     className: "border-rose-200/70 bg-rose-50/90 text-rose-900",
     iconClass: "bg-rose-100 text-rose-700",
@@ -338,7 +338,7 @@ const KIND_META: Record<
     iconClass: "bg-amber-100 text-amber-700",
   },
   done: {
-    label: "Arrivals",
+    label: "Earliest",
     icon: Flag,
     className: "border-emerald-200/70 bg-emerald-50/90 text-emerald-900",
     iconClass: "bg-emerald-100 text-emerald-700",
@@ -399,8 +399,13 @@ function edgeRole(u: NodeId, v: NodeId, step: Step, stepIndex: number) {
   const kept = step.kept.find(([a, b]) => sameEdge(a, b, u, v));
   if (!kept) return "idle" as const;
   const child = kept[1];
-  return STATUS[stepIndex].updated.includes(child) ? ("updated" as const) : ("processed" as const);
+  const status = STATUS[stepIndex];
+  if (status.processing === child) return "processing" as const;
+  return status.updated.includes(child) ? ("updated" as const) : ("processed" as const);
 }
+
+const TOWER_W = 28;
+const TOWER_CAP = 8;
 
 function houseOutline(id: NodeId) {
   const { x, y } = POS[id];
@@ -408,6 +413,18 @@ function houseOutline(id: NodeId) {
   const right = x + NODE_W / 2;
   const wallTop = y - BODY_H / 2;
   const wallBottom = y + BODY_H / 2;
+  if (id === 0) {
+    const peakY = wallTop - ROOF_H;
+    return [
+      { x: left + TOWER_W / 2, y: peakY - TOWER_CAP },
+      { x: left + TOWER_W, y: peakY },
+      { x: left + TOWER_W, y: wallTop },
+      { x: right, y: wallTop },
+      { x: right, y: wallBottom },
+      { x: left, y: wallBottom },
+      { x: left, y: peakY },
+    ];
+  }
   return [
     { x, y: wallTop - ROOF_H },
     { x: right, y: wallTop },
@@ -440,6 +457,14 @@ function borderPoint(fromId: NodeId, to: { x: number; y: number }) {
     if (!closest || t < closest.t) closest = { x: from.x + rx * t, y: from.y + ry * t, t };
   }
   return closest ?? from;
+}
+
+function roadStyle(role: "processed" | "processing" | "updated" | "fail" | "idle") {
+  if (role === "processed") return { curb: "#059669", asphalt: PROCESSED.stroke, dash: "#ffffff" };
+  if (role === "processing") return { curb: "#ca8a04", asphalt: PROCESSING.stroke, dash: "#ffffff" };
+  if (role === "updated") return { curb: "#2563eb", asphalt: UPDATED.stroke, dash: "#ffffff" };
+  if (role === "fail") return { curb: "#e11d48", asphalt: MISSED.stroke, dash: "#ffffff" };
+  return { curb: "#d1d5db", asphalt: IDLE.stroke, dash: "#f8fafc" };
 }
 
 function edgeGeometry(u: NodeId, v: NodeId) {
@@ -518,38 +543,75 @@ export default function DisappearingNodesVisualizer() {
               viewBox={`0 0 ${VB_W} ${VB_H}`}
               className="block h-auto w-full"
               role="img"
-              aria-label="Rescue route drawn as nine houses, the roads between them, and the times they become unsafe"
+              aria-label="Fire station dispatching emergency teams to nine houses, along roads with different travel times, before the houses are engulfed in flames"
             >
               {EDGES.map((edge) => {
                 const role = edgeRole(edge.u, edge.v, step, index);
                 const active =
                   step.edge !== null && sameEdge(edge.u, edge.v, step.edge.u, step.edge.v);
-                let stroke = "#e5e7eb";
-                let width = 1.75;
-                if (role === "processed") {
-                  stroke = "#10b981";
-                  width = active ? 3.25 : 2.75;
-                }
-                if (role === "updated") {
-                  stroke = "#3b82f6";
-                  width = active ? 3.25 : 2.75;
-                }
-                if (role === "fail") {
-                  stroke = "#f43f5e";
-                  width = 3.25;
-                }
+                const paint = roadStyle(role);
+                const width = active ? 16 : 13;
                 const { x1, y1, x2, y2 } = edgeGeometry(edge.u, edge.v);
+                const dx = x2 - x1;
+                const dy = y2 - y1;
+                const length = Math.hypot(dx, dy) || 1;
+                const ux = dx / length;
+                const uy = dy / length;
+                const tuck = 5;
+                const gap = 20;
+                const mid = length / 2;
+                const dashInset = 8;
+                const dashes =
+                  mid > gap + dashInset
+                    ? [
+                        {
+                          x1: x1 + ux * dashInset,
+                          y1: y1 + uy * dashInset,
+                          x2: x1 + ux * (mid - gap),
+                          y2: y1 + uy * (mid - gap),
+                        },
+                        {
+                          x1: x1 + ux * (mid + gap),
+                          y1: y1 + uy * (mid + gap),
+                          x2: x2 - ux * dashInset,
+                          y2: y2 - uy * dashInset,
+                        },
+                      ]
+                    : [];
                 return (
-                  <line
-                    key={`${edge.u}-${edge.v}`}
-                    x1={x1}
-                    y1={y1}
-                    x2={x2}
-                    y2={y2}
-                    stroke={stroke}
-                    strokeWidth={width}
-                    strokeLinecap="round"
-                  />
+                  <g key={`${edge.u}-${edge.v}`}>
+                    <line
+                      x1={x1 - ux * tuck}
+                      y1={y1 - uy * tuck}
+                      x2={x2 + ux * tuck}
+                      y2={y2 + uy * tuck}
+                      stroke={paint.curb}
+                      strokeWidth={width}
+                      strokeLinecap="butt"
+                    />
+                    <line
+                      x1={x1 - ux * tuck}
+                      y1={y1 - uy * tuck}
+                      x2={x2 + ux * tuck}
+                      y2={y2 + uy * tuck}
+                      stroke={paint.asphalt}
+                      strokeWidth={width - 4}
+                      strokeLinecap="butt"
+                    />
+                    {dashes.map((dash) => (
+                      <line
+                        key={`${dash.x1}-${dash.y1}`}
+                        x1={dash.x1}
+                        y1={dash.y1}
+                        x2={dash.x2}
+                        y2={dash.y2}
+                        stroke={paint.dash}
+                        strokeWidth={1.6}
+                        strokeDasharray="7 6"
+                        strokeLinecap="butt"
+                      />
+                    ))}
+                  </g>
                 );
               })}
 
@@ -558,6 +620,77 @@ export default function DisappearingNodesVisualizer() {
                 const { x, y } = POS[id];
                 const outline = houseOutline(id);
                 const wallTop = y - BODY_H / 2;
+                const wallBottom = y + BODY_H / 2;
+                const left = x - NODE_W / 2;
+                const right = x + NODE_W / 2;
+                if (id === 0) {
+                  const bayX = left + TOWER_W + (right - left - TOWER_W) / 2;
+                  const peakY = wallTop - ROOF_H;
+                  return (
+                    <g key={id}>
+                      <path d={outlinePath(outline)} fill={paint.fill} />
+                      <path
+                        d={outlinePath([outline[0], outline[1], outline[6]])}
+                        fill={paint.roof}
+                      />
+                      <rect
+                        x={left + TOWER_W}
+                        y={wallTop}
+                        width={right - left - TOWER_W}
+                        height={7}
+                        fill={paint.roof}
+                      />
+                      <path
+                        d={outlinePath(outline)}
+                        fill="none"
+                        stroke={paint.stroke}
+                        strokeWidth={2}
+                        strokeLinejoin="round"
+                      />
+                      <circle
+                        cx={left + TOWER_W / 2}
+                        cy={peakY + 16}
+                        r={4.5}
+                        fill={paint.roof}
+                        stroke={paint.stroke}
+                        strokeWidth={1.5}
+                      />
+                      <text
+                        x={bayX}
+                        y={wallTop + 22}
+                        textAnchor="middle"
+                        fontSize={16}
+                        fontWeight={700}
+                        fill={paint.text}
+                        fontFamily="var(--font-geist-sans), sans-serif"
+                      >
+                        {id}
+                      </text>
+                      <text
+                        x={bayX}
+                        y={wallTop + 38}
+                        textAnchor="middle"
+                        fontSize={10}
+                        fontWeight={600}
+                        fill={paint.subText}
+                        fontFamily="var(--font-geist-sans), sans-serif"
+                      >
+                        disappears at {DISAPPEAR[id]}
+                      </text>
+                      <text
+                        x={bayX}
+                        y={wallBottom - 8}
+                        textAnchor="middle"
+                        fontSize={13}
+                        fontWeight={700}
+                        fill={paint.text}
+                        fontFamily="var(--font-geist-mono), ui-monospace, monospace"
+                      >
+                        {formatAnswer(step.answers[id])}
+                      </text>
+                    </g>
+                  );
+                }
                 const roofRise = ROOF_H * (22 / (NODE_W / 2));
                 const chimneyTop = outline[0].y + roofRise - 12;
                 return (
@@ -623,21 +756,28 @@ export default function DisappearingNodesVisualizer() {
                 let text = "#4b5563";
                 let fill = "#ffffff";
                 if (role === "processed") {
-                  stroke = "#6ee7b7";
-                  fill = "#ecfdf5";
-                  text = "#047857";
+                  stroke = PROCESSED.stroke;
+                  fill = PROCESSED.fill;
+                  text = PROCESSED.subText;
+                }
+                if (role === "processing") {
+                  stroke = PROCESSING.stroke;
+                  fill = PROCESSING.fill;
+                  text = PROCESSING.subText;
                 }
                 if (role === "updated") {
-                  stroke = "#93c5fd";
-                  fill = "#eff6ff";
-                  text = "#1d4ed8";
+                  stroke = UPDATED.stroke;
+                  fill = UPDATED.fill;
+                  text = UPDATED.subText;
                 }
                 if (role === "fail") {
-                  stroke = "#fda4af";
-                  fill = "#fff1f2";
-                  text = "#be123c";
+                  stroke = MISSED.stroke;
+                  fill = MISSED.fill;
+                  text = MISSED.subText;
                 }
-                const { mx, my } = edgeGeometry(edge.u, edge.v);
+                const { x1, y1, x2, y2 } = edgeGeometry(edge.u, edge.v);
+                const mx = (x1 + x2) / 2;
+                const my = (y1 + y2) / 2;
                 const label = String(edge.w);
                 return (
                   <g key={`w-${edge.u}-${edge.v}`}>
