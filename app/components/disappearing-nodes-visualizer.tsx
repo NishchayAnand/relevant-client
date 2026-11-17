@@ -146,6 +146,104 @@ function formatTimes(answers: Answers) {
   return answers.map((value) => (value === null || value === -1 ? "−1" : String(value))).join(", ");
 }
 
+type Brigade = {
+  house: NodeId;
+  path: NodeId[];
+  arrivals: number[];
+};
+
+function edgeWeight(from: NodeId, to: NodeId) {
+  const edge = EDGES.find(
+    (road) => (road.u === from && road.v === to) || (road.u === to && road.v === from),
+  );
+  return edge?.w ?? 0;
+}
+
+function brigadesFor(step: Step): Brigade[] {
+  const reachable = NODES.filter((id) => {
+    const time = step.answers[id];
+    return id !== 0 && time !== null && time !== -1;
+  }).sort((a, b) => (step.answers[a] as number) - (step.answers[b] as number) || a - b);
+  return reachable.map((house) => {
+    const path: NodeId[] = [];
+    const seen = new Set<NodeId>();
+    let cursor: NodeId | null = house;
+    while (cursor !== null && !seen.has(cursor)) {
+      seen.add(cursor);
+      path.push(cursor);
+      cursor = step.cursor.parent[cursor];
+    }
+    path.reverse();
+    if (path[0] !== 0) path.unshift(0);
+    const arrivals = path.map((id) => (id === 0 ? 0 : (step.answers[id] as number)));
+    for (let index = 1; index < path.length; index += 1) {
+      const hop = edgeWeight(path[index - 1], path[index]);
+      if (hop > 0) arrivals[index] = arrivals[index - 1] + hop;
+    }
+    return { house, path, arrivals };
+  });
+}
+
+function brigadePose(route: Brigade, time: number, lane: number, lanes: number) {
+  const last = route.path.length - 1;
+  const maxTime = route.arrivals[last] ?? 0;
+  const t = Math.max(0, Math.min(time, maxTime));
+  const arrived = t >= maxTime - 0.02;
+  let segment = 0;
+  while (segment < last - 1 && t > route.arrivals[segment + 1]) segment += 1;
+  const start = route.arrivals[segment];
+  const end = route.arrivals[segment + 1] ?? start;
+  const span = end - start || 1;
+  const progress = Math.min(1, Math.max(0, (t - start) / span));
+  const from = POS[route.path[segment]];
+  const to = POS[route.path[segment + 1] ?? route.path[segment]];
+  const dx = to.x - from.x;
+  const dy = to.y - from.y;
+  const length = Math.hypot(dx, dy) || 1;
+  const along = arrived ? -74 : 0;
+  const side = arrived ? 16 : (lane - (lanes - 1) / 2) * 13;
+  return {
+    x: from.x + dx * progress + (dx / length) * along + (-dy / length) * side,
+    y: from.y + dy * progress + (dy / length) * along + (dx / length) * side,
+    angle: (Math.atan2(dy, dx) * 180) / Math.PI,
+  };
+}
+
+function idList(ids: NodeId[]) {
+  if (ids.length <= 1) return ids.join("");
+  if (ids.length === 2) return `${ids[0]} and ${ids[1]}`;
+  return `${ids.slice(0, -1).join(", ")}, and ${ids[ids.length - 1]}`;
+}
+
+function housePhrase(ids: NodeId[]) {
+  if (ids.length === 0) return "no house";
+  if (ids.length === 1) return `house ${ids[0]}`;
+  return `houses ${idList(ids)}`;
+}
+
+function dispatchDescription(step: Step, routes: Brigade[], clock: number) {
+  if (routes.length === 0) return "No approachable house can be reached from the fire station.";
+  const maxTime = Math.max(...routes.map((route) => route.arrivals[route.arrivals.length - 1] ?? 0));
+  const time = Math.min(clock, maxTime);
+  const reached = NODES.filter((id) => {
+    const arrival = step.answers[id];
+    return id !== 0 && arrival !== null && arrival !== -1 && arrival <= time + 0.04;
+  });
+  const missed = NODES.filter((id) => step.answers[id] === -1);
+  const fleet = routes.length === 1 ? "1 fire brigade" : `${routes.length} fire brigades`;
+  if (time + 0.02 >= maxTime) {
+    const closed = missed.length
+      ? ` ${missed.length === 1 ? "House" : "Houses"} ${idList(missed)} ${missed.length === 1 ? "stays" : "stay"} inaccessible.`
+      : "";
+    return `${fleet} followed the earliest roads, one to each approachable house, and reached ${housePhrase(reached)} in the time already found.${closed}`;
+  }
+  const arrived = reached.length
+    ? ` ${reached.length === 1 ? "House" : "Houses"} ${idList(reached)} ${reached.length === 1 ? "has" : "have"} been reached.`
+    : "";
+  const verb = routes.length === 1 ? "is driving" : "are driving";
+  return `${fleet} ${verb} from the station, one for each approachable house. Time ${time.toFixed(1)}.${arrived}`;
+}
+
 function selectInto(base: Cursor, id: NodeId): Step {
   const cursor = cloneCursor(base);
   cursor.phase = "relax";
@@ -392,14 +490,21 @@ function sameEdge(a: NodeId, b: NodeId, u: NodeId, v: NodeId) {
   return (a === u && b === v) || (a === v && b === u);
 }
 
+function houseRoadRole(id: NodeId, step: Step) {
+  if (step.processing === id) return "processing" as const;
+  if (step.updated.includes(id)) return "updated" as const;
+  if (step.answers[id] === -1) return "fail" as const;
+  if (step.processed.includes(id)) return "processed" as const;
+  return "idle" as const;
+}
+
 function edgeRole(u: NodeId, v: NodeId, step: Step) {
   const active = step.edge !== null && sameEdge(u, v, step.edge.u, step.edge.v);
   if (active && step.edgeTone === "fail") return "fail" as const;
   const kept = step.kept.find(([a, b]) => sameEdge(a, b, u, v));
-  if (!kept) return "idle" as const;
-  const child = kept[1];
-  if (step.processing === child) return "processing" as const;
-  return step.updated.includes(child) ? ("updated" as const) : ("processed" as const);
+  if (kept) return houseRoadRole(kept[1], step);
+  if (active && step.edge) return houseRoadRole(step.edge.v, step);
+  return "idle" as const;
 }
 
 const TOWER_W = 28;
@@ -496,6 +601,8 @@ export default function DisappearingNodesVisualizer() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [pendingChoice, setPendingChoice] = useState<Move | null>(null);
   const [resumeAfter, setResumeAfter] = useState(false);
+  const [dispatchRun, setDispatchRun] = useState(0);
+  const [clock, setClock] = useState<number | null>(null);
   const historyRef = useRef(history);
   const indexRef = useRef(index);
   const pendingRef = useRef(pendingChoice);
@@ -507,6 +614,9 @@ export default function DisappearingNodesVisualizer() {
 
   const step = history[index];
   const isDone = step.kind === "done";
+  const routes = isDone ? brigadesFor(step) : [];
+  const dispatchMax = routes.reduce((max, route) => Math.max(max, route.arrivals[route.arrivals.length - 1] ?? 0), 0);
+  const dispatching = isDone && clock !== null && clock + 0.02 < dispatchMax;
   const kindMeta = noteAppearance(step);
   const KindIcon = kindMeta.icon;
   const choices = pendingChoice?.type === "choice" ? pendingChoice.options : null;
@@ -555,6 +665,28 @@ export default function DisappearingNodesVisualizer() {
     const timer = setTimeout(() => advance(true), 2200);
     return () => clearTimeout(timer);
   }, [isPlaying, isDone, index, pendingChoice, history]);
+
+  useEffect(() => {
+    if (step.kind !== "done") {
+      setClock(null);
+      return;
+    }
+    const planned = brigadesFor(step);
+    const maxTime = planned.reduce((max, route) => Math.max(max, route.arrivals[route.arrivals.length - 1] ?? 0), 0);
+    let time = 0;
+    let last = performance.now();
+    let frame = 0;
+    setClock(0);
+    if (maxTime <= 0) return;
+    const tick = (now: number) => {
+      time = Math.min(maxTime, time + (now - last) / 680);
+      last = now;
+      setClock(time);
+      if (time < maxTime) frame = requestAnimationFrame(tick);
+    };
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, [step, dispatchRun]);
 
   return (
     <div className="not-prose relative mt-5 mb-10 overflow-hidden rounded-2xl border border-gray-200 bg-white">
@@ -846,6 +978,35 @@ export default function DisappearingNodesVisualizer() {
                   </g>
                 );
               })}
+              {isDone &&
+                clock !== null &&
+                routes.map((route, routeIndex) => {
+                  const pose = brigadePose(route, clock, routeIndex, routes.length);
+                  return (
+                    <g
+                      key={`brigade-${route.house}`}
+                      data-brigade={route.house}
+                      transform={`translate(${pose.x} ${pose.y}) rotate(${pose.angle})`}
+                    >
+                      <rect x={-12} y={-5.5} width={16} height={11} rx={2} fill="#dc2626" />
+                      <rect x={2} y={-5} width={8} height={10} rx={1.5} fill="#fff7ed" stroke="#dc2626" strokeWidth={1} />
+                      <rect x={-9} y={-8} width={7} height={2.4} rx={0.8} fill="#fbbf24" />
+                      <circle cx={-6} cy={5.5} r={2.1} fill="#111827" />
+                      <circle cx={5} cy={5.5} r={2.1} fill="#111827" />
+                      <text
+                        x={-4}
+                        y={1.5}
+                        textAnchor="middle"
+                        fontSize={8}
+                        fontWeight={700}
+                        fill="#fff7ed"
+                        fontFamily="var(--font-geist-sans), sans-serif"
+                      >
+                        {route.house}
+                      </text>
+                    </g>
+                  );
+                })}
             </svg>
             {choices && (
               <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/75 p-4">
@@ -891,6 +1052,7 @@ export default function DisappearingNodesVisualizer() {
         <div className="flex min-w-0 flex-col gap-0.5">
           <span className="text-[10px] font-semibold uppercase tracking-wide opacity-80">{kindMeta.label}</span>
           <span>{step.description}</span>
+          {isDone && clock !== null && <span>{dispatchDescription(step, routes, clock)}</span>}
         </div>
       </div>
 
@@ -917,6 +1079,18 @@ export default function DisappearingNodesVisualizer() {
             {isPlaying && !isDone ? <Pause size={14} strokeWidth={2.5} /> : <Play size={14} strokeWidth={2.5} />}
             {isDone ? "Replay" : isPlaying ? "Pause" : "Play"}
           </button>
+          {isDone && (
+            <button
+              type="button"
+              onClick={() => setDispatchRun((run) => run + 1)}
+              className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-3.5 py-1.5 text-sm font-medium text-gray-700 transition-all hover:border-gray-300 hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-200 active:scale-[0.97]"
+            >
+              {dispatching ? "Dispatching" : "Dispatch"}
+              {clock !== null && (
+                <span className="font-mono text-[12px] text-gray-500">time {Math.min(clock, dispatchMax).toFixed(1)}</span>
+              )}
+            </button>
+          )}
           <button
             type="button"
             onClick={() => {
