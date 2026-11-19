@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { KeyboardEvent, ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { Check, ChevronDown, Pause, Play, RotateCcw } from "lucide-react";
+import { Check, ChevronDown, Pause, Play, RotateCcw, SkipBack } from "lucide-react";
 
 const N = 9;
 const DISAPPEAR = [20, 4, 8, 10, 9, 12, 9, 12, 15];
@@ -369,7 +369,7 @@ function buildFrames(): Frame[] {
 
   begin();
   current = null;
-  snap(["signature"], "Call minimumTime with n = 9, the 13 roads, and disappear = [20, 4, 8, 10, 9, 12, 9, 12, 15].");
+  snap(["signature"], "Start with n = 9, the 13 roads, and disappear = [20, 4, 8, 10, 9, 12, 9, 12, 15].");
 
   begin();
   adj = Array.from({ length: N }, () => null);
@@ -400,7 +400,7 @@ function buildFrames(): Frame[] {
   begin();
   answer = Array(N).fill(Infinity);
   current = null;
-  snap(["answer-alloc", "answer-fill"], "answer has one slot per node, each filled with Integer.MAX_VALUE.");
+  snap(["answer-alloc", "answer-fill"], "answer has one slot per node, each filled with infinity.");
 
   begin();
   snap(["queue-create"], "queue is an empty FIFO list. A node can be offered again after a later improvement.");
@@ -415,7 +415,7 @@ function buildFrames(): Frame[] {
   queue.push(0);
   fresh = 0;
   current = 0;
-  snap(["offer-source"], "queue.offer(0). The queue is [0].");
+  snap(["offer-source"], "Offer 0. The queue is [0].");
 
   const readMarks: StepId[] = ["neighbour-for", "next", "edge-weight", "new-time", "relax-if", "relax-limit"];
 
@@ -467,7 +467,7 @@ function buildFrames(): Frame[] {
 
   begin();
   current = null;
-  snap(["while"], "queue.isEmpty() is true, so the loop ends.");
+  snap(["while"], "The queue is empty, so the loop ends.");
 
   for (let i = 0; i < N; i++) {
     begin();
@@ -478,7 +478,7 @@ function buildFrames(): Frame[] {
       updated = i;
       snap(
         ["return-for", "unreachable", "set-missing"],
-        `i = ${i}. answer[${i}] is still Integer.MAX_VALUE, so it becomes −1.`,
+        `i = ${i}. answer[${i}] is still infinity, so it becomes −1.`,
       );
     } else {
       snap(
@@ -707,12 +707,10 @@ export default function DisappearingNodesSpfaVisualizer() {
   }, [index, language]);
 
   return (
-    <div className="not-prose my-6 grid h-[680px] max-h-[680px] min-h-[680px] grid-rows-[52px_minmax(0,1fr)_64px] overflow-hidden rounded-2xl border border-gray-200 bg-white">
+    <div className="not-prose my-6 grid h-[680px] max-h-[680px] min-h-[680px] grid-rows-[52px_minmax(0,1fr)_52px_64px] overflow-hidden rounded-2xl border border-gray-200 bg-white">
       <div className="flex h-[52px] max-h-[52px] items-center gap-x-4 overflow-hidden border-b border-gray-100 px-4">
         <span className="text-[11px] font-medium uppercase tracking-wide text-neutral-400">Language</span>
         <LanguageMenu language={language} onChange={setLanguage} />
-        <span className="font-mono text-[12px] text-neutral-700">n = 9</span>
-        <span className="font-mono text-[12px] text-neutral-700">disappear = [20, 4, 8, 10, 9, 12, 9, 12, 15]</span>
       </div>
       <div className="grid min-h-0 grid-cols-1 overflow-hidden lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)] lg:divide-x lg:divide-gray-100">
         <div ref={scrollerRef} className="h-full min-h-0 min-w-0 overflow-x-auto overflow-y-auto bg-neutral-50 [scrollbar-gutter:stable]">
@@ -747,6 +745,11 @@ export default function DisappearingNodesSpfaVisualizer() {
         </div>
         <StatePanel frame={frame} />
       </div>
+      <div className="flex h-[52px] max-h-[52px] min-h-[52px] items-center overflow-hidden border-t border-gray-100 px-4">
+        <span className="line-clamp-2 text-[13px] leading-5 text-neutral-600" aria-live="polite">
+          {frame.note}
+        </span>
+      </div>
       <div className="flex h-16 max-h-16 min-h-16 items-center justify-between gap-3 overflow-hidden border-t border-gray-100 px-4">
         <div className="flex shrink-0 items-center gap-2">
           <button
@@ -775,6 +778,18 @@ export default function DisappearingNodesSpfaVisualizer() {
           >
             {playing && !done ? <Pause size={12} /> : <Play size={12} />}
             {done ? "Replay" : playing ? "Pause" : "Play"}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setPlaying(false);
+              setIndex((value) => Math.max(0, value - 1));
+            }}
+            disabled={playing || index === 0}
+            className="inline-flex items-center gap-1.5 rounded-full border border-neutral-200 px-3 py-1.5 text-xs font-medium text-neutral-800 hover:bg-neutral-50 disabled:opacity-60"
+          >
+            <SkipBack size={12} />
+            Back
           </button>
           <button
             type="button"
