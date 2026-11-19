@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { KeyboardEvent, ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { Check, ChevronDown, ChevronLeft, ChevronRight, Pause, Play, RotateCcw, SkipBack } from "lucide-react";
+import { Check, ChevronDown, ChevronLeft, ChevronRight, Maximize2, Minimize2, Pause, Play, RotateCcw, SkipBack } from "lucide-react";
 
 const N = 9;
 const DISAPPEAR = [20, 4, 8, 10, 9, 12, 9, 12, 15];
@@ -538,9 +538,11 @@ const LANGUAGES: { id: Language; label: string }[] = [
 function LanguageMenu({
   language,
   onChange,
+  portalRoot,
 }: {
   language: Language;
   onChange: (language: Language) => void;
+  portalRoot?: HTMLElement | null;
 }) {
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(language);
@@ -644,7 +646,7 @@ function LanguageMenu({
               );
             })}
           </div>,
-          document.body,
+          portalRoot ?? document.body,
         )
       : null;
 
@@ -681,6 +683,8 @@ export default function DisappearingNodesSpfaVisualizer() {
   const [playing, setPlaying] = useState(false);
   const [language, setLanguage] = useState<Language>("java");
   const [panelOpen, setPanelOpen] = useState(true);
+  const [fullscreen, setFullscreen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
   const scrollerRef = useRef<HTMLDivElement>(null);
   const lineRefs = useRef<(HTMLDivElement | null)[]>([]);
   const frame = FRAMES[index];
@@ -699,6 +703,37 @@ export default function DisappearingNodesSpfaVisualizer() {
   }, [done]);
 
   useEffect(() => {
+    function onChange() {
+      const doc = document as Document & { webkitFullscreenElement?: Element | null };
+      const current = document.fullscreenElement ?? doc.webkitFullscreenElement ?? null;
+      setFullscreen(current === rootRef.current);
+    }
+    document.addEventListener("fullscreenchange", onChange);
+    document.addEventListener("webkitfullscreenchange", onChange);
+    return () => {
+      document.removeEventListener("fullscreenchange", onChange);
+      document.removeEventListener("webkitfullscreenchange", onChange);
+    };
+  }, []);
+
+  function toggleFullscreen() {
+    const root = rootRef.current as (HTMLDivElement & { webkitRequestFullscreen?: () => void }) | null;
+    if (!root) return;
+    const doc = document as Document & {
+      webkitFullscreenElement?: Element | null;
+      webkitExitFullscreen?: () => void;
+    };
+    const current = document.fullscreenElement ?? doc.webkitFullscreenElement ?? null;
+    if (current) {
+      if (document.exitFullscreen) void document.exitFullscreen();
+      else doc.webkitExitFullscreen?.();
+      return;
+    }
+    if (root.requestFullscreen) void root.requestFullscreen();
+    else root.webkitRequestFullscreen?.();
+  }
+
+  useEffect(() => {
     const scroller = scrollerRef.current;
     const lines = FRAMES[index].marks.map((mark) => LINE_OF[language][mark]);
     const line = lineRefs.current[Math.min(...lines) - 1];
@@ -708,10 +743,22 @@ export default function DisappearingNodesSpfaVisualizer() {
   }, [index, language]);
 
   return (
-    <div className="not-prose my-6 grid h-[680px] max-h-[680px] min-h-[680px] grid-rows-[52px_minmax(0,1fr)_52px_64px] overflow-hidden rounded-2xl border border-gray-200 bg-white">
+    <div
+      ref={rootRef}
+      className="spfa-visualizer not-prose my-6 grid h-[680px] max-h-[680px] min-h-[680px] grid-rows-[52px_minmax(0,1fr)_52px_64px] overflow-hidden rounded-2xl border border-gray-200 bg-white"
+    >
       <div className="flex h-[52px] max-h-[52px] items-center gap-x-4 overflow-hidden border-b border-gray-100 px-4">
         <span className="text-[11px] font-medium uppercase tracking-wide text-neutral-400">Language</span>
-        <LanguageMenu language={language} onChange={setLanguage} />
+        <LanguageMenu language={language} onChange={setLanguage} portalRoot={fullscreen ? rootRef.current : null} />
+        <button
+          type="button"
+          aria-label={fullscreen ? "Exit full screen" : "Full screen"}
+          aria-pressed={fullscreen}
+          onClick={toggleFullscreen}
+          className="ml-auto inline-flex h-8 w-8 items-center justify-center rounded-lg border border-neutral-200 bg-white text-neutral-700 hover:border-neutral-300 hover:bg-neutral-50"
+        >
+          {fullscreen ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
+        </button>
       </div>
       <div
         className={`grid min-h-0 overflow-hidden ${
@@ -750,20 +797,20 @@ export default function DisappearingNodesSpfaVisualizer() {
             })}
           </div>
         </div>
-        {panelOpen ? (
-          <StatePanel frame={frame} onHide={() => setPanelOpen(false)} />
-        ) : (
+        <div className={`relative h-full min-h-0 min-w-0 ${panelOpen ? "" : "border-l border-gray-100 bg-white"}`}>
+          {panelOpen ? <StatePanel frame={frame} /> : null}
           <button
             type="button"
-            aria-label="Show visualization"
-            aria-expanded={false}
-            onClick={() => setPanelOpen(true)}
-            className="flex h-full w-10 flex-col items-center justify-center gap-3 border-l border-gray-100 bg-white text-neutral-500 hover:bg-neutral-50"
+            aria-label={panelOpen ? "Hide visualization" : "Show visualization"}
+            aria-expanded={panelOpen}
+            onClick={() => setPanelOpen((open) => !open)}
+            className={`absolute top-1/2 z-10 inline-flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full border border-gray-200 bg-white text-neutral-500 shadow-sm hover:bg-neutral-50 hover:text-neutral-800 ${
+              panelOpen ? "left-3 lg:left-0 lg:-translate-x-1/2" : "left-0 -translate-x-1/2"
+            }`}
           >
-            <ChevronLeft size={14} />
-            <span className="text-[10px] font-medium uppercase tracking-wide [writing-mode:vertical-rl]">Graph</span>
+            {panelOpen ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
           </button>
-        )}
+        </div>
       </div>
       <div className="flex h-[52px] max-h-[52px] min-h-[52px] items-center overflow-hidden border-t border-gray-100 px-4">
         <span className="line-clamp-2 text-[13px] leading-5 text-neutral-600" aria-live="polite">
@@ -823,42 +870,35 @@ export default function DisappearingNodesSpfaVisualizer() {
             Step
           </button>
         </div>
-        <span className="shrink-0 text-xs tabular-nums text-neutral-500">
-          {index + 1}/{FRAMES.length}
-        </span>
+        <div className="ml-auto flex shrink-0 items-center gap-3">
+          <div
+            className="relative h-1.5 w-36 overflow-hidden rounded-full border border-gray-200 bg-white"
+            role="progressbar"
+            aria-valuemin={1}
+            aria-valuemax={FRAMES.length}
+            aria-valuenow={index + 1}
+            aria-label="Dry run progress"
+          >
+            <div className="absolute inset-y-0 left-0 bg-black" style={{ width: `${((index + 1) / FRAMES.length) * 100}%` }} />
+          </div>
+          <span className="shrink-0 text-xs tabular-nums text-neutral-500">
+            {index + 1}/{FRAMES.length}
+          </span>
+        </div>
       </div>
     </div>
   );
 }
 
-function SectionLabel({ children, action }: { children: ReactNode; action?: ReactNode }) {
-  return (
-    <div className="flex items-center justify-between border-b border-gray-100 bg-neutral-50 px-3 py-1 font-mono text-[11px] text-neutral-500">
-      <span>{children}</span>
-      {action}
-    </div>
-  );
+function SectionLabel({ children }: { children: ReactNode }) {
+  return <div className="border-b border-gray-100 bg-neutral-50 px-3 py-1 font-mono text-[11px] text-neutral-500">{children}</div>;
 }
 
-function StatePanel({ frame, onHide }: { frame: Frame; onHide: () => void }) {
+function StatePanel({ frame }: { frame: Frame }) {
   return (
     <div className="grid h-full min-h-0 min-w-0 grid-rows-[minmax(0,1fr)_188px_168px] overflow-hidden">
       <section className="flex min-h-0 flex-col overflow-hidden">
-        <SectionLabel
-          action={
-            <button
-              type="button"
-              aria-label="Hide visualization"
-              aria-expanded={true}
-              onClick={onHide}
-              className="inline-flex h-5 w-5 items-center justify-center rounded text-neutral-400 hover:bg-white hover:text-neutral-700"
-            >
-              <ChevronRight size={14} />
-            </button>
-          }
-        >
-          nodes
-        </SectionLabel>
+        <SectionLabel>nodes</SectionLabel>
         <div className="relative min-h-0 flex-1">
           <Graph frame={frame} />
         </div>
