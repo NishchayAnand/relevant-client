@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { KeyboardEvent, ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { Check, ChevronDown, Pause, Play, RotateCcw, SkipBack } from "lucide-react";
+import { Check, ChevronDown, ChevronLeft, ChevronRight, Pause, Play, RotateCcw, SkipBack } from "lucide-react";
 
 const N = 9;
 const DISAPPEAR = [20, 4, 8, 10, 9, 12, 9, 12, 15];
@@ -680,6 +680,7 @@ export default function DisappearingNodesSpfaVisualizer() {
   const [index, setIndex] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [language, setLanguage] = useState<Language>("java");
+  const [panelOpen, setPanelOpen] = useState(true);
   const scrollerRef = useRef<HTMLDivElement>(null);
   const lineRefs = useRef<(HTMLDivElement | null)[]>([]);
   const frame = FRAMES[index];
@@ -712,7 +713,13 @@ export default function DisappearingNodesSpfaVisualizer() {
         <span className="text-[11px] font-medium uppercase tracking-wide text-neutral-400">Language</span>
         <LanguageMenu language={language} onChange={setLanguage} />
       </div>
-      <div className="grid min-h-0 grid-cols-1 overflow-hidden lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)] lg:divide-x lg:divide-gray-100">
+      <div
+        className={`grid min-h-0 overflow-hidden ${
+          panelOpen
+            ? "grid-cols-1 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)] lg:divide-x lg:divide-gray-100"
+            : "grid-cols-[minmax(0,1fr)_40px]"
+        }`}
+      >
         <div ref={scrollerRef} className="h-full min-h-0 min-w-0 overflow-x-auto overflow-y-auto bg-neutral-50 [scrollbar-gutter:stable]">
           <div className="w-max min-w-full py-2">
             {code.map((text, lineIndex) => {
@@ -743,7 +750,20 @@ export default function DisappearingNodesSpfaVisualizer() {
             })}
           </div>
         </div>
-        <StatePanel frame={frame} />
+        {panelOpen ? (
+          <StatePanel frame={frame} onHide={() => setPanelOpen(false)} />
+        ) : (
+          <button
+            type="button"
+            aria-label="Show visualization"
+            aria-expanded={false}
+            onClick={() => setPanelOpen(true)}
+            className="flex h-full w-10 flex-col items-center justify-center gap-3 border-l border-gray-100 bg-white text-neutral-500 hover:bg-neutral-50"
+          >
+            <ChevronLeft size={14} />
+            <span className="text-[10px] font-medium uppercase tracking-wide [writing-mode:vertical-rl]">Graph</span>
+          </button>
+        )}
       </div>
       <div className="flex h-[52px] max-h-[52px] min-h-[52px] items-center overflow-hidden border-t border-gray-100 px-4">
         <span className="line-clamp-2 text-[13px] leading-5 text-neutral-600" aria-live="polite">
@@ -811,15 +831,34 @@ export default function DisappearingNodesSpfaVisualizer() {
   );
 }
 
-function SectionLabel({ children }: { children: ReactNode }) {
-  return <div className="border-b border-gray-100 bg-neutral-50 px-3 py-1 font-mono text-[11px] text-neutral-500">{children}</div>;
+function SectionLabel({ children, action }: { children: ReactNode; action?: ReactNode }) {
+  return (
+    <div className="flex items-center justify-between border-b border-gray-100 bg-neutral-50 px-3 py-1 font-mono text-[11px] text-neutral-500">
+      <span>{children}</span>
+      {action}
+    </div>
+  );
 }
 
-function StatePanel({ frame }: { frame: Frame }) {
+function StatePanel({ frame, onHide }: { frame: Frame; onHide: () => void }) {
   return (
     <div className="grid h-full min-h-0 min-w-0 grid-rows-[minmax(0,1fr)_188px_168px] overflow-hidden">
       <section className="flex min-h-0 flex-col overflow-hidden">
-        <SectionLabel>nodes</SectionLabel>
+        <SectionLabel
+          action={
+            <button
+              type="button"
+              aria-label="Hide visualization"
+              aria-expanded={true}
+              onClick={onHide}
+              className="inline-flex h-5 w-5 items-center justify-center rounded text-neutral-400 hover:bg-white hover:text-neutral-700"
+            >
+              <ChevronRight size={14} />
+            </button>
+          }
+        >
+          nodes
+        </SectionLabel>
         <div className="relative min-h-0 flex-1">
           <Graph frame={frame} />
         </div>
