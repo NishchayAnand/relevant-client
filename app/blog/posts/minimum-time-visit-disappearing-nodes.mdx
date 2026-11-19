@@ -74,85 +74,8 @@ to a node, we add it to a **<span className="bg-emerald-300 rounded p-0.5">queue
 
 #### Implementation
 
-```java
-public int[] minimumTime(int n, int[][] edges, int[] disappear) {
+<DisappearingNodesSpfaVisualizer />
 
-    // Step 1: Build an adjacency list to effective access 
-    // the neighbours of each node.
-    List<int[]>[] graph = new ArrayList[n];
-    for (int i = 0; i < n; i++) {
-        graph[i] = new ArrayList<>();
-    }
-
-    for (int[] edge :  edges) {
-
-        int u = edge[0];
-        int v = edge[1];
-        int weight = edge[2];
-
-        // Since the graph is undirected, add the edge 
-        // to the adjacency list of both vertices.
-        graph[u].add(new int[]{v, weight});
-        graph[v].add(new int[]{u, weight});
-    }
-
-    // Step 2: Initialize the shortest known arrival time for 
-    // for each node as infinity.
-    int[] answer = new int[n];
-    Arrays.fill(answer, Integer.MAX_VALUE);
-
-    // Use a FIFO queue to process nodes whose distances 
-    // have been improved. A node can be enqueued multiple times.
-    Queue<Integer> queue = new LinkedList<>();
-
-    // The source node is reachable at time 0.
-    answer[0] = 0;
-    queue.offer(0);
-
-    // Step 3: Keep processing until no further distance
-    // improvements can be discovered.
-    while (!queue.isEmpty()) {
-
-        // Step 4: Process the oldest enqueued node.
-        int currentNode = queue.poll();
-
-        // Step 5: Explore all neighbours to check if we can reach
-        // them through a shorter valid path.
-        for (int[] neighbour : graph[currentNode]) {
-
-            int nextNode = neighbour[0];
-            int weight = neighbour[1];
-
-            // Step 6: Calculate the arrival time at the neighbour
-            // using the shortest known time to the current node.
-            int newTime = answer[currentNode] + weight;
-
-            // Step 7: Relax the edge if:
-            // 1. We discover a shorter arrival time
-            // 2. The neighbour is reached before it disappears.
-            if ( newTime < answer[nextNode] && 
-                newTime < disappear[nextNode] ) {
-                    
-                    // Update the shortest known arrival time 
-                    // and enqueue the neighbour for further exploration.
-                    answer[nextNode] = newTime;
-                    queue.offer(nextNode);
-                }
-        }
-    }
-
-    // Step 8: Nodes whose distances remain infinity are unreachable
-    // or cannot be reached before disappearing.
-    for (int i = 0; i < n; i++) {
-        if (answer[i] == Math.MAX_VALUE) {
-            answer[i] = -1;
-        }
-    }
-
-    return answer;
-
-}
-```
 
 #### Time Complexity 
 
