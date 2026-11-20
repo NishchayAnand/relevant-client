@@ -39,14 +39,14 @@ an adjacency list, which allows us to directly access the neighbours of a node.
 
 3. An improvement in one node's shortest path can lead to improvements in other nodes' shortest distances.
 Therefore, whenever we discover a shorter path to a node, we need to explore its neighbours again using the 
-updated distance.
+updated distance. This is the core principle behind **Shortest Path Faster algorithm**.
 
 ---
 
 ### Naive Approach: Shortest Path Faster Algorithm
 
 We start from the source node and explore its neighbours. Whenever we find a shorter path 
-to a node, we add it to a **<span className="bg-emerald-300 rounded p-0.5">queue</span>** so that we can explore its neighbours using the updated distances.
+to a node, we add it to a **<span className="bg-emerald-200 rounded p-0.5">queue</span>** so that we can explore its neighbours using the updated distances.
 
 #### Algorithm
 
@@ -76,17 +76,58 @@ to a node, we add it to a **<span className="bg-emerald-300 rounded p-0.5">queue
 
 <DisappearingNodesSpfaVisualizer />
 
-#### Time Complexity 
+#### Time Complexity
 
-#### Space Complexity 
+The time complexity depends on the the following operations:
+
+1. **Initializing the adjacency list**: We iterate over all vertices to initialize 
+their adjacency lists, which takes `O(V)` time. We then iterate over all edges to 
+populate the adjacency list. Since the graph is undirected, each edge is added to the 
+adjacency lists of both endpoints. This takes `O(E)` time. Therefore, this takes 
+`O(V + E)`.
+
+2. **Queue processing**: A node can be enqueued and processed multiple times. Whenever we 
+process a node, we explore all its neighbours. In the worst case, every single vertex 
+gets updated and re-queued `(V - 1)` times. f every vertex is popped `O(V)` times and 
+each pop checks all its outgoing edges, the sum of all edge checks across all vertices 
+equals `O(V * E)`. <span className='bg-emerald-200 rounded p-0.5'> ------ Need to explore this more -----</span>
+
+3. **Converting unreachable nodes to `-1`**: We iterate over the `answer` array once to 
+identify unreachable nodes and update their values to `-1`. Since the array contains `(V)` 
+elements, this takes `O(V)`.
+
+Hence, the overall time complexity is `O(V + E) + O(V * E) + O(V) = O(V * E)`.
+
+#### Space Complexity
+
+The space complexity is primarily determined by three data structures: 
+
+1. **Adjacency list**: Each of the `(V)` vertices requires an adjacency list. Each of the 
+`(E)` edges is stored twice because the graph is undirected. This takes `O(V + E)`.
+
+2. **`answer` array**: Since the array contains `(V)` elements, this takes `O(V)`.
+
+3. **Queue**: In the standard SPFA implementation, we maintain an additional `inQueue[]` 
+array. Whenever we enqueue a node, we mark it as present in the queue. We only enqueue it 
+again after it has been removed from the queue. This ensures that at any given time, 
+each vertex can appear in the queue at most once. This takes `O(V)`.
+
+Hence, the overall space complexity is `O(V + E)`. <span className='bg-emerald-200 rounded p-0.5'> ------ Need to explore this more ----- </span>
 
 ---
 
 ### Key Observations
 
+Since all edge weights are non-negative, processing the node with the smallest tentative 
+arrival time guarantees that its shortest arrival time has been found. We can then explore 
+its neighbours and attempt to improve their arrival times, provided they are reached 
+before their respective disappearing times.
+
+This is the core greedy principle behind **Dijkstra's algorithm**.
+
 ---
 
-### Suitable Approach: Dijkstra Algorithm
+### Suitable Approach: Dijkstra's Algorithm
 
 #### Algorithm 
 
