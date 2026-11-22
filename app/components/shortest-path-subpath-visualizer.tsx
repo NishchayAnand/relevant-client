@@ -10,7 +10,7 @@ const INK = "#171717";
 
 const VB_W = 1320;
 const VB_H = 840;
-const VIEW = { x: 180, y: 280, width: 860, height: 340 };
+const VIEW = { x: 330, y: 300, width: 960, height: 540 };
 
 type Id =
   | "cp"
@@ -47,7 +47,7 @@ type Id =
   | "nirman"
   | "ramlila";
 
-const FOCUS = new Set<Id>(["cp", "barakhamba", "mh", "jantar", "windsor"]);
+const FOCUS = new Set<Id>(["cp", "barakhamba", "mh", "ito", "jantar", "windsor", "udyog", "museum", "jaipur", "ig", "khan", "lodhi"]);
 
 const POS: Record<Id, { x: number; y: number }> = {
   kb: { x: 90, y: 250 },
@@ -146,10 +146,22 @@ function inFocus(edge: Edge) {
 }
 
 const PATHS = [
-  { id: "barakhamba", km: 1.8, edges: ["barakhamba|cp", "barakhamba|mh"] },
-  { id: "jantar", km: 2.6, edges: ["cp|jantar", "barakhamba|jantar", "barakhamba|mh"] },
-  { id: "windsor", km: 3.2, edges: ["cp|jantar", "jantar|windsor", "mh|windsor"] },
-  { id: "around", km: 4.2, edges: ["barakhamba|cp", "barakhamba|jantar", "jantar|windsor", "mh|windsor"] },
+  { id: "p1", km: 4.3, edges: ["cp|jantar", "jantar|windsor", "udyog|windsor", "museum|udyog", "khan|museum", "khan|lodhi"] },
+  { id: "p2", km: 5.3, edges: ["barakhamba|cp", "barakhamba|jantar", "jantar|windsor", "udyog|windsor", "museum|udyog", "khan|museum", "khan|lodhi"] },
+  { id: "p3", km: 5.8, edges: ["cp|jantar", "jantar|windsor", "udyog|windsor", "museum|udyog", "jaipur|museum", "ig|jaipur", "ig|khan", "khan|lodhi"] },
+  { id: "p4", km: 6.3, edges: ["barakhamba|cp", "barakhamba|mh", "mh|windsor", "udyog|windsor", "museum|udyog", "khan|museum", "khan|lodhi"] },
+  { id: "p5", km: 6.8, edges: ["barakhamba|cp", "barakhamba|jantar", "jantar|windsor", "udyog|windsor", "museum|udyog", "jaipur|museum", "ig|jaipur", "ig|khan", "khan|lodhi"] },
+  { id: "p6", km: 7.1, edges: ["cp|jantar", "barakhamba|jantar", "barakhamba|mh", "mh|windsor", "udyog|windsor", "museum|udyog", "khan|museum", "khan|lodhi"] },
+  { id: "p7", km: 7.8, edges: ["barakhamba|cp", "barakhamba|mh", "mh|windsor", "udyog|windsor", "museum|udyog", "jaipur|museum", "ig|jaipur", "ig|khan", "khan|lodhi"] },
+  { id: "p8", km: 8.3, edges: ["barakhamba|cp", "barakhamba|mh", "ito|mh", "ito|museum", "khan|museum", "khan|lodhi"] },
+  { id: "p9", km: 8.6, edges: ["cp|jantar", "barakhamba|jantar", "barakhamba|mh", "mh|windsor", "udyog|windsor", "museum|udyog", "jaipur|museum", "ig|jaipur", "ig|khan", "khan|lodhi"] },
+  { id: "p10", km: 9.1, edges: ["cp|jantar", "barakhamba|jantar", "barakhamba|mh", "ito|mh", "ito|museum", "khan|museum", "khan|lodhi"] },
+  { id: "p11", km: 9.7, edges: ["cp|jantar", "jantar|windsor", "mh|windsor", "ito|mh", "ito|museum", "khan|museum", "khan|lodhi"] },
+  { id: "p12", km: 9.8, edges: ["barakhamba|cp", "barakhamba|mh", "ito|mh", "ito|museum", "jaipur|museum", "ig|jaipur", "ig|khan", "khan|lodhi"] },
+  { id: "p13", km: 10.6, edges: ["cp|jantar", "barakhamba|jantar", "barakhamba|mh", "ito|mh", "ito|museum", "jaipur|museum", "ig|jaipur", "ig|khan", "khan|lodhi"] },
+  { id: "p14", km: 10.7, edges: ["barakhamba|cp", "barakhamba|jantar", "jantar|windsor", "mh|windsor", "ito|mh", "ito|museum", "khan|museum", "khan|lodhi"] },
+  { id: "p15", km: 11.2, edges: ["cp|jantar", "jantar|windsor", "mh|windsor", "ito|mh", "ito|museum", "jaipur|museum", "ig|jaipur", "ig|khan", "khan|lodhi"] },
+  { id: "p16", km: 12.2, edges: ["barakhamba|cp", "barakhamba|jantar", "jantar|windsor", "mh|windsor", "ito|mh", "ito|museum", "jaipur|museum", "ig|jaipur", "ig|khan", "khan|lodhi"] },
 ];
 
 const LAND = "#eef1f4";
@@ -211,9 +223,16 @@ function clampOrigin(x: number, y: number, width: number, height: number) {
 const LABELS: Array<{ id: Id; name: string; lift: number; below?: boolean; mark?: string }> = [
   { id: "cp", name: "Connaught Place", lift: 18, mark: "START" },
   { id: "barakhamba", name: "Barakhamba", lift: 18 },
-  { id: "mh", name: "Mandi House", lift: 18, mark: "END" },
+  { id: "mh", name: "Mandi House", lift: 18 },
+  { id: "ito", name: "ITO", lift: 18 },
   { id: "jantar", name: "Jantar Mantar", lift: 24, below: true },
-  { id: "windsor", name: "Windsor Place", lift: 24, below: true },
+  { id: "windsor", name: "Windsor Place", lift: 18 },
+  { id: "udyog", name: "Udyog Bhawan", lift: 36, below: true },
+  { id: "museum", name: "National Museum", lift: 32 },
+  { id: "jaipur", name: "Jaipur House", lift: 20 },
+  { id: "ig", name: "India Gate", lift: 18 },
+  { id: "khan", name: "Khan Market", lift: 18 },
+  { id: "lodhi", name: "Lodhi Garden", lift: 22, below: true, mark: "END" },
 ];
 
 function edgeKey(u: Id, v: Id) {
@@ -335,7 +354,7 @@ export default function ShortestPathSubpathVisualizer() {
         viewBox={`${frame.x} ${frame.y} ${frame.width} ${frame.height}`}
         className={`block h-auto w-full touch-none select-none ${dragging ? "cursor-grabbing" : "cursor-grab"}`}
         role="application"
-        aria-label={`Map between Connaught Place and Mandi House. Path ${activeIndex + 1} is selected, ${active.km.toFixed(1)} km. Drag to move the map.`}
+        aria-label={`Map between Connaught Place and Lodhi Garden. Path ${activeIndex + 1} is selected, ${active.km.toFixed(1)} km. Drag to move the map.`}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={endDrag}
@@ -392,7 +411,7 @@ export default function ShortestPathSubpathVisualizer() {
             <circle cx={POS[id].x} cy={POS[id].y} r={2.2} fill="#ffffff" />
           </g>
         ))}
-        {DULL_LABELS.map((label) => {
+        {DULL_LABELS.filter((label) => !FOCUS.has(label.id)).map((label) => {
           const textAnchor = label.anchor === "left" ? "end" : label.anchor === "right" ? "start" : "middle";
           const lineH = 15;
           const block = label.lines.length * lineH;

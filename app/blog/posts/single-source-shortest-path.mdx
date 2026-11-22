@@ -17,15 +17,15 @@ Let's explore a few possible variations and understand how their approaches diff
 
 ### Naive Approach: Bellmand-Ford
 
-Consider the sub-graph between **Connaught Place** and **Mandi House** containing `5` vertices and `6` edges.
-The shortest path is composed of shortest paths to its intermediate vertices.
+Consider the sub-graph between **Connaught Place** and **Lodhi Garden** containing `12` vertices and `15` edges.
 
 <ShortestPathSubpathVisualizer />
 
-A shortest path never needs to repeat a vertex, provided there is no negative-weight cycle.
-Therefore, it can contain at most `V-1` edges.
-Consequently, after `V-1` iterations, we are guaranteed to have discovered all shortest distances.
+1. The shortest path is composed of shortest paths to its intermediate vertices.
 
+2. A shortest path never needs to repeat a vertex, provided there is no negative-weight cycle.
+Therefore, it can contain at most `V-1` edges. Consequently, after `V-1` iterations, we are guaranteed 
+to have discovered all shortest distances.
 
 #### Algorithm
 
