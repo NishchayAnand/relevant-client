@@ -17,24 +17,19 @@ Let's explore a few possible variations and understand how their approaches diff
 
 ### Naive Approach: Bellmand-Ford
 
-Consider the sub-graph between **Connaught Place** and **Lodhi Garden** containing `12` vertices and `15` edges.
-
-<ShortestPathSubpathVisualizer />   
-
 The reasoning behind the Bellman-Ford algorithm is based on the following observations:
 
 1. **Optimal Substructure Property**: A shortest path from a source vertex to a destination is composed of 
-shortest paths to its intermediate vertices. <span className="bg-emerald-200 rounded p-0.5">This means that if we know the shortest distance to an intermediate 
+shortest paths to its intermediate vertices. This means that if we know the shortest distance to an intermediate 
 vertex, we can use that information to discover the shortest distance to the next vertex by relaxing the 
-connecting edge.</span> (--------- explore this further ----------)
+connecting edge.
 
 2. **Repeated Edge Relaxation**: One complete pass through all the edges of the graph, performing edge relaxation 
 on each edge, guarantees the discovery of shortest paths containing at most one additional edge. After the 
 execution of the `(ith)` pass, Bellman-Ford correctly discovers all shortest paths containing at most `(i)` edges.
 
-2. **Maximum Number of Edges in a Shortest Path**: A shortest path never needs to repeat a vertex, provided there 
-is no negative-weight cycle. If a path repeats a vertex, it contains a cycle. <span className="bg-emerald-200 rounded p-0.5">Therefore, it can contain at most 
-`(V-1)` edges.</span> (--------- explore this further ----------)
+3. **Maximum Number of Edges in a Shortest Path**: The longest possible shortest path in a graph with `(V)` vertices 
+can have at most `(V - 1)` edges, provided there is no negative-weight cycle.
 
 Since each pass guarantees the discovery of shortest paths containing at most one additional edge, after `(V-1)` 
 iterations, we are guaranteed to have discovered all shortest distances from the source to every reachable vertex.
