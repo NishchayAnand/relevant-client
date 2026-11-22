@@ -1,9 +1,28 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState, type PointerEvent } from "react";
 
 const VB_W = 1320;
 const VB_H = 840;
+const VIEW = { x: 0, y: 0, width: VB_W, height: VB_H };
+const MIN_ZOOM = 1;
+const MAX_ZOOM = 2.25;
+const ZOOM_STEP = 0.25;
+
+function clampZoom(value: number) {
+  return Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, Math.round(value * 100) / 100));
+}
+
+function clampOrigin(x: number, y: number, width: number, height: number) {
+  const loX = Math.min(VIEW.x, VIEW.x + VIEW.width - width);
+  const hiX = Math.max(VIEW.x, VIEW.x + VIEW.width - width);
+  const loY = Math.min(VIEW.y, VIEW.y + VIEW.height - height);
+  const hiY = Math.max(VIEW.y, VIEW.y + VIEW.height - height);
+  return {
+    x: Math.min(hiX, Math.max(loX, x)),
+    y: Math.min(hiY, Math.max(loY, y)),
+  };
+}
 const ROAD = "#c4c4c8";
 const ROUTE = "#4f46e5";
 const ROUTE_TEXT = "#4338ca";
@@ -343,6 +362,8 @@ const LABELS: Array<{ id: NodeId; lines: string[]; x: number; y: number; anchor:
   { id: "ramlila", lines: ["Ramlila Maidan"], x: 602, y: 300, anchor: "left", kind: "mid" },
 ];
 
+const PLACE_NAME = Object.fromEntries(LABELS.map((label) => [label.id, label.lines.join(" ")])) as Record<NodeId, string>;
+
 function kmLabel(km: number) {
   return `${km.toFixed(1)} km`;
 }
@@ -475,7 +496,60 @@ function MapLabel({
 
 export default function DelhiShortestPathVisualizer() {
   const [selected, setSelected] = useState<Selection>("all");
+  const [zoom, setZoom] = useState(1);
+  const [origin, setOrigin] = useState({ x: VIEW.x, y: VIEW.y });
+  const [dragging, setDragging] = useState(false);
+  const drag = useRef<{ pointerId: number; x: number; y: number; originX: number; originY: number } | null>(null);
+  const moved = useRef(false);
+  const suppressClick = useRef(false);
   const activeKeys = selected === "all" ? TREE_KEYS : new Set(PATH_KEYS[selected]);
+  const frameWidth = VIEW.width / zoom;
+  const frameHeight = VIEW.height / zoom;
+  const frame = { x: origin.x, y: origin.y, width: frameWidth, height: frameHeight };
+
+  function changeZoom(direction: 1 | -1) {
+    const next = clampZoom(zoom + direction * ZOOM_STEP);
+    if (next === zoom) return;
+    const centerX = origin.x + frameWidth / 2;
+    const centerY = origin.y + frameHeight / 2;
+    const nextWidth = VIEW.width / next;
+    const nextHeight = VIEW.height / next;
+    setZoom(next);
+    setOrigin(clampOrigin(centerX - nextWidth / 2, centerY - nextHeight / 2, nextWidth, nextHeight));
+  }
+
+  function onPointerDown(event: PointerEvent<SVGSVGElement>) {
+    if (event.button !== 0) return;
+    moved.current = false;
+    drag.current = { pointerId: event.pointerId, x: event.clientX, y: event.clientY, originX: origin.x, originY: origin.y };
+    setDragging(true);
+  }
+
+  function onPointerMove(event: PointerEvent<SVGSVGElement>) {
+    const start = drag.current;
+    if (!start || start.pointerId !== event.pointerId) return;
+    const dx = event.clientX - start.x;
+    const dy = event.clientY - start.y;
+    if (!moved.current) {
+      if (Math.hypot(dx, dy) < 5) return;
+      moved.current = true;
+      try {
+        event.currentTarget.setPointerCapture(event.pointerId);
+      } catch {
+        // Capture is only available for an active pointer.
+      }
+    }
+    const rect = event.currentTarget.getBoundingClientRect();
+    setOrigin(clampOrigin(start.originX - (dx / rect.width) * frameWidth, start.originY - (dy / rect.height) * frameHeight, frameWidth, frameHeight));
+  }
+
+  function endDrag(event: PointerEvent<SVGSVGElement>) {
+    if (!drag.current || drag.current.pointerId !== event.pointerId) return;
+    if (moved.current) suppressClick.current = true;
+    drag.current = null;
+    moved.current = false;
+    setDragging(false);
+  }
 
   function roleOf(edge: Edge): "shortest" | "alternate" | "other" {
     const key = edgeKey(edge.u, edge.v);
@@ -497,7 +571,13 @@ export default function DelhiShortestPathVisualizer() {
   return (
     <div
       className="not-prose my-6 overflow-hidden rounded-2xl border border-neutral-200 bg-white"
-      onClick={() => setSelected("all")}
+      onClick={() => {
+        if (suppressClick.current) {
+          suppressClick.current = false;
+          return;
+        }
+        setSelected("all");
+      }}
     >
       <style>{`
         @keyframes delhi-route-march {
@@ -514,10 +594,14 @@ export default function DelhiShortestPathVisualizer() {
       <div className="bg-white">
         <div className="relative">
           <svg
-            viewBox={`0 0 ${VB_W} ${VB_H}`}
-            className="block h-auto w-full select-none"
+            viewBox={`${frame.x} ${frame.y} ${frame.width} ${frame.height}`}
+            className={`block h-auto w-full touch-none select-none ${dragging ? "cursor-grabbing [&_*]:cursor-grabbing" : "cursor-grab"}`}
             role="group"
-            aria-label="Schematic map of roads and places in central Delhi, with shortest routes from Connaught Place"
+            aria-label="Schematic map of roads and places in central Delhi, with shortest routes from Connaught Place. Drag to move the map."
+            onPointerDown={onPointerDown}
+            onPointerMove={onPointerMove}
+            onPointerUp={endDrag}
+            onPointerCancel={endDrag}
           >
             <defs>
               <filter id="delhi-pin-shadow" x="-120%" y="-120%" width="340%" height="340%" colorInterpolationFilters="sRGB">
@@ -673,6 +757,10 @@ export default function DelhiShortestPathVisualizer() {
                   dim={!shown(label.id)}
                   onClick={(event) => {
                     event.stopPropagation();
+                    if (suppressClick.current) {
+                      suppressClick.current = false;
+                      return;
+                    }
                     choose(label.id);
                   }}
                 />
@@ -686,15 +774,51 @@ export default function DelhiShortestPathVisualizer() {
                   cy={POS[id].y}
                   r={22}
                   fill="transparent"
-                  style={{ cursor: "pointer" }}
+                  className="cursor-pointer"
                   onClick={(event) => {
                     event.stopPropagation();
+                    if (suppressClick.current) {
+                      suppressClick.current = false;
+                      return;
+                    }
                     choose(id);
                   }}
                 />
               );
             })}
           </svg>
+          <div
+            className="absolute bottom-3 right-3 z-10 flex flex-col overflow-hidden rounded-lg border border-neutral-200 bg-white"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <button
+              type="button"
+              aria-label="Zoom in"
+              disabled={zoom >= MAX_ZOOM}
+              onClick={() => changeZoom(1)}
+              className="flex h-7 w-7 items-center justify-center border-b border-neutral-200 text-[16px] leading-none text-neutral-800 disabled:text-neutral-300"
+            >
+              +
+            </button>
+            <button
+              type="button"
+              aria-label="Zoom out"
+              disabled={zoom <= MIN_ZOOM}
+              onClick={() => changeZoom(-1)}
+              className="flex h-7 w-7 items-center justify-center text-[16px] leading-none text-neutral-800 disabled:text-neutral-300"
+            >
+              −
+            </button>
+          </div>
+          {selected !== "all" && (
+            <div
+              className="absolute bottom-3 left-1/2 z-10 -translate-x-1/2 whitespace-nowrap rounded-lg border border-indigo-200 bg-white/95 px-3 py-1.5 text-center text-[12px] font-medium text-neutral-800"
+              onClick={(event) => event.stopPropagation()}
+            >
+              Shortest distance between {PLACE_NAME.cp} and {PLACE_NAME[selected]} ={" "}
+              <span className="font-semibold text-indigo-700">{kmLabel(SEARCH.dist[selected])}</span>
+            </div>
+          )}
           <div
             className="group absolute bottom-3 left-3 z-10"
             onClick={(event) => event.stopPropagation()}
