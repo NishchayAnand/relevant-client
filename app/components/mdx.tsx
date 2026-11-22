@@ -89,6 +89,7 @@ import StreamProcessingVisualizer from './stream-processing-visualizer';
 import ConsistentHashingVisualizer from './consistent-hashing-visualizer';
 import CycleDetectionDFSVisualizer from './cycle-detection-dfs-visualizer';
 import DijkstraVisualizer from './dijkstra-visualizer';
+import DelhiShortestPathVisualizer from './delhi-shortest-path-visualizer';
 import DisappearingNodesVisualizer from './disappearing-nodes-visualizer';
 import DisappearingNodesSpfaVisualizer from './disappearing-nodes-spfa-visualizer';
 import EdgeListScanVisualizer from './edge-list-scan-visualizer';
@@ -438,6 +439,7 @@ let components = {
   ConsistentHashingVisualizer: ConsistentHashingVisualizer,
   CycleDetectionDFSVisualizer: CycleDetectionDFSVisualizer,
   DijkstraVisualizer: DijkstraVisualizer,
+  DelhiShortestPathVisualizer: DelhiShortestPathVisualizer,
   DisappearingNodesVisualizer: DisappearingNodesVisualizer,
   DisappearingNodesSpfaVisualizer: DisappearingNodesSpfaVisualizer,
   EdgeListScanVisualizer: EdgeListScanVisualizer,
