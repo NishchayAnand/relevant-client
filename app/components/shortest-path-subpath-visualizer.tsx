@@ -165,6 +165,16 @@ const PATHS = [
 ];
 
 const LAND = "#eef1f4";
+
+const CHAIN: Array<{ id: Id; name: string; km: number; edge?: string; road?: number }> = [
+  { id: "cp", name: "Connaught Place", km: 0 },
+  { id: "jantar", name: "Jantar Mantar", km: 0.7, edge: "cp|jantar", road: 0.7 },
+  { id: "windsor", name: "Windsor Place", km: 1.5, edge: "jantar|windsor", road: 0.8 },
+  { id: "udyog", name: "Udyog Bhawan", km: 1.9, edge: "udyog|windsor", road: 0.4 },
+  { id: "museum", name: "National Museum", km: 2.3, edge: "museum|udyog", road: 0.4 },
+  { id: "khan", name: "Khan Market", km: 3.1, edge: "khan|museum", road: 0.8 },
+  { id: "lodhi", name: "Lodhi Garden", km: 4.3, edge: "khan|lodhi", road: 1.2 },
+];
 const PILL_H = 18;
 const MIN_ZOOM = 1;
 const MAX_ZOOM = 2.25;
@@ -292,15 +302,18 @@ const CLOTH = (() => {
   return roads;
 })();
 
-export default function ShortestPathSubpathVisualizer() {
+export default function ShortestPathSubpathVisualizer({ story = "paths" }: { story?: "paths" | "substructure" }) {
   const [selected, setSelected] = useState(PATHS[0].id);
+  const [step, setStep] = useState(CHAIN.length - 1);
   const [zoom, setZoom] = useState(1);
   const [origin, setOrigin] = useState({ x: VIEW.x, y: VIEW.y });
   const [dragging, setDragging] = useState(false);
   const drag = useRef<{ pointerId: number; x: number; y: number; originX: number; originY: number } | null>(null);
   const activeIndex = Math.max(0, PATHS.findIndex((path) => path.id === selected));
   const active = PATHS[activeIndex];
-  const activeEdges = new Set(active.edges);
+  const stop = CHAIN[step];
+  const previous = CHAIN[step - 1];
+  const activeEdges = story === "substructure" ? new Set(CHAIN.slice(1, step + 1).map((place) => place.edge!)) : new Set(active.edges);
   const frameWidth = VIEW.width / zoom;
   const frameHeight = VIEW.height / zoom;
   const frame = {
@@ -354,7 +367,11 @@ export default function ShortestPathSubpathVisualizer() {
         viewBox={`${frame.x} ${frame.y} ${frame.width} ${frame.height}`}
         className={`block h-auto w-full touch-none select-none ${dragging ? "cursor-grabbing" : "cursor-grab"}`}
         role="application"
-        aria-label={`Map between Connaught Place and Lodhi Garden. Path ${activeIndex + 1} is selected, ${active.km.toFixed(1)} km. Drag to move the map.`}
+        aria-label={
+          story === "substructure"
+            ? `Shortest path from Connaught Place to ${stop.name}, ${stop.km.toFixed(1)} km. Drag to move the map.`
+            : `Map between Connaught Place and Lodhi Garden. Path ${activeIndex + 1} is selected, ${active.km.toFixed(1)} km. Drag to move the map.`
+        }
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={endDrag}
@@ -468,6 +485,23 @@ export default function ShortestPathSubpathVisualizer() {
           );
         })}
       </svg>
+      <div className="absolute bottom-3 left-1/2 z-10 -translate-x-1/2 whitespace-nowrap rounded-lg border border-indigo-200 bg-white/95 px-3 py-1.5 text-center text-[12px] font-medium text-neutral-800">
+        {story === "substructure" ? (
+          <>
+            Shortest distance to {stop.name} ={" "}
+            <span className="font-semibold text-indigo-700">{previous.km === 0 ? "0" : previous.km.toFixed(1)} km</span>
+            {" + "}
+            <span className="font-semibold text-indigo-700">{stop.road!.toFixed(1)} km</span>
+            {" = "}
+            <span className="font-semibold text-indigo-700">{stop.km.toFixed(1)} km</span>
+          </>
+        ) : (
+          <>
+            <span className="font-semibold text-indigo-700">{active.edges.length + 1}</span> nodes,{" "}
+            <span className="font-semibold text-indigo-700">{active.edges.length}</span> edges
+          </>
+        )}
+      </div>
       <div className="absolute bottom-3 right-3 z-10 flex flex-col overflow-hidden rounded-lg border border-neutral-200 bg-white">
         <button
           type="button"
@@ -490,24 +524,46 @@ export default function ShortestPathSubpathVisualizer() {
       </div>
       </div>
       <div className="flex flex-wrap gap-2 border-t border-neutral-200 px-3 py-3">
-        {PATHS.map((path, index) => {
-          const pressed = path.id === active.id;
-          return (
-            <button
-              key={path.id}
-              type="button"
-              aria-pressed={pressed}
-              onClick={() => setSelected(path.id)}
-              className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[12px] font-medium leading-none ${
-                pressed ? "border-indigo-300 bg-indigo-50 text-indigo-700" : "border-neutral-200 bg-white text-neutral-700"
-              }`}
-            >
-              <span>Path {index + 1}</span>
-              <span className={pressed ? "text-indigo-700" : "text-neutral-500"}>{path.km.toFixed(1)} km</span>
-            </button>
-          );
-        })}
+        {story === "substructure"
+          ? CHAIN.slice(1).map((place, index) => {
+              const pressed = step === index + 1;
+              return (
+                <button
+                  key={place.id}
+                  type="button"
+                  aria-pressed={pressed}
+                  onClick={() => setStep(index + 1)}
+                  className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[12px] font-medium leading-none ${
+                    pressed ? "border-indigo-300 bg-indigo-50 text-indigo-700" : "border-neutral-200 bg-white text-neutral-700"
+                  }`}
+                >
+                  <span>{place.name}</span>
+                  <span className={pressed ? "text-indigo-700" : "text-neutral-500"}>{place.km.toFixed(1)} km</span>
+                </button>
+              );
+            })
+          : PATHS.map((path, index) => {
+              const pressed = path.id === active.id;
+              return (
+                <button
+                  key={path.id}
+                  type="button"
+                  aria-pressed={pressed}
+                  onClick={() => setSelected(path.id)}
+                  className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[12px] font-medium leading-none ${
+                    pressed ? "border-indigo-300 bg-indigo-50 text-indigo-700" : "border-neutral-200 bg-white text-neutral-700"
+                  }`}
+                >
+                  <span>Path {index + 1}</span>
+                  <span className={pressed ? "text-indigo-700" : "text-neutral-500"}>{path.km.toFixed(1)} km</span>
+                </button>
+              );
+            })}
       </div>
     </div>
   );
+}
+
+export function ShortestPathSubstructureVisualizer() {
+  return <ShortestPathSubpathVisualizer story="substructure" />;
 }

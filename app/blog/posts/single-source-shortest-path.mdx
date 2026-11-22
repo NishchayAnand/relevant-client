@@ -1,5 +1,5 @@
 ---
-title: 'Data Structures & Algorithms (Graph): Single Source Shortest Path Algorithms'
+title: 'Data Structures & Algorithms (Graph): Single Source Shortest Path'
 publishedAt: '2026-04-16'
 ---
 
@@ -19,17 +19,37 @@ Let's explore a few possible variations and understand how their approaches diff
 
 Consider the sub-graph between **Connaught Place** and **Lodhi Garden** containing `12` vertices and `15` edges.
 
-<ShortestPathSubpathVisualizer />
+<ShortestPathSubpathVisualizer />   
 
-1. The shortest path is composed of shortest paths to its intermediate vertices.
+The reasoning behind the Bellman-Ford algorithm is based on the following observations:
 
-2. A shortest path never needs to repeat a vertex, provided there is no negative-weight cycle.
-Therefore, it can contain at most `V-1` edges. Consequently, after `V-1` iterations, we are guaranteed 
-to have discovered all shortest distances.
+1. **Optimal Substructure Property**: A shortest path from a source vertex to a destination is composed of 
+shortest paths to its intermediate vertices. <span className="bg-emerald-200 rounded p-0.5">This means that if we know the shortest distance to an intermediate 
+vertex, we can use that information to discover the shortest distance to the next vertex by relaxing the 
+connecting edge.</span> (--------- explore this further ----------)
+
+2. **Repeated Edge Relaxation**: One complete pass through all the edges of the graph, performing edge relaxation 
+on each edge, guarantees the discovery of shortest paths containing at most one additional edge. After the 
+execution of the `(ith)` pass, Bellman-Ford correctly discovers all shortest paths containing at most `(i)` edges.
+
+2. **Maximum Number of Edges in a Shortest Path**: A shortest path never needs to repeat a vertex, provided there 
+is no negative-weight cycle. If a path repeats a vertex, it contains a cycle. <span className="bg-emerald-200 rounded p-0.5">Therefore, it can contain at most 
+`(V-1)` edges.</span> (--------- explore this further ----------)
+
+Since each pass guarantees the discovery of shortest paths containing at most one additional edge, after `(V-1)` 
+iterations, we are guaranteed to have discovered all shortest distances from the source to every reachable vertex.
 
 #### Algorithm
 
+```java
+1. 
+```
+
 #### Implementation
+
+```java
+
+```
 
 #### Time Complexity 
 
