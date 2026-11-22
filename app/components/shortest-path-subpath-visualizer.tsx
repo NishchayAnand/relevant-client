@@ -10,7 +10,7 @@ const INK = "#171717";
 
 const VB_W = 1320;
 const VB_H = 840;
-const VIEW = { x: 0, y: 0, width: VB_W, height: VB_H };
+const VIEW = { x: 180, y: 280, width: 860, height: 340 };
 
 type Id =
   | "cp"

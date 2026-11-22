@@ -3,124 +3,28 @@ title: 'Data Structures & Algorithms (Graph): Single Source Shortest Path Algori
 publishedAt: '2026-04-16'
 ---
 
-**Single Source Shortest Path (SSSP)** is a graph algorithmic problem in which we find the shortest distance from 
-a given source vertex to every other vertex in a graph.
-
-#### Example: Google Maps
-
-Imagine you are standing at Connaught Place in Delhi, and you open Google Maps. You want to find the shortest travel 
-distance from your current location to different locations across Delhi.
+Imagine you are standing at **Connaught Place** in **Delhi**, and you open **Google Maps**. You want to find the 
+shortest travel distance from your current location to different locations across **Delhi**.
 
 <DelhiShortestPathVisualizer />
 
----
+**Single Source Shortest Path (SSSP)** algorithms are the solution to this problem. They let you find the shortest 
+distance from a given source vertex to every other vertex in a graph. 
 
-### Input 
-
-```
-n = 33
-source = 0
-
-nodes = [
-    0:  "Connaught Place",
-    1:  "Jantar Mantar",
-    2:  "Windsor Place",
-    3:  "National Museum",
-    4:  "India Gate",
-    5:  "Rajendra Place",
-    6:  "Karol Bagh",
-    7:  "Paharganj",
-    8:  "New Delhi Railway Station",
-    9:  "Ajmeri Gate",
-    10: "Chandni Chowk",
-    11: "Red Fort",
-    12: "Barakhamba",
-    13: "Mandi House",
-    14: "ITO",
-    15: "Delhi Gate",
-    16: "Bangla Sahib",
-    17: "Khan Market",
-    18: "Pragati Maidan",
-    19: "Jama Masjid",
-    20: "Patel Nagar",
-    21: "Jhandewalan",
-    22: "Talkatora",
-    23: "Rashtrapati Bhavan",
-    24: "Ram Nagar",
-    25: "Udyog Bhawan",
-    26: "Jaipur House",
-    27: "Sadar Bazar",
-    28: "Kashmere Gate",
-    29: "Lodhi Garden",
-    30: "Kamla Market",
-    31: "Nirman Bhawan",
-    32: "Ramlila Maidan"
-]
-
-edges = [
-    [0, 1, 0.7],    // Connaught Place - Jantar Mantar
-    [1, 2, 0.8],    // Jantar Mantar - Windsor Place
-    [2, 25, 0.4],   // Windsor Place - Udyog Bhawan
-    [25, 3, 0.4],   // Udyog Bhawan - National Museum
-    [3, 26, 0.4],   // National Museum - Jaipur House
-    [26, 4, 0.5],   // Jaipur House - India Gate
-    [0, 5, 2.1],    // Connaught Place - Rajendra Place
-    [5, 6, 2.7],    // Rajendra Place - Karol Bagh
-    [0, 7, 1.1],    // Connaught Place - Paharganj
-    [7, 8, 1.1],    // Paharganj - New Delhi Railway Station
-    [8, 24, 0.6],   // New Delhi Railway Station - Ram Nagar
-    [24, 9, 0.6],   // Ram Nagar - Ajmeri Gate
-    [9, 10, 2.4],   // Ajmeri Gate - Chandni Chowk
-    [10, 11, 1.3],  // Chandni Chowk - Red Fort
-    [0, 12, 0.8],   // Connaught Place - Barakhamba
-    [12, 13, 1.0],  // Barakhamba - Mandi House
-    [13, 14, 2.1],  // Mandi House - ITO
-    [14, 15, 1.5],  // ITO - Delhi Gate
-    [15, 11, 1.8],  // Delhi Gate - Red Fort
-    [7, 5, 2.2],    // Paharganj - Rajendra Place
-    [7, 32, 1.4],   // Paharganj - Ramlila Maidan
-    [32, 9, 1.5],   // Ramlila Maidan - Ajmeri Gate
-    [1, 12, 0.9],   // Jantar Mantar - Barakhamba
-    [2, 13, 1.7],   // Windsor Place - Mandi House
-    [3, 14, 2.4],   // National Museum - ITO
-    [15, 10, 2.7],  // Delhi Gate - Chandni Chowk
-    [9, 15, 2.2],   // Ajmeri Gate - Delhi Gate
-    [0, 16, 1.4],   // Connaught Place - Bangla Sahib
-    [1, 16, 1.2],   // Jantar Mantar - Bangla Sahib
-    [3, 17, 0.8],   // National Museum - Khan Market
-    [4, 17, 1.4],   // India Gate - Khan Market
-    [14, 18, 1.1],  // ITO - Pragati Maidan
-    [15, 18, 1.6],  // Delhi Gate - Pragati Maidan
-    [10, 19, 0.6],  // Chandni Chowk - Jama Masjid
-    [11, 19, 1.2],  // Red Fort - Jama Masjid
-    [5, 21, 1.3],   // Rajendra Place - Jhandewalan
-    [6, 21, 1.7],   // Karol Bagh - Jhandewalan
-    [6, 20, 2.2],   // Karol Bagh - Patel Nagar
-    [16, 22, 1.1],  // Bangla Sahib - Talkatora
-    [1, 23, 2.0],   // Jantar Mantar - Rashtrapati Bhavan
-    [16, 23, 1.6],  // Bangla Sahib - Rashtrapati Bhavan
-    [21, 27, 1.5],  // Jhandewalan - Sadar Bazar
-    [8, 30, 0.5],   // New Delhi Railway Station - Kamla Market
-    [30, 24, 0.4],  // Kamla Market - Ram Nagar
-    [25, 31, 0.5],  // Udyog Bhawan - Nirman Bhawan
-    [9, 28, 1.9],   // Ajmeri Gate - Kashmere Gate
-    [17, 29, 1.2]   // Khan Market - Lodhi Garden
-]
-```
+Let's explore a few possible variations and understand how their approaches differ.
 
 ---
 
 ### Naive Approach: Bellmand-Ford
 
-Consider a sub-graph between Connaught Place and Mandi House containing `5` vertices and `6` edges.
+Consider the sub-graph between **Connaught Place** and **Mandi House** containing `5` vertices and `6` edges.
+The shortest path is composed of shortest paths to its intermediate vertices.
 
 <ShortestPathSubpathVisualizer />
 
 A shortest path never needs to repeat a vertex, provided there is no negative-weight cycle.
 Therefore, it can contain at most `V-1` edges.
 Consequently, after `V-1` iterations, we are guaranteed to have discovered all shortest distances.
-
-A shortest path is composed of shortest paths to its intermediate vertices.
 
 
 #### Algorithm
