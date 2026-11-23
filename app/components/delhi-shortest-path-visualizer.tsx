@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type PointerEvent, type ReactNode } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent, type ReactNode } from "react";
 import { Maximize2, Minimize2, Pause, Play, RotateCcw } from "lucide-react";
 import { LanguageMenu, type Language } from "./dijkstra-code-visualizer";
 
@@ -1123,6 +1123,8 @@ function colorizeCode(text: string, language: Language): ReactNode {
 }
 
 const BF_ZOOM = 1.75;
+const BF_SPLIT_MIN = 30;
+const BF_SPLIT_MAX = 65;
 
 function bfFocus(item: BfStep): { x: number; y: number } {
   if (!item.edge) return POS.cp;
@@ -1147,6 +1149,9 @@ export function BellmanFordMapVisualizer() {
   const scrollerRef = useRef<HTMLDivElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const [fullscreen, setFullscreen] = useState(false);
+  const splitRef = useRef<HTMLDivElement>(null);
+  const [split, setSplit] = useState(50);
+  const [resizing, setResizing] = useState(false);
   const lineRefs = useRef<(HTMLDivElement | null)[]>([]);
   const snap = BF_STEPS[step];
   const done = step === BF_STEPS.length - 1;
@@ -1250,6 +1255,37 @@ export function BellmanFordMapVisualizer() {
     else root.webkitRequestFullscreen?.();
   }
 
+  function clampSplit(value: number) {
+    return Math.min(BF_SPLIT_MAX, Math.max(BF_SPLIT_MIN, value));
+  }
+
+  function onSplitDown(event: PointerEvent<HTMLDivElement>) {
+    if (event.button !== 0) return;
+    try {
+      event.currentTarget.setPointerCapture(event.pointerId);
+    } catch {
+      // Capture is only available for an active pointer.
+    }
+    setResizing(true);
+  }
+
+  function onSplitMove(event: PointerEvent<HTMLDivElement>) {
+    if (!resizing) return;
+    const rect = splitRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    setSplit(clampSplit(((event.clientX - rect.left) / rect.width) * 100));
+  }
+
+  function onSplitUp() {
+    setResizing(false);
+  }
+
+  function onSplitKey(event: KeyboardEvent<HTMLDivElement>) {
+    if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+    event.preventDefault();
+    setSplit((value) => clampSplit(value + (event.key === "ArrowLeft" ? -5 : 5)));
+  }
+
   function goTo(next: number) {
     setPlaying(false);
     setStep(Math.max(0, Math.min(BF_STEPS.length - 1, next)));
@@ -1299,7 +1335,8 @@ export function BellmanFordMapVisualizer() {
     const dx = event.clientX - start.x;
     const dy = event.clientY - start.y;
     const rect = event.currentTarget.getBoundingClientRect();
-    const scale = Math.max(rect.width / frameWidth, rect.height / frameHeight);
+    const fit = zoom <= MIN_ZOOM ? Math.min : Math.max;
+    const scale = fit(rect.width / frameWidth, rect.height / frameHeight);
     setOrigin(clampOrigin(start.originX - dx / scale, start.originY - dy / scale, frameWidth, frameHeight));
   }
 
@@ -1330,11 +1367,13 @@ export function BellmanFordMapVisualizer() {
         </button>
       </div>
       <div
-        className={`flex flex-col divide-y divide-neutral-200 md:flex-row md:divide-x md:divide-y-0 ${
+        ref={splitRef}
+        style={{ "--bf-split": `${split}%` } as CSSProperties}
+        className={`flex flex-col md:flex-row ${
           fullscreen ? "min-h-0 flex-1" : "md:h-[620px]"
         }`}
       >
-        <div className="flex min-h-0 min-w-0 flex-col md:w-1/2 md:shrink-0">
+        <div className="flex min-h-0 min-w-0 flex-col md:w-[var(--bf-split)] md:shrink-0">
           <div ref={scrollerRef} className="relative max-h-[360px] min-h-0 flex-1 overflow-auto bg-neutral-50 md:max-h-none">
             <div className="w-max min-w-full py-2">
               {BF_CODE[language].map((text, lineIndex) => {
@@ -1365,12 +1404,35 @@ export function BellmanFordMapVisualizer() {
             </div>
           </div>
         </div>
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-      <div className={`relative ${fullscreen ? "min-h-0 flex-1" : "shrink-0"}`}>
+        <div
+          role="separator"
+          aria-orientation="vertical"
+          aria-label="Resize panels"
+          aria-valuemin={BF_SPLIT_MIN}
+          aria-valuemax={BF_SPLIT_MAX}
+          aria-valuenow={Math.round(split)}
+          tabIndex={0}
+          onPointerDown={onSplitDown}
+          onPointerMove={onSplitMove}
+          onPointerUp={onSplitUp}
+          onPointerCancel={onSplitUp}
+          onKeyDown={onSplitKey}
+          className="group relative hidden w-px shrink-0 cursor-col-resize touch-none bg-neutral-200 outline-none md:block"
+        >
+          <span className="absolute inset-y-0 -left-1.5 -right-1.5" />
+          <span
+            className={`absolute left-1/2 top-1/2 h-8 w-1 -translate-x-1/2 -translate-y-1/2 rounded-full transition-colors ${
+              resizing ? "bg-indigo-500" : "bg-neutral-300 group-hover:bg-neutral-400 group-focus-visible:bg-indigo-500"
+            }`}
+          />
+        </div>
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col border-t border-neutral-200 md:border-t-0">
+      <div className="relative md:min-h-0 md:flex-1">
         <svg
           viewBox={`${frame.x} ${frame.y} ${frame.width} ${frame.height}`}
-          preserveAspectRatio={fullscreen ? "xMidYMid slice" : undefined}
-          className={`block w-full touch-none select-none ${fullscreen ? "h-full" : "h-auto"} ${dragging ? "cursor-grabbing [&_*]:cursor-grabbing" : "cursor-grab"}`}
+          preserveAspectRatio={zoom <= MIN_ZOOM ? "xMidYMid meet" : "xMidYMid slice"}
+          style={{ background: "#eef1f4" }}
+          className={`block w-full touch-none select-none h-auto md:h-full ${dragging ? "cursor-grabbing [&_*]:cursor-grabbing" : "cursor-grab"}`}
           role="img"
           aria-label={`${snap.progress}. ${snap.caption}`}
           onPointerDown={onPointerDown}
@@ -1531,7 +1593,7 @@ export function BellmanFordMapVisualizer() {
           </button>
         </div>
       </div>
-      <div className="min-h-0 flex-1 space-y-3 overflow-y-auto border-t border-neutral-200 px-3 py-3">
+      <div className="shrink-0 space-y-3 border-t border-neutral-200 px-3 py-3">
         <div className="flex items-center gap-3" aria-live="polite">
           <span
             className={`w-[84px] shrink-0 rounded-md py-1 text-center text-[10.5px] font-semibold uppercase tracking-wide ${
