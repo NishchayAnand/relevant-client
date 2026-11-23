@@ -15,7 +15,7 @@ Let's explore a few possible variations and understand how their approaches diff
 
 ---
 
-### Naive Approach: Bellmand-Ford
+### Naive Approach: Bellmand-Ford Algorithm
 
 Bellman-Ford guarantees that one complete pass through all the edges of the graph, performing edge relaxation on 
 each edge, discovers shortest paths containing at most one additional edge. This guarantee is based on the 
@@ -28,16 +28,10 @@ shortest paths from the source to each of its intermediate vertices.
 `(V-1)` edges, provided there is no reachable negative-weight cycle. This is because a shortest path never needs to 
 repeat a vertex.
 
-#### Algorithm
+#### Implementation
 
 Since each pass guarantees the discovery of shortest paths containing at most one additional edge, after `(V-1)` 
 passes, it's guaranteed to have discovered the shortest distances from the source to every reachable vertex.
-
-```java
-1. 
-```
-
-#### Implementation
 
 <BellmanFordMapVisualizer />
 
@@ -47,9 +41,7 @@ passes, it's guaranteed to have discovered the shortest distances from the sourc
 
 ---
 
-### Better Approach: Shortest Path Faster
-
-#### Algorithm
+### Better Approach: Shortest Path Faster Algorithm
 
 #### Implementation
 
@@ -59,9 +51,7 @@ passes, it's guaranteed to have discovered the shortest distances from the sourc
 
 ---
 
-### Suitable Approach: Dijkstra
-
-#### Algorithm
+### Suitable Approach: Dijkstra's Algorithm
 
 #### Implementation
 
