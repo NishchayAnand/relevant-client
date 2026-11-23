@@ -1,5 +1,5 @@
 ---
-title: 'Data Structures & Algorithms (Graph): Single Source Shortest Path'
+title: 'Data Structures & Algorithms (Graphs): Single Source Shortest Path'
 publishedAt: '2026-04-16'
 ---
 
@@ -17,24 +17,21 @@ Let's explore a few possible variations and understand how their approaches diff
 
 ### Naive Approach: Bellmand-Ford
 
-The reasoning behind the Bellman-Ford algorithm is based on the following observations:
+Bellman-Ford guarantees that one complete pass through all the edges of the graph, performing edge relaxation on 
+each edge, discovers shortest paths containing at most one additional edge. This guarantee is based on the 
+following two important observations:
 
 1. **Optimal Substructure Property**: A shortest path from a source vertex to a destination is composed of 
-shortest paths to its intermediate vertices. This means that if we know the shortest distance to an intermediate 
-vertex, we can use that information to discover the shortest distance to the next vertex by relaxing the 
-connecting edge.
+shortest paths from the source to each of its intermediate vertices.
 
-2. **Repeated Edge Relaxation**: One complete pass through all the edges of the graph, performing edge relaxation 
-on each edge, guarantees the discovery of shortest paths containing at most one additional edge. After the 
-execution of the `(ith)` pass, Bellman-Ford correctly discovers all shortest paths containing at most `(i)` edges.
-
-3. **Maximum Number of Edges in a Shortest Path**: The longest possible shortest path in a graph with `(V)` vertices 
-can have at most `(V - 1)` edges, provided there is no negative-weight cycle.
-
-Since each pass guarantees the discovery of shortest paths containing at most one additional edge, after `(V-1)` 
-iterations, we are guaranteed to have discovered all shortest distances from the source to every reachable vertex.
+2. **Maximum Number of Edges in a Shortest Path**: In a graph with `(V)` vertices, a shortest path can contain at most 
+`(V-1)` edges, provided there is no reachable negative-weight cycle. This is because a shortest path never needs to 
+repeat a vertex.
 
 #### Algorithm
+
+Since each pass guarantees the discovery of shortest paths containing at most one additional edge, after `(V-1)` 
+passes, it's guaranteed to have discovered the shortest distances from the source to every reachable vertex.
 
 ```java
 1. 
@@ -42,9 +39,7 @@ iterations, we are guaranteed to have discovered all shortest distances from the
 
 #### Implementation
 
-```java
-
-```
+<BellmanFordMapVisualizer />
 
 #### Time Complexity 
 

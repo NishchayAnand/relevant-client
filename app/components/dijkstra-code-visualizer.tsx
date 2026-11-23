@@ -185,7 +185,7 @@ const PYTHON = [
   "    return dist",
 ];
 
-type Language = "java" | "python";
+export type Language = "java" | "python";
 type StepId =
   | "signature"
   | "allocate"
@@ -551,12 +551,14 @@ const LANGUAGES: { id: Language; label: string }[] = [
   { id: "python", label: "Python" },
 ];
 
-function LanguageMenu({
+export function LanguageMenu({
   language,
   onChange,
+  portalRoot,
 }: {
   language: Language;
   onChange: (language: Language) => void;
+  portalRoot?: HTMLElement | null;
 }) {
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(language);
@@ -660,7 +662,7 @@ function LanguageMenu({
               );
             })}
           </div>,
-          document.body,
+          portalRoot ?? document.body,
         )
       : null;
 

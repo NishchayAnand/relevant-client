@@ -1,6 +1,8 @@
 "use client";
 
-import { useRef, useState, type PointerEvent } from "react";
+import { useEffect, useRef, useState, type PointerEvent, type ReactNode } from "react";
+import { Maximize2, Minimize2, Pause, Play, RotateCcw } from "lucide-react";
+import { LanguageMenu, type Language } from "./dijkstra-code-visualizer";
 
 const VB_W = 1320;
 const VB_H = 840;
@@ -368,6 +370,130 @@ function kmLabel(km: number) {
   return `${km.toFixed(1)} km`;
 }
 
+type BfStep = {
+  dist: Record<NodeId, number>;
+  parent: Record<NodeId, NodeId | null>;
+  updated: NodeId[];
+  edge: [NodeId, NodeId] | null;
+  edgeIndex: number | null;
+  iteration: number | null;
+  relaxed: boolean;
+  caption: string;
+  progress: string;
+};
+
+// Each undirected road is listed in both directions, in the order the inner loop scans them.
+const BF_EDGES = EDGES.flatMap((edge) => [
+  [edge.u, edge.v, edge.km] as const,
+  [edge.v, edge.u, edge.km] as const,
+]);
+const BF_ITERATIONS = NODE_IDS.length - 1;
+
+function distLabel(km: number) {
+  return Number.isFinite(km) ? kmLabel(km) : "∞";
+}
+
+const BF_STEPS: BfStep[] = (() => {
+  const blankDist = () => Object.fromEntries(NODE_IDS.map((id) => [id, Number.POSITIVE_INFINITY])) as Record<NodeId, number>;
+  const blankParent = () => Object.fromEntries(NODE_IDS.map((id) => [id, null])) as Record<NodeId, NodeId | null>;
+  const dist = blankDist();
+  const parent = blankParent();
+  const steps: BfStep[] = [
+    {
+      dist: blankDist(),
+      parent: blankParent(),
+      updated: [],
+      edge: null,
+      edgeIndex: null,
+      iteration: null,
+      relaxed: false,
+      caption: "Every place starts as unreached, with no known distance.",
+      progress: "Initialize dist",
+    },
+  ];
+
+  dist.cp = 0;
+  steps.push({
+    dist: { ...dist },
+    parent: { ...parent },
+    updated: ["cp"],
+    edge: null,
+    edgeIndex: null,
+    iteration: null,
+    relaxed: false,
+    caption: `${PLACE_NAME.cp} is the starting point, so its distance is 0 km.`,
+    progress: "Set the source",
+  });
+
+  for (let iteration = 1; iteration <= BF_ITERATIONS; iteration += 1) {
+    BF_EDGES.forEach(([u, v, km], edgeIndex) => {
+      const progress = `Pass ${iteration} of ${BF_ITERATIONS} · road ${edgeIndex + 1} of ${BF_EDGES.length}`;
+      const base = { edge: [u, v] as [NodeId, NodeId], edgeIndex, iteration, progress };
+      if (!Number.isFinite(dist[u])) {
+        steps.push({
+          ...base,
+          dist: { ...dist },
+          parent: { ...parent },
+          updated: [],
+          relaxed: false,
+          caption: `${PLACE_NAME[u]} to ${PLACE_NAME[v]}: ${PLACE_NAME[u]} has not been reached yet, so this road is skipped.`,
+        });
+        return;
+      }
+      const candidate = Math.round((dist[u] + km) * 10) / 10;
+      if (candidate + 1e-9 < dist[v]) {
+        const before = dist[v];
+        dist[v] = candidate;
+        parent[v] = u;
+        steps.push({
+          ...base,
+          dist: { ...dist },
+          parent: { ...parent },
+          updated: [v],
+          relaxed: true,
+          caption: Number.isFinite(before)
+            ? `${PLACE_NAME[u]} to ${PLACE_NAME[v]}: going via ${PLACE_NAME[u]} takes ${kmLabel(candidate)}, shorter than ${kmLabel(before)}, so ${PLACE_NAME[v]} is updated.`
+            : `${PLACE_NAME[u]} to ${PLACE_NAME[v]}: ${PLACE_NAME[v]} is reached for the first time, ${kmLabel(candidate)} via ${PLACE_NAME[u]}.`,
+        });
+        return;
+      }
+      steps.push({
+        ...base,
+        dist: { ...dist },
+        parent: { ...parent },
+        updated: [],
+        relaxed: false,
+        caption: `${PLACE_NAME[u]} to ${PLACE_NAME[v]}: going via ${PLACE_NAME[u]} takes ${kmLabel(candidate)}, no shorter than ${kmLabel(dist[v])}, so nothing changes.`,
+      });
+    });
+  }
+
+  steps.push({
+    dist: { ...dist },
+    parent: { ...parent },
+    updated: [],
+    edge: null,
+    edgeIndex: null,
+    iteration: null,
+    relaxed: false,
+    caption: "All passes are done. These are the shortest distances from Connaught Place.",
+    progress: `Finished after ${BF_ITERATIONS} passes over ${BF_EDGES.length} roads`,
+  });
+
+  const finalDist = steps[steps.length - 1].dist;
+  for (const id of NODE_IDS) {
+    const want = Math.round(SEARCH.dist[id] * 10) / 10;
+    if (Math.abs(finalDist[id] - want) > 0.05) {
+      throw new Error(`Bellman-Ford distance for ${id} is ${finalDist[id]}, expected ${want}`);
+    }
+  }
+  return steps;
+})();
+
+const BF_PASS_START = Object.fromEntries(
+  Array.from({ length: BF_ITERATIONS }, (_, index) => [index + 1, BF_STEPS.findIndex((item) => item.iteration === index + 1)]),
+) as Record<number, number>;
+
 const EDGE_LABEL_AT: Record<string, { x: number; y: number }> = (() => {
   const nameBoxes = LABELS.map((label) => {
     const fontSize = 15;
@@ -432,6 +558,8 @@ function MapLabel({
   kind,
   active,
   dim,
+  note,
+  noteFresh,
   onClick,
 }: {
   lines: string[];
@@ -441,6 +569,8 @@ function MapLabel({
   kind: Kind;
   active: boolean;
   dim: boolean;
+  note?: string;
+  noteFresh?: boolean;
   onClick?: (event: { stopPropagation: () => void }) => void;
 }) {
   const textAnchor = anchor === "left" ? "end" : anchor === "right" ? "start" : "middle";
@@ -487,6 +617,11 @@ function MapLabel({
         {kind === "source" ? (
           <tspan x={x} dy={15} fontSize={11} fontWeight={600} fill={kmFill}>
             START
+          </tspan>
+        ) : null}
+        {note ? (
+          <tspan x={x} dy={14} fontSize={11} fontWeight={700} fill={noteFresh ? ROUTE : ROUTE_TEXT}>
+            {note}
           </tspan>
         ) : null}
       </text>
@@ -841,6 +976,718 @@ export default function DelhiShortestPathVisualizer() {
         </div>
       </div>
 
+    </div>
+  );
+}
+
+const BF_CODE: Record<Language, string[]> = {
+  java: [
+    "public int[] bellmanFord(int V, int[][] edges, int source) {",
+    "",
+    "    int[] dist = new int[V];",
+    "    Arrays.fill(dist, Integer.MAX_VALUE);",
+    "",
+    "    // Distance from source to itself is 0",
+    "    dist[source] = 0;",
+    "",
+    "    // Relax all edges V - 1 times",
+    "    for (int i = 1; i < V; i++) {",
+    "",
+    "        for (int[] edge : edges) {",
+    "",
+    "            int u = edge[0];",
+    "            int v = edge[1];",
+    "            int weight = edge[2];",
+    "",
+    "            if (dist[u] != Integer.MAX_VALUE &&",
+    "                dist[u] + weight < dist[v]) {",
+    "",
+    "                dist[v] = dist[u] + weight;",
+    "            }",
+    "        }",
+    "    }",
+    "",
+    "    return dist;",
+    "}",
+  ],
+  python: [
+    "def bellman_ford(V, edges, source):",
+    "",
+    "    dist = [math.inf] * V",
+    "",
+    "    # Distance from source to itself is 0",
+    "    dist[source] = 0",
+    "",
+    "    # Relax all edges V - 1 times",
+    "    for i in range(1, V):",
+    "",
+    "        for edge in edges:",
+    "",
+    "            u = edge[0]",
+    "            v = edge[1]",
+    "            weight = edge[2]",
+    "",
+    "            if (dist[u] != math.inf and",
+    "                    dist[u] + weight < dist[v]):",
+    "",
+    "                dist[v] = dist[u] + weight",
+    "",
+    "    return dist",
+  ],
+};
+
+type BfMark = "alloc" | "source" | "outer" | "inner" | "u" | "v" | "weight" | "guard" | "compare" | "assign" | "ret";
+
+const BF_SNIPPETS: Record<Language, Record<BfMark, string[]>> = {
+  java: {
+    alloc: ["int[] dist = new int[V]", "Arrays.fill"],
+    source: ["dist[source] = 0"],
+    outer: ["for (int i = 1"],
+    inner: ["for (int[] edge"],
+    u: ["int u = edge[0]"],
+    v: ["int v = edge[1]"],
+    weight: ["int weight = edge[2]"],
+    guard: ["if (dist[u] != Integer.MAX_VALUE"],
+    compare: ["dist[u] + weight < dist[v]"],
+    assign: ["dist[v] = dist[u] + weight;"],
+    ret: ["return dist;"],
+  },
+  python: {
+    alloc: ["dist = [math.inf] * V"],
+    source: ["dist[source] = 0"],
+    outer: ["for i in range(1, V)"],
+    inner: ["for edge in edges"],
+    u: ["u = edge[0]"],
+    v: ["v = edge[1]"],
+    weight: ["weight = edge[2]"],
+    guard: ["if (dist[u] != math.inf"],
+    compare: ["dist[u] + weight < dist[v]"],
+    assign: ["dist[v] = dist[u] + weight"],
+    ret: ["return dist"],
+  },
+};
+
+const BF_LINES = Object.fromEntries(
+  (Object.keys(BF_CODE) as Language[]).map((language) => [
+    language,
+    Object.fromEntries(
+      (Object.keys(BF_SNIPPETS[language]) as BfMark[]).map((mark) => [
+        mark,
+        BF_SNIPPETS[language][mark].map((snippet) => {
+          const index = BF_CODE[language].findIndex((line) => line.includes(snippet));
+          if (index === -1) throw new Error(`Missing ${language} code line: ${snippet}`);
+          return index;
+        }),
+      ]),
+    ),
+  ]),
+) as Record<Language, Record<BfMark, number[]>>;
+
+
+function bfMarks(item: BfStep, index: number): BfMark[] {
+  if (index === 0) return ["alloc"];
+  if (item.iteration === null) return index === 1 ? ["source"] : ["ret"];
+  const marks: BfMark[] = ["inner", "u", "v", "weight", "guard"];
+  if (item.edgeIndex === 0) marks.unshift("outer");
+  if (Number.isFinite(BF_STEPS[index - 1].dist[item.edge![0]])) marks.push("compare");
+  if (item.relaxed) marks.push("assign");
+  return marks;
+}
+
+function colorizeCode(text: string, language: Language): ReactNode {
+  const commentAt = text.indexOf(language === "python" ? "#" : "//");
+  const code = commentAt >= 0 ? text.slice(0, commentAt) : text;
+  const comment = commentAt >= 0 ? text.slice(commentAt) : "";
+  const keywords = language === "python" ? /\b(def|for|in|if|and|return)\b/g : /\b(public|int|for|if|new|return)\b/g;
+  const parts: ReactNode[] = [];
+  let last = 0;
+  let match: RegExpExecArray | null;
+  while ((match = keywords.exec(code)) !== null) {
+    if (match.index > last) parts.push(code.slice(last, match.index));
+    parts.push(
+      <span key={`${match.index}-${match[0]}`} style={{ color: ROUTE }}>
+        {match[0]}
+      </span>,
+    );
+    last = match.index + match[0].length;
+  }
+  if (last < code.length) parts.push(code.slice(last));
+  if (comment) {
+    parts.push(
+      <span key="comment" style={{ color: "#737373", fontStyle: "italic" }}>
+        {comment}
+      </span>,
+    );
+  }
+  return parts;
+}
+
+const BF_ZOOM = 1.75;
+
+function bfFocus(item: BfStep): { x: number; y: number } {
+  if (!item.edge) return POS.cp;
+  const [u, v] = item.edge;
+  return { x: (POS[u].x + POS[v].x) / 2, y: (POS[u].y + POS[v].y) / 2 };
+}
+
+function bfOrigin(center: { x: number; y: number }, zoom: number) {
+  const width = VIEW.width / zoom;
+  const height = VIEW.height / zoom;
+  return clampOrigin(center.x - width / 2, center.y - height / 2, width, height);
+}
+
+export function BellmanFordMapVisualizer() {
+  const [step, setStep] = useState(1);
+  const [playing, setPlaying] = useState(false);
+  const [language, setLanguage] = useState<Language>("java");
+  const [zoom, setZoom] = useState(BF_ZOOM);
+  const [origin, setOrigin] = useState(() => bfOrigin(POS.cp, BF_ZOOM));
+  const [dragging, setDragging] = useState(false);
+  const drag = useRef<{ pointerId: number; x: number; y: number; originX: number; originY: number } | null>(null);
+  const scrollerRef = useRef<HTMLDivElement>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const [fullscreen, setFullscreen] = useState(false);
+  const lineRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const snap = BF_STEPS[step];
+  const done = step === BF_STEPS.length - 1;
+  const activeLines = bfMarks(snap, step).flatMap((mark) => BF_LINES[language][mark]);
+  const before = step > 0 ? BF_STEPS[step - 1].dist : snap.dist;
+
+  useEffect(() => {
+    if (!playing || done) return;
+    const timer = setTimeout(() => setStep((value) => Math.min(BF_STEPS.length - 1, value + 1)), 350);
+    return () => clearTimeout(timer);
+  }, [playing, done, step]);
+
+  useEffect(() => {
+    if (done) setPlaying(false);
+  }, [done]);
+
+  useEffect(() => {
+    if (snap.edge) setOrigin(bfOrigin(bfFocus(snap), zoom));
+  }, [snap, zoom]);
+
+  useEffect(() => {
+    const scroller = scrollerRef.current;
+    const line = lineRefs.current[Math.min(...activeLines)];
+    if (!scroller || !line) return;
+    const lineTop = line.offsetTop;
+    const lineBottom = lineTop + line.offsetHeight * activeLines.length;
+    if (lineTop < scroller.scrollTop || lineBottom > scroller.scrollTop + scroller.clientHeight) {
+      scroller.scrollTo({ top: Math.max(0, lineTop - 24) });
+    }
+  }, [step, language]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const reachedCount = NODE_IDS.filter((id) => Number.isFinite(snap.dist[id])).length;
+  const status =
+    step === 0
+      ? "start"
+      : snap.iteration === null
+        ? done
+          ? "done"
+          : "start"
+        : snap.relaxed
+          ? "updated"
+          : Number.isFinite(before[snap.edge![0]])
+            ? "no change"
+            : "skipped";
+
+  const fromId = snap.edge?.[0];
+  const toId = snap.edge?.[1];
+  const details: [string, string][] = [
+    ["From", fromId ? `${PLACE_NAME[fromId]} · ${Number.isFinite(before[fromId]) ? kmLabel(before[fromId]) : "not reached"}` : "–"],
+    [
+      "To",
+      toId
+        ? `${PLACE_NAME[toId]} · ${
+            snap.relaxed
+              ? Number.isFinite(before[toId])
+                ? `${kmLabel(before[toId])} → ${kmLabel(snap.dist[toId])}`
+                : `now ${kmLabel(snap.dist[toId])}`
+              : Number.isFinite(before[toId])
+                ? kmLabel(before[toId])
+                : "not reached"
+          }`
+        : "–",
+    ],
+    ["Road length", snap.edgeIndex !== null ? kmLabel(BF_EDGES[snap.edgeIndex][2]) : "–"],
+    [
+      "Distance via this road",
+      fromId && Number.isFinite(before[fromId]) && snap.edgeIndex !== null
+        ? kmLabel(Math.round((before[fromId] + BF_EDGES[snap.edgeIndex][2]) * 10) / 10)
+        : "–",
+    ],
+  ];
+
+  useEffect(() => {
+    function onChange() {
+      const doc = document as Document & { webkitFullscreenElement?: Element | null };
+      const current = document.fullscreenElement ?? doc.webkitFullscreenElement ?? null;
+      setFullscreen(current === rootRef.current);
+    }
+    document.addEventListener("fullscreenchange", onChange);
+    document.addEventListener("webkitfullscreenchange", onChange);
+    return () => {
+      document.removeEventListener("fullscreenchange", onChange);
+      document.removeEventListener("webkitfullscreenchange", onChange);
+    };
+  }, []);
+
+  function toggleFullscreen() {
+    const root = rootRef.current as (HTMLDivElement & { webkitRequestFullscreen?: () => void }) | null;
+    if (!root) return;
+    const doc = document as Document & {
+      webkitFullscreenElement?: Element | null;
+      webkitExitFullscreen?: () => void;
+    };
+    const current = document.fullscreenElement ?? doc.webkitFullscreenElement ?? null;
+    if (current) {
+      if (document.exitFullscreen) void document.exitFullscreen();
+      else doc.webkitExitFullscreen?.();
+      return;
+    }
+    if (root.requestFullscreen) void root.requestFullscreen();
+    else root.webkitRequestFullscreen?.();
+  }
+
+  function goTo(next: number) {
+    setPlaying(false);
+    setStep(Math.max(0, Math.min(BF_STEPS.length - 1, next)));
+  }
+  const treeKeys = new Set(
+    NODE_IDS.filter((id) => snap.parent[id]).map((id) => edgeKey(snap.parent[id] as NodeId, id)),
+  );
+  const freshKeys = new Set(snap.edge && snap.relaxed ? [edgeKey(snap.edge[0], snap.edge[1])] : []);
+  const checking = snap.edge ? findEdge(snap.edge[0], snap.edge[1]) : null;
+  const passStart = snap.iteration ? BF_PASS_START[snap.iteration] : -1;
+  const relaxedInPass = new Set(
+    passStart === -1
+      ? []
+      : BF_STEPS.slice(passStart, step + 1)
+          .filter((item) => item.relaxed)
+          .map((item) => item.edgeIndex as number),
+  );
+  const frameWidth = VIEW.width / zoom;
+  const frameHeight = VIEW.height / zoom;
+  const frame = { x: origin.x, y: origin.y, width: frameWidth, height: frameHeight };
+
+  function changeZoom(direction: 1 | -1) {
+    const next = clampZoom(zoom + direction * ZOOM_STEP);
+    if (next === zoom) return;
+    const centerX = origin.x + frameWidth / 2;
+    const centerY = origin.y + frameHeight / 2;
+    const nextWidth = VIEW.width / next;
+    const nextHeight = VIEW.height / next;
+    setZoom(next);
+    setOrigin(clampOrigin(centerX - nextWidth / 2, centerY - nextHeight / 2, nextWidth, nextHeight));
+  }
+
+  function onPointerDown(event: PointerEvent<SVGSVGElement>) {
+    if (event.button !== 0) return;
+    drag.current = { pointerId: event.pointerId, x: event.clientX, y: event.clientY, originX: origin.x, originY: origin.y };
+    try {
+      event.currentTarget.setPointerCapture(event.pointerId);
+    } catch {
+      // Capture is only available for an active pointer.
+    }
+    setDragging(true);
+  }
+
+  function onPointerMove(event: PointerEvent<SVGSVGElement>) {
+    const start = drag.current;
+    if (!start || start.pointerId !== event.pointerId) return;
+    const dx = event.clientX - start.x;
+    const dy = event.clientY - start.y;
+    const rect = event.currentTarget.getBoundingClientRect();
+    const scale = Math.max(rect.width / frameWidth, rect.height / frameHeight);
+    setOrigin(clampOrigin(start.originX - dx / scale, start.originY - dy / scale, frameWidth, frameHeight));
+  }
+
+  function endDrag(event: PointerEvent<SVGSVGElement>) {
+    if (!drag.current || drag.current.pointerId !== event.pointerId) return;
+    drag.current = null;
+    setDragging(false);
+  }
+
+  return (
+    <div
+      ref={rootRef}
+      className={`not-prose overflow-hidden bg-white ${
+        fullscreen ? "flex h-full w-full flex-col" : "my-6 rounded-2xl border border-neutral-200"
+      }`}
+    >
+      <div className="flex shrink-0 items-center gap-2 border-b border-neutral-200 px-3 py-2">
+        <span className="text-[11px] font-medium uppercase tracking-wide text-neutral-400">Language</span>
+        <LanguageMenu language={language} onChange={setLanguage} portalRoot={fullscreen ? rootRef.current : null} />
+        <button
+          type="button"
+          aria-label={fullscreen ? "Exit full screen" : "Full screen"}
+          aria-pressed={fullscreen}
+          onClick={toggleFullscreen}
+          className="ml-auto inline-flex h-8 w-8 items-center justify-center rounded-lg border border-neutral-200 bg-white text-neutral-700 hover:border-neutral-300 hover:bg-neutral-50"
+        >
+          {fullscreen ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
+        </button>
+      </div>
+      <div
+        className={`flex flex-col divide-y divide-neutral-200 md:flex-row md:divide-x md:divide-y-0 ${
+          fullscreen ? "min-h-0 flex-1" : "md:h-[620px]"
+        }`}
+      >
+        <div className="flex min-h-0 min-w-0 flex-col md:w-1/2 md:shrink-0">
+          <div ref={scrollerRef} className="relative max-h-[360px] min-h-0 flex-1 overflow-auto bg-neutral-50 md:max-h-none">
+            <div className="w-max min-w-full py-2">
+              {BF_CODE[language].map((text, lineIndex) => {
+                const active = activeLines.includes(lineIndex);
+                return (
+                  <div
+                    key={lineIndex}
+                    ref={(element) => {
+                      lineRefs.current[lineIndex] = element;
+                    }}
+                    className="flex w-max min-w-full items-start pr-3 text-[11.5px] leading-[18px]"
+                    style={{ background: active ? "#eef2ff" : "#fafafa" }}
+                  >
+                    <span
+                      className="sticky left-0 w-8 shrink-0 select-none pr-2 text-right font-mono tabular-nums"
+                      style={{
+                        color: active ? ROUTE_TEXT : "#a3a3a3",
+                        background: active ? "#eef2ff" : "#fafafa",
+                        boxShadow: active ? `inset 2px 0 0 ${ROUTE}` : "none",
+                      }}
+                    >
+                      {lineIndex + 1}
+                    </span>
+                    <span className="whitespace-pre font-mono text-neutral-800">{text.length > 0 ? colorizeCode(text, language) : " "}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+      <div className={`relative ${fullscreen ? "min-h-0 flex-1" : "shrink-0"}`}>
+        <svg
+          viewBox={`${frame.x} ${frame.y} ${frame.width} ${frame.height}`}
+          preserveAspectRatio={fullscreen ? "xMidYMid slice" : undefined}
+          className={`block w-full touch-none select-none ${fullscreen ? "h-full" : "h-auto"} ${dragging ? "cursor-grabbing [&_*]:cursor-grabbing" : "cursor-grab"}`}
+          role="img"
+          aria-label={`${snap.progress}. ${snap.caption}`}
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={endDrag}
+          onPointerCancel={endDrag}
+        >
+          <defs>
+            <filter id="bf-pin-shadow" x="-120%" y="-120%" width="340%" height="340%" colorInterpolationFilters="sRGB">
+              <feDropShadow dx="0" dy="1.2" stdDeviation="1.5" floodColor="#1e1b4b" floodOpacity="0.4" />
+              <feDropShadow dx="0" dy="0" stdDeviation="2.6" floodColor="#4f46e5" floodOpacity="0.55" />
+            </filter>
+          </defs>
+          <rect width={VB_W} height={VB_H} fill="#eef1f4" />
+          <g pointerEvents="none" opacity={0.5}>
+            {CLOTH.map((road, index) => (
+              <path
+                key={`cloth-${index}`}
+                d={road.d}
+                fill="none"
+                stroke={road.trace ? "#b7c3ce" : "#ffffff"}
+                strokeWidth={road.width}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            ))}
+          </g>
+          {EDGES.map((edge) => (
+            <path
+              key={`street-${edge.u}-${edge.v}`}
+              d={pathD(edge.points)}
+              fill="none"
+              stroke={ROAD}
+              strokeWidth={8}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          ))}
+          {EDGES.map((edge) => {
+            const key = edgeKey(edge.u, edge.v);
+            if (!treeKeys.has(key)) return null;
+            return (
+              <path
+                key={`tree-${edge.u}-${edge.v}`}
+                d={pathD(edge.points)}
+                fill="none"
+                stroke={ROUTE}
+                strokeWidth={freshKeys.has(key) ? 4.4 : 3.2}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            );
+          })}
+          {checking ? (
+            <path
+              d={pathD(checking.points)}
+              fill="none"
+              stroke={ROUTE_ACTIVE}
+              strokeWidth={2}
+              strokeLinecap="round"
+              strokeDasharray="6 6"
+              pointerEvents="none"
+            />
+          ) : null}
+          {EDGES.map((edge) => {
+            const key = edgeKey(edge.u, edge.v);
+            const onTree = treeKeys.has(key);
+            const spot = EDGE_LABEL_AT[key];
+            const text = kmLabel(edge.km);
+            const width = 46;
+            const height = 16;
+            return (
+              <g key={`km-${edge.u}-${edge.v}`} pointerEvents="none">
+                <rect
+                  x={spot.x - width / 2}
+                  y={spot.y - height / 2}
+                  width={width}
+                  height={height}
+                  rx={8}
+                  fill="#ffffff"
+                  stroke={onTree ? "#c7d2fe" : "#e4e4e7"}
+                  strokeWidth={1}
+                />
+                <text
+                  x={spot.x}
+                  y={spot.y}
+                  textAnchor="middle"
+                  dominantBaseline="central"
+                  fontFamily={FONT}
+                  fontSize={11}
+                  fontWeight={700}
+                  fill={onTree ? ROUTE_TEXT : "#3f3f46"}
+                >
+                  {text}
+                </text>
+              </g>
+            );
+          })}
+          {NODE_IDS.map((id) => {
+            const reached = Number.isFinite(snap.dist[id]);
+            const fresh = snap.updated.includes(id);
+            return (
+              <g key={id} pointerEvents="none">
+                {fresh ? (
+                  <circle cx={POS[id].x} cy={POS[id].y} r={11} fill="none" stroke={ROUTE} strokeWidth={1.6} />
+                ) : null}
+                {snap.edge && snap.edge[0] === id ? (
+                  <circle cx={POS[id].x} cy={POS[id].y} r={11} fill="none" stroke={ROUTE_ACTIVE} strokeWidth={1.4} strokeDasharray="3 3" />
+                ) : null}
+                <circle
+                  cx={POS[id].x}
+                  cy={POS[id].y}
+                  r={6}
+                  fill={reached ? ROUTE : "#d4d4d8"}
+                  filter={reached ? "url(#bf-pin-shadow)" : undefined}
+                />
+                <circle cx={POS[id].x} cy={POS[id].y} r={2.2} fill="#ffffff" />
+              </g>
+            );
+          })}
+          {LABELS.map((label) => {
+            const reached = Number.isFinite(snap.dist[label.id]);
+            const fresh = snap.updated.includes(label.id);
+            return (
+              <MapLabel
+                key={label.id}
+                lines={label.lines}
+                x={label.x}
+                y={label.id === "rf" ? label.y - 18 : label.y}
+                anchor={label.anchor}
+                kind={label.kind}
+                active={fresh}
+                dim={!reached}
+                note={reached ? kmLabel(snap.dist[label.id]) : undefined}
+                noteFresh={fresh}
+              />
+            );
+          })}
+        </svg>
+        <div className="absolute bottom-3 right-3 z-10 flex flex-col overflow-hidden rounded-lg border border-neutral-200 bg-white">
+          <button
+            type="button"
+            aria-label="Zoom in"
+            disabled={zoom >= MAX_ZOOM}
+            onClick={() => changeZoom(1)}
+            className="flex h-7 w-7 items-center justify-center border-b border-neutral-200 text-[16px] leading-none text-neutral-800 disabled:text-neutral-300"
+          >
+            +
+          </button>
+          <button
+            type="button"
+            aria-label="Zoom out"
+            disabled={zoom <= MIN_ZOOM}
+            onClick={() => changeZoom(-1)}
+            className="flex h-7 w-7 items-center justify-center text-[16px] leading-none text-neutral-800 disabled:text-neutral-300"
+          >
+            −
+          </button>
+        </div>
+      </div>
+      <div className="min-h-0 flex-1 space-y-3 overflow-y-auto border-t border-neutral-200 px-3 py-3">
+        <div className="flex items-center gap-3" aria-live="polite">
+          <span
+            className={`w-[84px] shrink-0 rounded-md py-1 text-center text-[10.5px] font-semibold uppercase tracking-wide ${
+              status === "updated" ? "bg-indigo-50 text-indigo-700" : "bg-neutral-100 text-neutral-500"
+            }`}
+          >
+            {status}
+          </span>
+          <p className="flex h-[3lh] min-w-0 flex-1 items-center text-[12.5px] leading-snug text-neutral-800">
+            <span className="line-clamp-3">{snap.caption}</span>
+          </p>
+        </div>
+        <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-[12px]">
+          {details.map(([label, value]) => (
+            <div key={label} className="min-w-0">
+              <dt className="text-[11px] text-neutral-500">{label}</dt>
+              <dd className={`truncate font-medium ${value === "–" ? "text-neutral-300" : "text-neutral-800"}`}>{value}</dd>
+            </div>
+          ))}
+        </dl>
+        <div>
+          <div className="mb-1 flex items-center justify-between text-[11.5px] text-neutral-500">
+            <span className="font-medium text-neutral-700">Pass</span>
+            <span className="tabular-nums">{snap.iteration === null ? "–" : `${snap.iteration} of ${BF_ITERATIONS}`}</span>
+          </div>
+          <div className="flex gap-px">
+            {Array.from({ length: BF_ITERATIONS }, (_, index) => {
+              const iteration = index + 1;
+              const current = snap.iteration === iteration;
+              const finished = snap.iteration ? iteration < snap.iteration : done;
+              return (
+                <button
+                  key={iteration}
+                  type="button"
+                  aria-label={`Jump to pass ${iteration}`}
+                  aria-pressed={current}
+                  onClick={() => goTo(BF_PASS_START[iteration])}
+                  className={`h-2 flex-1 rounded-[2px] ${current ? "bg-indigo-700" : finished ? "bg-neutral-300" : "bg-neutral-100 hover:bg-neutral-200"}`}
+                />
+              );
+            })}
+          </div>
+        </div>
+        <div>
+          <div className="mb-1 flex items-center justify-between text-[11.5px] text-neutral-500">
+            <span className="font-medium text-neutral-700">Road</span>
+            <span className="tabular-nums">{snap.edgeIndex === null ? "–" : `${snap.edgeIndex + 1} of ${BF_EDGES.length}`}</span>
+          </div>
+          <div className="flex gap-px" aria-hidden="true">
+            {BF_EDGES.map((_, index) => {
+              const current = snap.edgeIndex === index;
+              const scanned = snap.iteration ? snap.edgeIndex !== null && index < snap.edgeIndex : done;
+              const relaxed = relaxedInPass.has(index);
+              return (
+                <span
+                  key={index}
+                  className={`h-2 flex-1 rounded-[2px] ${
+                    current ? "bg-indigo-700" : relaxed ? "bg-indigo-300" : scanned ? "bg-neutral-300" : "bg-neutral-100"
+                  }`}
+                />
+              );
+            })}
+          </div>
+        </div>
+        <div>
+          <div className="mb-1 flex items-center justify-between text-[11.5px] text-neutral-500">
+            <span className="font-medium text-neutral-700">Places reached</span>
+            <span className="tabular-nums">
+              {reachedCount} of {NODE_IDS.length}
+            </span>
+          </div>
+          <div className="flex gap-px">
+            {NODE_IDS.map((id) => {
+              const value = snap.dist[id];
+              const fresh = snap.updated.includes(id);
+              const reached = Number.isFinite(value);
+              return (
+                <span
+                  key={id}
+                  title={`${PLACE_NAME[id]}: ${reached ? kmLabel(value) : "not reached"}`}
+                  className={`h-2 flex-1 rounded-[2px] ${fresh ? "bg-indigo-700" : reached ? "bg-indigo-300" : "bg-neutral-100"}`}
+                />
+              );
+            })}
+          </div>
+        </div>
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-neutral-500">
+          <span className="inline-flex items-center gap-1">
+            <span className="h-2 w-2 rounded-[2px] bg-indigo-700" />
+            current
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <span className="h-2 w-2 rounded-[2px] bg-indigo-300" />
+            updated / reached
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <span className="h-2 w-2 rounded-[2px] bg-neutral-300" />
+            done
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <span className="h-2 w-2 rounded-[2px] bg-neutral-100" />
+            not yet
+          </span>
+        </div>
+      </div>
+        </div>
+      </div>
+      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-neutral-200 px-3 py-2">
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => goTo(0)}
+            disabled={step === 0}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-neutral-200 bg-white px-2.5 py-1.5 text-[12px] font-medium leading-none text-neutral-700 disabled:text-neutral-300"
+          >
+            <RotateCcw size={12} />
+            Reset
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              if (done) {
+                setStep(0);
+                setPlaying(true);
+                return;
+              }
+              setPlaying((value) => !value);
+            }}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-neutral-200 bg-white px-2.5 py-1.5 text-[12px] font-medium leading-none text-neutral-700"
+          >
+            {playing && !done ? <Pause size={12} /> : <Play size={12} />}
+            {done ? "Replay" : playing ? "Pause" : "Play"}
+          </button>
+        </div>
+        <span className="text-[12px] tabular-nums text-neutral-500">
+          {step + 1} / {BF_STEPS.length}
+        </span>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => goTo(step - 1)}
+            disabled={step === 0}
+            className="inline-flex items-center rounded-lg border border-neutral-200 bg-white px-2.5 py-1.5 text-[12px] font-medium leading-none text-neutral-700 disabled:text-neutral-300"
+          >
+            Previous
+          </button>
+          <button
+            type="button"
+            onClick={() => goTo(step + 1)}
+            disabled={done}
+            className="inline-flex items-center rounded-lg border border-indigo-300 bg-indigo-50 px-2.5 py-1.5 text-[12px] font-medium leading-none text-indigo-700 disabled:border-neutral-200 disabled:bg-white disabled:text-neutral-300"
+          >
+            Next
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
