@@ -90,6 +90,8 @@ import ConsistentHashingVisualizer from './consistent-hashing-visualizer';
 import CycleDetectionDFSVisualizer from './cycle-detection-dfs-visualizer';
 import DijkstraVisualizer from './dijkstra-visualizer';
 import DelhiShortestPathVisualizer, { BellmanFordMapVisualizer } from './delhi-shortest-path-visualizer';
+import { SpfaMapVisualizer } from './spfa-map-visualizer';
+import { DijkstraMapVisualizer } from './dijkstra-map-visualizer';
 import ShortestPathSubpathVisualizer, { ShortestPathSubstructureVisualizer } from './shortest-path-subpath-visualizer';
 import DisappearingNodesVisualizer from './disappearing-nodes-visualizer';
 import DisappearingNodesSpfaVisualizer from './disappearing-nodes-spfa-visualizer';
@@ -442,6 +444,8 @@ let components = {
   DijkstraVisualizer: DijkstraVisualizer,
   DelhiShortestPathVisualizer: DelhiShortestPathVisualizer,
   BellmanFordMapVisualizer: BellmanFordMapVisualizer,
+  SpfaMapVisualizer: SpfaMapVisualizer,
+  DijkstraMapVisualizer: DijkstraMapVisualizer,
   ShortestPathSubpathVisualizer: ShortestPathSubpathVisualizer,
   ShortestPathSubstructureVisualizer: ShortestPathSubstructureVisualizer,
   DisappearingNodesVisualizer: DisappearingNodesVisualizer,

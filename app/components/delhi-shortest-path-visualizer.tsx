@@ -629,6 +629,35 @@ function MapLabel({
   );
 }
 
+export {
+  VB_W,
+  VB_H,
+  VIEW,
+  MIN_ZOOM,
+  MAX_ZOOM,
+  ZOOM_STEP,
+  clampZoom,
+  clampOrigin,
+  ROAD,
+  ROUTE,
+  ROUTE_TEXT,
+  ROUTE_ACTIVE,
+  FONT,
+  NODE_IDS,
+  POS,
+  EDGES,
+  edgeKey,
+  pathD,
+  CLOTH,
+  findEdge,
+  SEARCH,
+  LABELS,
+  PLACE_NAME,
+  kmLabel,
+  EDGE_LABEL_AT,
+  MapLabel,
+};
+
 export default function DelhiShortestPathVisualizer() {
   const [selected, setSelected] = useState<Selection>("all");
   const [zoom, setZoom] = useState(1);

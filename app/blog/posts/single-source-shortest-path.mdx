@@ -1,5 +1,5 @@
 ---
-title: 'Data Structures & Algorithms (Graphs): Single Source Shortest Path'
+title: 'Data Structures & Algorithms (Graphs): Single-Source Shortest Path Algorithms'
 publishedAt: '2026-04-16'
 ---
 
@@ -41,22 +41,128 @@ passes, it's guaranteed to have discovered the shortest distances from the sourc
 
 ---
 
-### Better Approach: Shortest Path Faster Algorithm
+### Better Approach: Shortest Path Faster Algorithm (SPFA)
+
+Bellman-Ford processes every edge in every pass, even when the edge's starting vertex has not received a 
+better distance. The key observation behind SPFA is to only process the outgoing edges of vertices whose 
+shortest distances have changed.
+
+An improvement in one node's shortest path can lead to improvements in other nodes' shortest distances.
+Therefore, whenever we discover a shorter path to a node, we need to explore its neighbours again using the 
+updated distance.
 
 #### Implementation
 
+SPFA uses a queue to keep track of vertices whose distances have improved and whose outgoing edges 
+need to be explored.
+
+<SpfaMapVisualizer />
+
 #### Time Complexity 
 
+The time complexity depends on the the following operations:
+
+1. **Initializing the adjacency list**: We iterate over all vertices to initialize 
+their adjacency lists, which takes `O(V)` time. We then iterate over all edges to 
+populate the adjacency list. Since the graph is undirected, each edge is added to the 
+adjacency lists of both endpoints. This takes `O(E)` time. Therefore, this takes 
+`O(V + E)`.
+
+2. **Queue processing**: A node can be enqueued and processed multiple times. Whenever we 
+process a node, we explore all its neighbours. In the worst case, every single vertex 
+gets updated and re-queued `(V - 1)` times. f every vertex is popped `O(V)` times and 
+each pop checks all its outgoing edges, the sum of all edge checks across all vertices 
+equals `O(V * E)`. <span className='bg-emerald-200 rounded p-0.5'> ------ Need to explore this more -----</span>
+
+3. **Converting unreachable nodes to `-1`**: We iterate over the `answer` array once to 
+identify unreachable nodes and update their values to `-1`. Since the array contains `(V)` 
+elements, this takes `O(V)`.
+
+Hence, the overall time complexity is `O(V + E) + O(V * E) + O(V) = O(V * E)`.
+
 #### Space Complexity 
+
+The space complexity is primarily determined by three data structures: 
+
+1. **Adjacency list**: Each of the `(V)` vertices requires an adjacency list. Each of the 
+`(E)` edges is stored twice because the graph is undirected. This takes `O(V + E)`.
+
+2. **`answer` array**: Since the array contains `(V)` elements, this takes `O(V)`.
+
+3. **Queue**: In the standard SPFA implementation, we maintain an additional `inQueue[]` 
+array. Whenever we enqueue a node, we mark it as present in the queue. We only enqueue it 
+again after it has been removed from the queue. This ensures that at any given time, 
+each vertex can appear in the queue at most once. This takes `O(V)`.
+
+Hence, the overall space complexity is `O(V + E)`. <span className='bg-emerald-200 rounded p-0.5'> ------ Need to explore this more ----- </span>
 
 ---
 
 ### Suitable Approach: Dijkstra's Algorithm
 
+SPFA avoids unnecessary edge processing, but it still has an important limitation. It uses a regular FIFO queue.
+This means vertices are processed in the order they are added, not according to how close they are to the source.
+Key observations that make dijkstra work:
+
+1. Out of all the nodes whose shortest path are not yet confirmed, we can pick the 
+node with the smallest known distance from the source. Any alternative path to 
+this node must pass through another unprocessed node. Since all edge weights 
+are non-negative, that path cannot produce a shorter distance than the one we 
+have already found.
+
+2. Once we know the shortest path of a node from the source, we can explore its 
+neighbours and attempt to improve their shortest known distances.
+
 #### Implementation
+
+The algorithm uses a **<span className='bg-indigo-200 p-0.5 rounded'>greedy approach</span>** 
+combined with a **<span className='bg-indigo-200 p-0.5 rounded'>min-priority queue</span>** 
+to always process the node with the smallest known distance from the source. By repeatedly 
+exploring its neighbours and relaxing edges, we gradually determine the shortest paths 
+to all reachable nodes.
+
+<DijkstraMapVisualizer />
 
 #### Time Complexity 
 
+
+The time complexity of Dijkstra's Algorithm can be broken down into four major operations:
+
+1. **Building the Adjacency List**: We iterate over all vertices `(V)` to initialize 
+their adjacency lists and iterate over all edges `(E)` to populate them. This operation 
+takes `O(V + E)`.
+
+2. **Adding nodes to the Priority Queue**: Whenever we discover a shorter path to a 
+neighbouring node, we insert an updated entry into the priority queue. Every successful 
+relaxation corresponds to examining a particular edge. Hence, the number of 
+successful relaxations is bounded by `(E)`. Considering each insertion into a binary 
+min-heap takes `O(V)` time, the total node addition is `O(E * logV)`.
+
+3. **Removing nodes from the Priority Queue**: Since there can be at most `(E)` 
+successful relaxations, there can be at most `(E)` extractions. Considering each 
+extraction takes `O(logV)` time, the total node removal is `O(E * logV)`.
+
+4. **Exploring the neighbours of a node**: Since each vertex is processed at most once, 
+and all its adjacency entries are examined once, the total neighbour traversal is 
+`O(V + E)`.
+
+Combining all four operations, the overall time complexity is `O(V + E) + O(E * logV) + O(E * logV) + O(V + E)
+= O(V + E + E * logV) ~ O(E * logV)`.
+
 #### Space Complexity 
+
+Let's break it down into the different data structures we maintain.
+
+1. **Adjacency List**: Every vertex has an adjacency list, requiring `O(V)` space. Every 
+edge is stored in the adjacency list. Therefore, this takes `O(V + E)`.
+
+2. **Distance array**: We maintain a `dist[]` array to store the shortest known distance 
+from the source to every vertex. Since there are `(V)` vertices, the array requires `O(V)`.
+
+3. **Priority queue**: Since each successful relaxation can result in one insertion, and 
+there are at most `O(E)` successful relaxations, the priority queue can contain up to 
+`O(E)` entries.
+
+Therefore, the overall space complexity is `O(V+E)`.
 
 ---
