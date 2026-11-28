@@ -47,20 +47,20 @@ const PREREQS: Record<TaskId, TaskId[]> = {
 };
 
 const W = 140;
-const H = 36;
+const H = 46;
 
 const POS: Record<TaskId, { x: number; y: number }> = {
-  account: { x: 16, y: 16 },
-  holdings: { x: 16, y: 80 },
-  quote: { x: 16, y: 144 },
-  market: { x: 16, y: 208 },
-  power: { x: 204, y: 48 },
-  limits: { x: 204, y: 112 },
-  lock: { x: 204, y: 176 },
-  risk: { x: 392, y: 80 },
-  build: { x: 392, y: 176 },
-  submit: { x: 580, y: 128 },
-  confirm: { x: 768, y: 128 },
+  account: { x: 16, y: 14 },
+  holdings: { x: 16, y: 76 },
+  quote: { x: 16, y: 138 },
+  market: { x: 16, y: 200 },
+  power: { x: 204, y: 45 },
+  limits: { x: 204, y: 107 },
+  lock: { x: 204, y: 169 },
+  risk: { x: 392, y: 76 },
+  build: { x: 392, y: 169 },
+  submit: { x: 580, y: 122 },
+  confirm: { x: 768, y: 122 },
 };
 
 const EDGES: Array<[TaskId, TaskId]> = [
@@ -82,6 +82,10 @@ const EDGES: Array<[TaskId, TaskId]> = [
 function readyTasks(done: readonly TaskId[]): TaskId[] {
   const have = new Set(done);
   return TASK_IDS.filter((id) => !have.has(id) && PREREQS[id].every((item) => have.has(item)));
+}
+
+function remaining(id: TaskId, done: ReadonlySet<TaskId>) {
+  return PREREQS[id].filter((item) => !done.has(item)).length;
 }
 
 function port(id: TaskId, side: "left" | "right", shift = 0) {
@@ -129,24 +133,19 @@ export default function StockOrderWorkflowVisualizer() {
       <div className="border-b border-neutral-200 px-3 py-2">
         <span className="text-[13px] font-medium text-neutral-400">Valid Topological Orderings (Permutations)</span>
       </div>
-      <div className="overflow-x-auto bg-[#f8fafc]">
-        <svg viewBox="0 0 924 260" className="block h-auto w-full min-w-[900px]" role="img" aria-label="Order workflow. Trigger a ready task to extend the execution order.">
+      <div className="h-[260px] overflow-x-auto overflow-y-hidden bg-[#f8fafc]">
+        <svg viewBox="0 0 924 260" width="924" height="260" className="block h-[260px] w-[924px]" role="img" aria-label="Trigger a ready task. Each outgoing edge disappears, and a neighbor becomes ready only when every incoming edge is gone.">
           <defs>
             <marker id="stock-order-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
               <path d="M0 0 L10 5 L0 10 Z" fill="context-stroke" />
             </marker>
           </defs>
           {EDGES.map(([from, to]) => {
-            const known = finished.has(from);
+            const gone = finished.has(from);
             return (
-              <path
-                key={`${from}-${to}`}
-                d={edgePath(from, to)}
-                fill="none"
-                stroke={known ? "#a5b4fc" : "#d4d4d8"}
-                strokeWidth={known ? 1.8 : 1.6}
-                markerEnd="url(#stock-order-arrow)"
-              />
+              <g key={`${from}-${to}`} style={{ opacity: gone ? 0 : 1, transition: "opacity 280ms ease" }}>
+                <path d={edgePath(from, to)} fill="none" stroke="#d4d4d8" strokeWidth={1.6} markerEnd="url(#stock-order-arrow)" />
+              </g>
             );
           })}
           {TASK_IDS.map((id) => {
@@ -154,15 +153,21 @@ export default function StockOrderWorkflowVisualizer() {
             const isFresh = current === id;
             const isDone = finished.has(id);
             const isReady = ready.has(id);
+            const left = remaining(id, finished);
             const fill = isFresh ? "#4f46e5" : isDone ? "#eef2ff" : "#ffffff";
             const stroke = isFresh ? "#4f46e5" : isDone ? "#c7d2fe" : isReady ? "#4f46e5" : "#e4e4e7";
             const name = isFresh ? "#ffffff" : isDone || isReady ? "#312e81" : "#52525b";
+            const sub = isFresh ? "#e0e7ff" : isReady ? "#4f46e5" : isDone ? "#6366f1" : "#a3a3a3";
+            const detail = isDone ? "Processed" : left === 0 ? "Ready" : left === 1 ? "1 left" : `${left} left`;
             return (
               <g key={id} onClick={isReady ? () => trigger(id) : undefined} style={{ cursor: isReady ? "pointer" : "default" }}>
-                {isReady ? <rect x={box.x - 4} y={box.y - 4} width={W + 8} height={H + 8} rx={12} fill="none" stroke="#c7d2fe" strokeDasharray="3 3" /> : null}
-                <rect x={box.x} y={box.y} width={W} height={H} rx={10} fill={fill} stroke={stroke} strokeWidth={isReady || isFresh ? 1.75 : 1} />
-                <text x={box.x + W / 2} y={box.y + 23} textAnchor="middle" fontFamily={FONT} fontSize={12.5} fontWeight={600} fill={name}>
+                {isReady ? <rect x={box.x - 4} y={box.y - 4} width={W + 8} height={H + 8} rx={14} fill="none" stroke="#c7d2fe" strokeDasharray="3 3" /> : null}
+                <rect x={box.x} y={box.y} width={W} height={H} rx={12} fill={fill} stroke={stroke} strokeWidth={isReady || isFresh ? 1.75 : 1} />
+                <text x={box.x + W / 2} y={box.y + 18} textAnchor="middle" fontFamily={FONT} fontSize={12.5} fontWeight={600} fill={name}>
                   {LABEL[id]}
+                </text>
+                <text x={box.x + W / 2} y={box.y + 34} textAnchor="middle" fontFamily={FONT} fontSize={11} fontWeight={600} fill={sub}>
+                  {detail}
                 </text>
               </g>
             );
@@ -191,13 +196,13 @@ export default function StockOrderWorkflowVisualizer() {
         </div>
         <div>
           <div className="mb-1 text-[11.5px] font-medium text-neutral-700">Triggered</div>
-          <div className="flex min-h-7 flex-wrap items-center gap-1">
+          <div className="flex h-12 flex-wrap content-start items-center gap-1 overflow-hidden">
             {chosen.length === 0 ? (
               <span className="text-[12px] text-neutral-300">No task triggered yet</span>
             ) : (
               chosen.map((id, index) => (
                 <span key={id} className="inline-flex items-center gap-1">
-                  {index > 0 ? <span className="px-0.5 text-[11px] text-neutral-400">then</span> : null}
+                  {index > 0 ? <span className="text-[11px] text-neutral-400">then</span> : null}
                   <span
                     className={`rounded-md px-1.5 py-0.5 text-[11px] font-medium ${
                       current === id ? "bg-indigo-600 text-white" : "bg-indigo-50 text-indigo-700"
