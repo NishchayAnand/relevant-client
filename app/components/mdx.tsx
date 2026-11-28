@@ -98,6 +98,7 @@ import DisappearingNodesSpfaVisualizer from './disappearing-nodes-spfa-visualize
 import EdgeListScanVisualizer from './edge-list-scan-visualizer';
 import DijkstraCodeVisualizer from './dijkstra-code-visualizer';
 import TopologicalSortBFSVisualizer from './topological-sort-bfs-visualizer';
+import StockOrderWorkflowVisualizer from './stock-order-workflow-visualizer';
 import ScheduleJobSequenceVisualizer from './schedule-job-sequence-visualizer';
 import AtmSystemVisualizer from './atm-system-visualizer';
 import VideoPlaybackPipelineVisualizer from './video-playback-pipeline-visualizer';
@@ -453,6 +454,7 @@ let components = {
   EdgeListScanVisualizer: EdgeListScanVisualizer,
   DijkstraCodeVisualizer: DijkstraCodeVisualizer,
   TopologicalSortBFSVisualizer: TopologicalSortBFSVisualizer,
+  StockOrderWorkflowVisualizer: StockOrderWorkflowVisualizer,
   ScheduleJobSequenceVisualizer: ScheduleJobSequenceVisualizer,
   AtmSystemVisualizer: AtmSystemVisualizer,
   VideoPlaybackPipelineVisualizer: VideoPlaybackPipelineVisualizer,
